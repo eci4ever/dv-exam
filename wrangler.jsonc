@@ -1,7 +1,16 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "dv-exam",
-  "compatibility_date": "2025-09-02",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "dv-exam",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"main": "@tanstack/react-start/server-entry",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "dv-exam-db",
+			"database_id": "64c03621-416d-44ee-965d-b0d4f28fd715"
+		}
+	]
 }
