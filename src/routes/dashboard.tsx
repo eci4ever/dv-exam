@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
 	BarChart3,
 	CalendarDays,
@@ -60,6 +60,11 @@ function DashboardPage() {
 						<span>Laporan dijana</span>
 					</article>
 				</div>
+				{user.role === "admin" && (
+					<Link className="super-admin-link" to="/super-admin">
+						Buka Super Admin →
+					</Link>
+				)}
 			</section>
 		</main>
 	);
