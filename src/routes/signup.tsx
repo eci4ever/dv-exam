@@ -15,12 +15,18 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
 
-export const Route = createFileRoute("/signup")({ component: SignupPage });
+export const Route = createFileRoute("/signup")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		redirect: sanitizeRedirect(search.redirect),
+	}),
+	component: SignupPage,
+});
 
 function SignupPage() {
 	const [submitted, setSubmitted] = useState(false);
 	const [error, setError] = useState("");
 	const navigate = useNavigate();
+	const { redirect } = Route.useSearch();
 	return (
 		<main className="auth-page signup-page">
 			<section className="auth-aside">
@@ -62,7 +68,10 @@ function SignupPage() {
 					<p className="kicker">— Cipta akaun anda</p>
 					<h2>Mari mula bersama</h2>
 					<p className="auth-subtitle">
-						Sudah mempunyai akaun? <Link to="/login">Log masuk</Link>
+						Sudah mempunyai akaun?{" "}
+						<Link search={{ redirect }} to="/login">
+							Log masuk
+						</Link>
 					</p>
 					<form
 						onSubmit={async (event) => {
@@ -79,7 +88,7 @@ function SignupPage() {
 								return;
 							}
 							setSubmitted(true);
-							navigate({ to: "/dashboard" });
+							navigate({ href: redirect });
 						}}
 					>
 						<Label htmlFor="signup-name">
@@ -144,4 +153,12 @@ function SignupPage() {
 			</section>
 		</main>
 	);
+}
+
+function sanitizeRedirect(value: unknown) {
+	return typeof value === "string" &&
+		value.startsWith("/") &&
+		!value.startsWith("//")
+		? value
+		: "/dashboard";
 }

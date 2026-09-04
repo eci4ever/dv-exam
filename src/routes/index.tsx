@@ -50,7 +50,7 @@ function Brand() {
 
 function Home() {
 	return (
-		<main>
+		<main className="marketing-page">
 			<header>
 				<div className="container nav">
 					<Brand />

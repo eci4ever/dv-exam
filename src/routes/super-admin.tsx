@@ -1,26 +1,18 @@
-import {
-	createFileRoute,
-	Link,
-	redirect,
-	useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
 	Activity,
-	ArrowUpRight,
 	Ban,
 	Building2,
 	CheckCircle2,
 	CirclePlus,
-	GraduationCap,
 	LayoutDashboard,
-	LogOut,
-	ShieldCheck,
 	Sparkles,
 	UserCog,
 	Users,
 } from "lucide-react";
 import { useState } from "react";
+import { DashboardShell } from "#/components/dashboard-shell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -33,10 +25,10 @@ import {
 import { Input } from "#/components/ui/input";
 import { Separator } from "#/components/ui/separator";
 import { getSession } from "#/lib/auth.functions";
-import { authClient } from "#/lib/auth-client";
 import {
 	createOrganization,
 	getSuperAdminOverview,
+	setOrganizationOwner,
 	updateUserAccess,
 } from "#/lib/super-admin.functions";
 
@@ -57,8 +49,11 @@ function SuperAdminPage() {
 	const router = useRouter();
 	const createOrganizationFn = useServerFn(createOrganization);
 	const updateUserAccessFn = useServerFn(updateUserAccess);
+	const setOrganizationOwnerFn = useServerFn(setOrganizationOwner);
 	const [organizationName, setOrganizationName] = useState("");
 	const [adminEmail, setAdminEmail] = useState("");
+	const [ownerOrganizationId, setOwnerOrganizationId] = useState("");
+	const [ownerEmail, setOwnerEmail] = useState("");
 	const [notice, setNotice] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 	const [workingUserId, setWorkingUserId] = useState("");
@@ -110,40 +105,31 @@ function SuperAdminPage() {
 		}
 	}
 
+	async function handleSetOwner(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setNotice("");
+		setIsSaving(true);
+		try {
+			const owner = await setOrganizationOwnerFn({
+				data: { organizationId: ownerOrganizationId, email: ownerEmail },
+			});
+			setOwnerEmail("");
+			setNotice(`${owner.name} kini Owner untuk organisasi tersebut.`);
+			await refresh();
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Owner tidak dapat ditetapkan.",
+			);
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
 	return (
-		<main className="min-h-screen bg-muted/30">
-			<div className="relative z-10 border-b bg-background">
-				<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<Link className="flex items-center gap-2 font-semibold" to="/">
-						<GraduationCap className="size-5 text-primary" /> CaknaExam
-					</Link>
-					<div className="flex items-center gap-2">
-						<Badge variant="secondary">
-							<ShieldCheck className="mr-1 size-3" /> Super Admin
-						</Badge>
-						<Button asChild size="sm" variant="ghost">
-							<Link to="/dashboard">
-								Dashboard <ArrowUpRight />
-							</Link>
-						</Button>
-						<Button
-							aria-label="Log keluar"
-							onClick={() =>
-								authClient.signOut({
-									fetchOptions: {
-										onSuccess: () => window.location.assign("/"),
-									},
-								})
-							}
-							size="icon"
-							variant="ghost"
-						>
-							<LogOut />
-						</Button>
-					</div>
-				</div>
-			</div>
-			<div className="mx-auto max-w-7xl space-y-6 px-4 pb-8 pt-10 sm:px-6">
+		<DashboardShell pageTitle="Super Admin" user={user}>
+			<div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8">
 				<section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">
@@ -266,6 +252,9 @@ function SuperAdminPage() {
 													{organization.pendingInvitationCount} jemputan
 													menunggu
 												</p>
+												<p className="mt-1 text-xs text-muted-foreground">
+													Owner: {organization.ownerName ?? "Belum ditetapkan"}
+												</p>
 											</div>
 											<Badge variant="outline">{organization.slug}</Badge>
 										</div>
@@ -280,6 +269,68 @@ function SuperAdminPage() {
 						</CardContent>
 					</Card>
 				</section>
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<UserCog className="size-5 text-primary" /> Tetapkan Owner
+							organisasi
+						</CardTitle>
+						<CardDescription>
+							Owner mengurus ahli, jemputan dan tetapan untuk organisasi
+							terpilih. Ia tidak memberikan akses Super Admin platform.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<form
+							className="grid gap-4 md:grid-cols-[1fr_1fr_auto]"
+							onSubmit={handleSetOwner}
+						>
+							<label
+								className="grid gap-2 text-sm font-medium"
+								htmlFor="owner-organization"
+							>
+								Organisasi
+								<select
+									className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+									id="owner-organization"
+									onChange={(event) =>
+										setOwnerOrganizationId(event.target.value)
+									}
+									required
+									value={ownerOrganizationId}
+								>
+									<option value="">Pilih organisasi</option>
+									{organizations.map((organization) => (
+										<option key={organization.id} value={organization.id}>
+											{organization.name}
+										</option>
+									))}
+								</select>
+							</label>
+							<label
+								className="grid gap-2 text-sm font-medium"
+								htmlFor="owner-email"
+							>
+								E-mel pengguna berdaftar
+								<Input
+									id="owner-email"
+									onChange={(event) => setOwnerEmail(event.target.value)}
+									placeholder="owner@organisasi.edu.my"
+									required
+									type="email"
+									value={ownerEmail}
+								/>
+							</label>
+							<Button
+								className="self-end"
+								disabled={isSaving || !organizations.length}
+								type="submit"
+							>
+								Tetapkan Owner
+							</Button>
+						</form>
+					</CardContent>
+				</Card>
 				<Card>
 					<CardHeader className="flex-row items-center justify-between space-y-0">
 						<div>
@@ -395,7 +446,7 @@ function SuperAdminPage() {
 					platform; e-mel transaksi boleh diaktifkan sebelum produksi.
 				</p>
 			</div>
-		</main>
+		</DashboardShell>
 	);
 }
 

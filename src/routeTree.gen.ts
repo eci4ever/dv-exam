@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -21,14 +24,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitationsRoute = InvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationsRoute = OrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -49,16 +67,22 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -66,8 +90,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -75,14 +102,34 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/dashboard' | '/login' | '/signup' | '/super-admin' | '/api/auth/$'
+    | '/'
+    | '/account'
+    | '/dashboard'
+    | '/invitations'
+    | '/login'
+    | '/organizations'
+    | '/signup'
+    | '/super-admin'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/signup' | '/super-admin' | '/api/auth/$'
+  to:
+    | '/'
+    | '/account'
+    | '/dashboard'
+    | '/invitations'
+    | '/login'
+    | '/organizations'
+    | '/signup'
+    | '/super-admin'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/dashboard'
+    | '/invitations'
     | '/login'
+    | '/organizations'
     | '/signup'
     | '/super-admin'
     | '/api/auth/$'
@@ -90,8 +137,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   DashboardRoute: typeof DashboardRoute
+  InvitationsRoute: typeof InvitationsRoute
   LoginRoute: typeof LoginRoute
+  OrganizationsRoute: typeof OrganizationsRoute
   SignupRoute: typeof SignupRoute
   SuperAdminRoute: typeof SuperAdminRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -106,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -113,11 +170,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitations': {
+      id: '/invitations'
+      path: '/invitations'
+      fullPath: '/invitations'
+      preLoaderRoute: typeof InvitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizations': {
+      id: '/organizations'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof OrganizationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -146,8 +217,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   DashboardRoute: DashboardRoute,
+  InvitationsRoute: InvitationsRoute,
   LoginRoute: LoginRoute,
+  OrganizationsRoute: OrganizationsRoute,
   SignupRoute: SignupRoute,
   SuperAdminRoute: SuperAdminRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

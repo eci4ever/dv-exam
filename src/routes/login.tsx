@@ -15,12 +15,18 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		redirect: sanitizeRedirect(search.redirect),
+	}),
+	component: LoginPage,
+});
 
 function LoginPage() {
 	const [submitted, setSubmitted] = useState(false);
 	const [error, setError] = useState("");
 	const navigate = useNavigate();
+	const { redirect } = Route.useSearch();
 	return (
 		<main className="auth-page">
 			<section className="auth-aside">
@@ -61,7 +67,9 @@ function LoginPage() {
 					<h2>Log masuk ke akaun anda</h2>
 					<p className="auth-subtitle">
 						Belum mempunyai akaun?{" "}
-						<Link to="/signup">Daftar secara percuma</Link>
+						<Link search={{ redirect }} to="/signup">
+							Daftar secara percuma
+						</Link>
 					</p>
 					<form
 						onSubmit={async (event) => {
@@ -77,7 +85,7 @@ function LoginPage() {
 								return;
 							}
 							setSubmitted(true);
-							navigate({ to: "/dashboard" });
+							navigate({ href: redirect });
 						}}
 					>
 						<Label htmlFor="login-email">
@@ -134,4 +142,12 @@ function LoginPage() {
 			</section>
 		</main>
 	);
+}
+
+function sanitizeRedirect(value: unknown) {
+	return typeof value === "string" &&
+		value.startsWith("/") &&
+		!value.startsWith("//")
+		? value
+		: "/dashboard";
 }

@@ -47,7 +47,7 @@ export const getSuperAdminOverview = createServerFn({ method: "GET" }).handler(
 				.bind(Date.now())
 				.first<{ count: number }>(),
 			env.DB.prepare(
-				`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COUNT(DISTINCT member.id) AS memberCount, COUNT(DISTINCT CASE WHEN invitation.status = 'pending' THEN invitation.id END) AS pendingInvitationCount FROM organization LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN invitation ON invitation.organizationId = organization.id GROUP BY organization.id ORDER BY organization.createdAt DESC LIMIT 8`,
+				`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COUNT(DISTINCT member.id) AS memberCount, COUNT(DISTINCT CASE WHEN invitation.status = 'pending' THEN invitation.id END) AS pendingInvitationCount, MAX(CASE WHEN instr(member.role, 'owner') > 0 THEN user.name END) AS ownerName, MAX(CASE WHEN instr(member.role, 'owner') > 0 THEN user.email END) AS ownerEmail FROM organization LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId LEFT JOIN invitation ON invitation.organizationId = organization.id GROUP BY organization.id ORDER BY organization.createdAt DESC LIMIT 8`,
 			).all<{
 				id: string;
 				name: string;
@@ -55,6 +55,8 @@ export const getSuperAdminOverview = createServerFn({ method: "GET" }).handler(
 				createdAt: number;
 				memberCount: number;
 				pendingInvitationCount: number;
+				ownerName: string | null;
+				ownerEmail: string | null;
 			}>(),
 			env.DB.prepare(
 				"SELECT id, name, email, role, banned, createdAt FROM user ORDER BY createdAt DESC LIMIT 8",
@@ -149,4 +151,50 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 				},
 			});
 		return { success: true };
+	});
+
+export const setOrganizationOwner = createServerFn({ method: "POST" })
+	.validator((data: { organizationId: string; email: string }) => ({
+		organizationId: data.organizationId,
+		email: data.email.trim().toLowerCase(),
+	}))
+	.handler(async ({ data }) => {
+		await requireSuperAdmin();
+		if (!data.organizationId || !/^\S+@\S+\.\S+$/.test(data.email)) {
+			throw new Error("Pilih organisasi dan masukkan e-mel pengguna yang sah.");
+		}
+		const [organization, user] = await Promise.all([
+			env.DB.prepare("SELECT id FROM organization WHERE id = ?")
+				.bind(data.organizationId)
+				.first<{ id: string }>(),
+			env.DB.prepare("SELECT id, name FROM user WHERE email = ?")
+				.bind(data.email)
+				.first<{ id: string; name: string }>(),
+		]);
+		if (!organization) throw new Error("Organisasi tidak ditemui.");
+		if (!user) {
+			throw new Error(
+				"Pengguna belum berdaftar. Minta mereka daftar sebelum menetapkan Owner.",
+			);
+		}
+
+		const membership = await env.DB.prepare(
+			"SELECT id FROM member WHERE organizationId = ? AND userId = ?",
+		)
+			.bind(data.organizationId, user.id)
+			.first<{ id: string }>();
+		const statements = [
+			env.DB.prepare(
+				"UPDATE member SET role = 'admin' WHERE organizationId = ? AND instr(role, 'owner') > 0",
+			).bind(data.organizationId),
+			membership
+				? env.DB.prepare("UPDATE member SET role = 'owner' WHERE id = ?").bind(
+						membership.id,
+					)
+				: env.DB.prepare(
+						"INSERT INTO member (id, organizationId, userId, role, createdAt) VALUES (?, ?, ?, 'owner', ?)",
+					).bind(crypto.randomUUID(), data.organizationId, user.id, Date.now()),
+		];
+		await env.DB.batch(statements);
+		return { name: user.name, email: data.email };
 	});
