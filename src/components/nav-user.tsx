@@ -68,13 +68,13 @@ export function NavUser({ user }: { user: SidebarUser }) {
 						<DropdownMenuGroup>
 							<DropdownMenuItem asChild>
 								<Link to="/account">
-									<BadgeCheck /> Tetapan akaun
+									<BadgeCheck /> Account settings
 								</Link>
 							</DropdownMenuItem>
 							{user.role === "admin" && (
 								<DropdownMenuItem asChild>
 									<Link to="/super-admin">
-										<ShieldCheck /> Konsol Super Admin
+										<ShieldCheck /> Super Admin Console
 									</Link>
 								</DropdownMenuItem>
 							)}
@@ -89,7 +89,7 @@ export function NavUser({ user }: { user: SidebarUser }) {
 								})
 							}
 						>
-							<LogOut /> Log keluar
+							<LogOut /> Sign out
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

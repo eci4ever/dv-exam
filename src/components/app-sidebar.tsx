@@ -33,8 +33,8 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & { user: SidebarUser }) {
 	const navItems = [
 		{ title: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
-		{ title: "Organisasi", to: "/organizations" as const, icon: Building2 },
-		{ title: "Tetapan akaun", to: "/account" as const, icon: Settings },
+		{ title: "Organisations", to: "/organizations" as const, icon: Building2 },
+		{ title: "Account settings", to: "/account" as const, icon: Settings },
 	];
 
 	if (user.role === "admin") {
@@ -58,7 +58,7 @@ export function AppSidebar({
 								<span className="grid flex-1 text-left leading-tight">
 									<span className="truncate font-semibold">CaknaExam</span>
 									<span className="truncate text-xs">
-										Pengurusan peperiksaan
+										Examination management
 									</span>
 								</span>
 							</Link>
