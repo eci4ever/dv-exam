@@ -3,10 +3,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
 import { requireGlobalAdmin } from "#/server/auth/authorization";
-
-type UserAction = "ban" | "unban" | "make-admin" | "make-user";
-
-type AuditedUserAction = UserAction & { reason: string };
+import {
+	createOrganizationSchema,
+	platformAuditLogQuerySchema,
+	platformUsersQuerySchema,
+	resendUserVerificationSchema,
+	revokeUserSessionsSchema,
+	setOrganizationOwnerSchema,
+	updateOrganizationLifecycleSchema,
+	updatePlatformOrganizationSchema,
+	updatePlatformSettingsSchema,
+	updateUserAccessSchema,
+} from "#/server/validation/super-admin";
 
 async function writeAudit(
 	actorUserId: string,
@@ -111,16 +119,9 @@ export const getSuperAdminOverview = createServerFn({ method: "GET" }).handler(
 );
 
 export const createOrganization = createServerFn({ method: "POST" })
-	.validator((data: { name: string; adminEmail?: string }) => ({
-		name: data.name.trim(),
-		adminEmail: data.adminEmail?.trim().toLowerCase() ?? "",
-	}))
+	.validator((data: unknown) => createOrganizationSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
-		if (data.name.length < 3)
-			throw new Error("Nama organisasi mesti sekurang-kurangnya 3 aksara.");
-		if (data.adminEmail && !/^\S+@\S+\.\S+$/.test(data.adminEmail))
-			throw new Error("Masukkan e-mel pentadbir organisasi yang sah.");
 		const baseSlug = slugify(data.name);
 		if (!baseSlug)
 			throw new Error("Nama organisasi tidak boleh dijadikan slug.");
@@ -157,18 +158,10 @@ export const createOrganization = createServerFn({ method: "POST" })
 	});
 
 export const updateUserAccess = createServerFn({ method: "POST" })
-	.validator((data: AuditedUserAction) => ({
-		...data,
-		reason: data.reason.trim(),
-	}))
+	.validator((data: unknown) => updateUserAccessSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
-		if (
-			!data.userId ||
-			!["ban", "unban", "make-admin", "make-user"].includes(data.action)
-		)
-			throw new Error("Tindakan pengguna tidak sah.");
 		if (
 			data.userId === session.user.id &&
 			(data.action === "ban" || data.action === "make-user")
@@ -213,7 +206,7 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 	});
 
 export const getPlatformUsers = createServerFn({ method: "GET" })
-	.validator((data: { query?: string } = {}) => data)
+	.validator((data: unknown) => platformUsersQuerySchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireSuperAdmin();
 		const query = data.query?.trim() ?? "";
@@ -231,7 +224,7 @@ export const getPlatformUsers = createServerFn({ method: "GET" })
 	});
 
 export const resendUserVerification = createServerFn({ method: "POST" })
-	.validator((data: { userId: string; reason: string }) => data)
+	.validator((data: unknown) => resendUserVerificationSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
@@ -269,15 +262,11 @@ export const getPlatformOrganizations = createServerFn({
 });
 
 export const updatePlatformOrganization = createServerFn({ method: "POST" })
-	.validator(
-		(data: { organizationId: string; name: string; reason: string }) => data,
-	)
+	.validator((data: unknown) => updatePlatformOrganizationSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
-		const name = data.name.trim();
-		if (name.length < 3)
-			throw new Error("Organisation name must be at least 3 characters.");
+		const { name } = data;
 		const organization = await env.DB.prepare(
 			"SELECT id FROM organization WHERE id = ?",
 		)
@@ -299,19 +288,10 @@ export const updatePlatformOrganization = createServerFn({ method: "POST" })
 	});
 
 export const setOrganizationOwner = createServerFn({ method: "POST" })
-	.validator(
-		(data: { organizationId: string; email: string; reason: string }) => ({
-			organizationId: data.organizationId,
-			email: data.email.trim().toLowerCase(),
-			reason: data.reason.trim(),
-		}),
-	)
+	.validator((data: unknown) => setOrganizationOwnerSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
-		if (!data.organizationId || !/^\S+@\S+\.\S+$/.test(data.email)) {
-			throw new Error("Pilih organisasi dan masukkan e-mel pengguna yang sah.");
-		}
 		const [organization, user] = await Promise.all([
 			env.DB.prepare("SELECT id FROM organization WHERE id = ?")
 				.bind(data.organizationId)
@@ -357,17 +337,10 @@ export const setOrganizationOwner = createServerFn({ method: "POST" })
 	});
 
 export const updateOrganizationLifecycle = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			organizationId: string;
-			action: "suspend" | "reactivate" | "archive" | "restore";
-			reason: string;
-		}) => data,
-	)
+	.validator((data: unknown) => updateOrganizationLifecycleSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
-		if (!data.organizationId) throw new Error("Organisation is required.");
 		const status =
 			data.action === "suspend"
 				? "suspended"
@@ -391,7 +364,7 @@ export const updateOrganizationLifecycle = createServerFn({ method: "POST" })
 	});
 
 export const revokeUserSessions = createServerFn({ method: "POST" })
-	.validator((data: { userId: string; reason: string }) => data)
+	.validator((data: unknown) => revokeUserSessionsSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
@@ -411,17 +384,7 @@ export const revokeUserSessions = createServerFn({ method: "POST" })
 	});
 
 export const getPlatformAuditLog = createServerFn({ method: "GET" })
-	.validator(
-		(
-			data: {
-				action?: string;
-				actor?: string;
-				target?: string;
-				from?: number;
-				to?: number;
-			} = {},
-		) => data,
-	)
+	.validator((data: unknown) => platformAuditLogQuerySchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireSuperAdmin();
 		const clauses = ["1 = 1"];
@@ -465,31 +428,15 @@ export const getPlatformSettings = createServerFn({ method: "GET" }).handler(
 );
 
 export const updatePlatformSettings = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			platformName: string;
-			supportEmail: string;
-			invitationExpiryHours: number;
-			emailSenderName: string;
-			reason: string;
-		}) => data,
-	)
+	.validator((data: unknown) => updatePlatformSettingsSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
-		if (!/^\S+@\S+\.\S+$/.test(data.supportEmail))
-			throw new Error("A valid support email is required.");
-		if (
-			!Number.isInteger(data.invitationExpiryHours) ||
-			data.invitationExpiryHours < 1 ||
-			data.invitationExpiryHours > 720
-		)
-			throw new Error("Invitation expiry must be between 1 and 720 hours.");
 		const settings = {
-			platformName: data.platformName.trim(),
-			supportEmail: data.supportEmail.trim().toLowerCase(),
+			platformName: data.platformName,
+			supportEmail: data.supportEmail,
 			invitationExpiryHours: String(data.invitationExpiryHours),
-			emailSenderName: data.emailSenderName.trim(),
+			emailSenderName: data.emailSenderName,
 		};
 		await env.DB.batch(
 			Object.entries(settings).map(([key, value]) =>
