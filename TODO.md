@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-05 — PR #8:** Added server-enforced examination deadlines for starting attempts and saving answers. Added deadline-boundary tests.
 - [x] **2026-09-05 — PR #7:** Added server-enforced examination lifecycle rules and tests for publish, close, archive, and result-release transitions.
 - [x] **2026-09-05 — PR #6:** Added Zod validation for examination questions, candidate assignments, workflow actions, attempts, and answers. Added contract tests.
 - [x] **2026-09-05 — PR #5:** Added explicit organisation-membership guards so members can select their active organisation without gaining management permissions. Added role-policy tests.
@@ -65,6 +66,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 **Completed in this phase so far:**
 
 - [x] Added server-enforced lifecycle transition rules for publishing, closing, archiving, and releasing results.
+- [x] Prevented candidates from starting or autosaving an attempt after an examination deadline.
 
 - [ ] Derive the active organisation server-side for examination creation/listing; validate any selected organisation against authenticated membership.
 - [ ] Add explicit permission checks for create, edit, publish, close, archive, assign candidates and release results.

@@ -18,3 +18,7 @@ export function canTransitionExamination(
 ) {
 	return allowedActions[status as ExaminationStatus]?.includes(action) ?? false;
 }
+
+export function canSaveCandidateAnswer(endsAt: number | null, now: number) {
+	return endsAt === null || endsAt > now;
+}
