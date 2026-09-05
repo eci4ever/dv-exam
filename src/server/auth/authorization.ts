@@ -3,6 +3,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "#/lib/auth";
 import {
 	hasOrganizationPermission,
+	isOrganizationMemberRole,
 	type OrganizationPermission,
 } from "./authorization-policy";
 
@@ -30,13 +31,7 @@ export async function requireGlobalAdmin() {
 	return session;
 }
 
-export async function requireOrganizationPermission({
-	organizationId,
-	permission,
-}: {
-	organizationId: string;
-	permission: OrganizationPermission;
-}) {
+export async function requireOrganizationMember(organizationId: string) {
 	const session = await requireSession();
 	if (!organizationId)
 		throw new AuthorizationError("An organisation context is required.");
@@ -45,8 +40,19 @@ export async function requireOrganizationPermission({
 	)
 		.bind(organizationId, session.user.id)
 		.first<{ role: string }>();
-	if (!membership)
+	if (!membership || !isOrganizationMemberRole(membership.role))
 		throw new AuthorizationError("You are not a member of this organisation.");
+	return { session, role: membership.role };
+}
+
+export async function requireOrganizationPermission({
+	organizationId,
+	permission,
+}: {
+	organizationId: string;
+	permission: OrganizationPermission;
+}) {
+	const membership = await requireOrganizationMember(organizationId);
 	if (!hasOrganizationPermission(membership.role, permission))
 		throw new AuthorizationError(
 			"Organisation owner or admin access is required.",
@@ -60,7 +66,15 @@ export async function requireOrganizationPermission({
 		throw new AuthorizationError(
 			"This organisation is not active for operational changes.",
 		);
-	return { session, role: membership.role };
+	return membership;
+}
+
+export async function requireActiveOrganization() {
+	const session = await requireSession();
+	const organizationId = session.session.activeOrganizationId;
+	if (!organizationId)
+		throw new AuthorizationError("Choose an active organisation first.");
+	return requireOrganizationMember(organizationId);
 }
 
 export async function requireActiveOrganizationPermission(

@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-05 — PR #5:** Added explicit organisation-membership guards so members can select their active organisation without gaining management permissions. Added role-policy tests.
 - [x] **2026-09-05 — PR #1:** Added the authorization foundation, the organisation permission matrix, and initial examination Zod contract tests. Merged as `6b2f503`.
 - [x] **2026-09-05 — PR #2:** Added Zod contracts and tests for organisation membership and invitation mutations; fixed invitation acceptance to authorise the signed-in recipient. Merged as `1cc8a63`.
 - [x] **2026-09-05 — PR #3:** Added Zod contracts and tests for Platform Admin governance mutations, settings, and audit filters. Merged as `b845cf9`.
@@ -20,7 +21,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Phase 1 — Server boundaries and authorization
 
-- [ ] Create centralized server-only helpers: `requireSession`, `requireGlobalAdmin`, `requireActiveOrganization`, `requireOrganizationMember`, and `requireOrganizationPermission`.
+- [x] Create centralized server-only helpers: `requireSession`, `requireGlobalAdmin`, `requireActiveOrganization`, `requireOrganizationMember`, and `requireOrganizationPermission`.
 - [x] Define the organisation permission matrix for owner, admin and member roles.
 - [x] Replace duplicated authorization checks in organisation, examination and Super Admin server functions with the centralized helpers.
 - [ ] Ensure active/suspended/archived organisation lifecycle status is checked consistently before every operational mutation.

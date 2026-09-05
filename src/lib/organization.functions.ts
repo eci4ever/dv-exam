@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
 import {
+	requireOrganizationMember,
 	requireOrganizationPermission,
 	requireSession,
 } from "#/server/auth/authorization";
@@ -120,7 +121,7 @@ export const getOrganizationWorkspace = createServerFn({
 export const setActiveOrganization = createServerFn({ method: "POST" })
 	.validator((data: unknown) => setActiveOrganizationSchema.parse(data))
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
+		await requireOrganizationMember(data.organizationId);
 		await getAuth().api.setActiveOrganization({
 			headers: getRequestHeaders(),
 			body: { organizationId: data.organizationId },
