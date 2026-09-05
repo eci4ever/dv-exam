@@ -42,8 +42,24 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 	}),
 	notFoundComponent: NotFoundPage,
+	errorComponent: RootErrorPage,
 	shellComponent: RootDocument,
 });
+
+function RootErrorPage({ error }: { error: Error }) {
+	return (
+		<main className="grid min-h-svh place-items-center bg-muted/30 px-6 text-center">
+			<section className="max-w-md space-y-4 rounded-xl border bg-background p-6 shadow-sm">
+				<p className="text-sm font-medium text-destructive">Something went wrong</p>
+				<h1 className="text-xl font-semibold">This page could not be loaded</h1>
+				<p className="text-sm text-muted-foreground">
+					{error.message || "Please try again or return to the dashboard."}
+				</p>
+				<Link className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" to="/dashboard">Return to dashboard</Link>
+			</section>
+		</main>
+	);
+}
 
 function NotFoundPage() {
 	return (
