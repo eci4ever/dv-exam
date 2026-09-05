@@ -6,8 +6,15 @@ import {
 	requireOrganizationPermission,
 	requireSession,
 } from "#/server/auth/authorization";
-
-type OrganizationRole = "admin" | "member";
+import {
+	cancelOrganizationInvitationSchema,
+	inviteOrganizationMemberSchema,
+	removeOrganizationMemberSchema,
+	respondToOrganizationInvitationSchema,
+	setActiveOrganizationSchema,
+	updateOrganizationMemberSchema,
+	updateOrganizationProfileSchema,
+} from "#/server/validation/organization";
 
 async function requireOrganizationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -111,12 +118,9 @@ export const getOrganizationWorkspace = createServerFn({
 });
 
 export const setActiveOrganization = createServerFn({ method: "POST" })
-	.validator((data: { organizationId: string }) => ({
-		organizationId: data.organizationId.trim(),
-	}))
+	.validator((data: unknown) => setActiveOrganizationSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganizationManager(data.organizationId);
-		if (!data.organizationId) throw new Error("Organisasi tidak sah.");
 		await getAuth().api.setActiveOrganization({
 			headers: getRequestHeaders(),
 			body: { organizationId: data.organizationId },
@@ -125,23 +129,9 @@ export const setActiveOrganization = createServerFn({ method: "POST" })
 	});
 
 export const inviteOrganizationMember = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			organizationId: string;
-			email: string;
-			role: OrganizationRole;
-		}) => ({
-			organizationId: data.organizationId.trim(),
-			email: data.email.trim().toLowerCase(),
-			role: data.role,
-		}),
-	)
+	.validator((data: unknown) => inviteOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganizationManager(data.organizationId);
-		if (!data.organizationId || !/^\S+@\S+\.\S+$/.test(data.email))
-			throw new Error("Masukkan alamat e-mel yang sah.");
-		if (!(["admin", "member"] as string[]).includes(data.role))
-			throw new Error("Peranan organisasi tidak sah.");
 		await getAuth().api.createInvitation({
 			headers: getRequestHeaders(),
 			body: {
@@ -155,19 +145,9 @@ export const inviteOrganizationMember = createServerFn({ method: "POST" })
 	});
 
 export const updateOrganizationMember = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			organizationId: string;
-			memberId: string;
-			role: OrganizationRole;
-		}) => data,
-	)
+	.validator((data: unknown) => updateOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganizationManager(data.organizationId);
-		if (!data.organizationId || !data.memberId)
-			throw new Error("Ahli organisasi tidak sah.");
-		if (!(["admin", "member"] as string[]).includes(data.role))
-			throw new Error("Peranan organisasi tidak sah.");
 		await getAuth().api.updateMemberRole({
 			headers: getRequestHeaders(),
 			body: {
@@ -180,13 +160,9 @@ export const updateOrganizationMember = createServerFn({ method: "POST" })
 	});
 
 export const removeOrganizationMember = createServerFn({ method: "POST" })
-	.validator(
-		(data: { organizationId: string; memberIdOrEmail: string }) => data,
-	)
+	.validator((data: unknown) => removeOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganizationManager(data.organizationId);
-		if (!data.organizationId || !data.memberIdOrEmail)
-			throw new Error("Ahli organisasi tidak sah.");
 		const target = await env.DB.prepare(
 			"SELECT role FROM member WHERE id = ? AND organizationId = ?",
 		)
@@ -204,9 +180,8 @@ export const removeOrganizationMember = createServerFn({ method: "POST" })
 	});
 
 export const cancelOrganizationInvitation = createServerFn({ method: "POST" })
-	.validator((data: { invitationId: string }) => data)
+	.validator((data: unknown) => cancelOrganizationInvitationSchema.parse(data))
 	.handler(async ({ data }) => {
-		if (!data.invitationId) throw new Error("Jemputan tidak sah.");
 		const invitation = await env.DB.prepare(
 			"SELECT organizationId FROM invitation WHERE id = ?",
 		)
@@ -224,13 +199,11 @@ export const cancelOrganizationInvitation = createServerFn({ method: "POST" })
 export const respondToOrganizationInvitation = createServerFn({
 	method: "POST",
 })
-	.validator(
-		(data: { invitationId: string; response: "accept" | "reject" }) => data,
+	.validator((data: unknown) =>
+		respondToOrganizationInvitationSchema.parse(data),
 	)
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
-		if (!data.invitationId || !["accept", "reject"].includes(data.response))
-			throw new Error("Tindakan jemputan tidak sah.");
+		await requireSession();
 		const auth = getAuth();
 		const request = {
 			headers: getRequestHeaders(),
@@ -242,14 +215,9 @@ export const respondToOrganizationInvitation = createServerFn({
 	});
 
 export const updateOrganizationProfile = createServerFn({ method: "POST" })
-	.validator((data: { organizationId: string; name: string }) => ({
-		organizationId: data.organizationId.trim(),
-		name: data.name.trim(),
-	}))
+	.validator((data: unknown) => updateOrganizationProfileSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganizationManager(data.organizationId);
-		if (data.name.length < 3)
-			throw new Error("Organisation name must be at least 3 characters.");
 		await env.DB.prepare("UPDATE organization SET name = ? WHERE id = ?")
 			.bind(data.name, data.organizationId)
 			.run();
