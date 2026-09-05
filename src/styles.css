@@ -6,6 +6,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Keep every screen focused on the primary action. */
+[data-slot="card-description"] { display: none; }
+.marketing-page .trusted,.marketing-page .audience,.marketing-page .workflow,.marketing-page .impact { display: none; }
+.marketing-page .feature-grid article p { display: none; }
+.auth-aside-copy>p:last-child,.auth-benefits { display: none; }
+.auth-screen [data-slot="card-description"] { display: block; }
+
 :root,
 .dark {
   --background: oklch(0.075 0.02 260);

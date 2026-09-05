@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -27,134 +28,185 @@ function SignupPage() {
 	const [error, setError] = useState("");
 	const navigate = useNavigate();
 	const { redirect } = Route.useSearch();
+
 	return (
-		<main className="auth-page signup-page">
-			<section className="auth-aside">
-				<Link className="auth-brand" to="/">
-					<span>
-						<GraduationCap />
+		<main className="auth-screen dark grid min-h-svh lg:grid-cols-[1fr_520px]">
+			<section className="relative hidden overflow-hidden border-r border-sky-400/10 bg-[#050816] p-10 lg:flex lg:flex-col">
+				<div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_65%,rgba(14,165,233,0.14),transparent_25rem)]" />
+				<Link
+					className="relative flex items-center gap-2 text-sm font-semibold text-slate-100"
+					to="/"
+				>
+					<span className="grid size-9 place-items-center rounded-lg border border-sky-400/30 bg-sky-400/10 text-cyan-300">
+						<GraduationCap className="size-5" />
 					</span>
-					Cakna<em>Exam</em>
+					CaknaExam
 				</Link>
-				<div className="auth-aside-copy">
-					<p className="kicker">— Mula dengan yakin</p>
-					<h1>
-						Pengurusan yang
-						<br />
-						<i>lebih mudah bermula di sini.</i>
+				<div className="relative my-auto max-w-lg">
+					<p className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-300">
+						Mula dengan yakin
+					</p>
+					<h1 className="mt-4 text-4xl font-semibold tracking-tight text-white xl:text-5xl">
+						Pengurusan yang{" "}
+						<span className="text-cyan-300">lebih jelas bermula di sini.</span>
 					</h1>
-					<p>
-						Sertai warga pendidik yang memilih cara lebih kemas untuk mengurus
-						setiap peperiksaan.
+					<p className="mt-5 text-sm leading-7 text-slate-400">
+						Sertai ruang kerja yang membantu pasukan anda mengurus setiap
+						peperiksaan dengan teratur.
 					</p>
 				</div>
-				<ul className="auth-benefits">
-					<li>
-						<Check /> Sediakan sesi peperiksaan dalam beberapa minit
+				<ul className="relative space-y-3 border-t border-sky-400/10 pt-6 text-sm text-slate-300">
+					<li className="flex items-center gap-2">
+						<Check className="size-4 text-cyan-300" /> Sediakan sesi peperiksaan
+						dalam beberapa minit
 					</li>
-					<li>
-						<Check /> Jemput pasukan anda bila-bila masa
+					<li className="flex items-center gap-2">
+						<Check className="size-4 text-cyan-300" /> Jemput pasukan anda
+						bila-bila masa
 					</li>
-					<li>
-						<Check /> Tiada kad kredit diperlukan
+					<li className="flex items-center gap-2">
+						<Check className="size-4 text-cyan-300" /> Tiada kad kredit
+						diperlukan
 					</li>
 				</ul>
 			</section>
-			<section className="auth-form-wrap">
-				<Link className="back-link" to="/">
-					<ArrowLeft /> Kembali ke laman utama
-				</Link>
-				<div className="auth-form signup-form">
-					<p className="kicker">— Cipta akaun anda</p>
-					<h2>Mari mula bersama</h2>
-					<p className="auth-subtitle">
-						Sudah mempunyai akaun?{" "}
-						<Link search={{ redirect }} to="/login">
-							Log masuk
-						</Link>
-					</p>
-					<form
-						onSubmit={async (event) => {
-							event.preventDefault();
-							setError("");
-							const formData = new FormData(event.currentTarget);
-							const result = await authClient.signUp.email({
-								name: String(formData.get("name")),
-								email: String(formData.get("email")),
-								password: String(formData.get("password")),
-							});
-							if (result.error) {
-								setError(result.error.message ?? "Pendaftaran tidak berjaya.");
-								return;
-							}
-							setSubmitted(true);
-							navigate({ href: redirect });
-						}}
+			<section className="flex min-h-svh items-center justify-center bg-[#09101e] px-4 py-10 sm:px-6">
+				<div className="w-full max-w-md">
+					<Link
+						className="mb-8 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-300"
+						to="/"
 					>
-						<Label htmlFor="signup-name">
-							Nama penuh
-							<div className="input-wrap">
-								<UserRound />
-								<Input
-									id="signup-name"
-									name="name"
-									placeholder="Contoh: Nur Aisyah"
-									required
-								/>
-							</div>
-						</Label>
-						<Label htmlFor="signup-email">
-							Alamat e-mel
-							<div className="input-wrap">
-								<Mail />
-								<Input
-									id="signup-email"
-									name="email"
-									type="email"
-									placeholder="anda@sekolah.edu.my"
-									required
-								/>
-							</div>
-						</Label>
-						<Label htmlFor="signup-password">
-							Cipta kata laluan
-							<div className="input-wrap">
-								<LockKeyhole />
-								<Input
+						<ArrowLeft className="size-4" /> Kembali ke laman utama
+					</Link>
+					<Card className="border-sky-400/15 bg-[#0a1020] shadow-[0_0_42px_rgba(14,165,233,0.06)]">
+						<CardHeader>
+							<CardTitle className="text-xl text-slate-100">
+								Cipta akaun
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<form
+								className="space-y-4"
+								onSubmit={async (event) => {
+									event.preventDefault();
+									setError("");
+									const formData = new FormData(event.currentTarget);
+									const result = await authClient.signUp.email({
+										name: String(formData.get("name")),
+										email: String(formData.get("email")),
+										password: String(formData.get("password")),
+									});
+									if (result.error) {
+										setError(
+											result.error.message ?? "Pendaftaran tidak berjaya.",
+										);
+										return;
+									}
+									setSubmitted(true);
+									navigate({ href: redirect });
+								}}
+							>
+								<Field icon={<UserRound />} id="signup-name" label="Nama penuh">
+									<Input
+										className="pl-10"
+										id="signup-name"
+										name="name"
+										placeholder="Contoh: Nur Aisyah"
+										required
+									/>
+								</Field>
+								<Field icon={<Mail />} id="signup-email" label="Alamat e-mel">
+									<Input
+										className="pl-10"
+										id="signup-email"
+										name="email"
+										type="email"
+										placeholder="anda@organisasi.my"
+										required
+									/>
+								</Field>
+								<Field
+									icon={<LockKeyhole />}
 									id="signup-password"
-									name="password"
-									type="password"
-									placeholder="Sekurang-kurangnya 8 aksara"
-									minLength={8}
-									required
-								/>
-							</div>
-						</Label>
-						<div className="check terms">
-							<Checkbox id="terms" required />
-							<Label htmlFor="terms">
-								<span>
-									Saya bersetuju dengan <a href="#terma">Terma Penggunaan</a>{" "}
-									dan <a href="#privasi">Dasar Privasi</a>.
-								</span>
-							</Label>
-						</div>
-						<Button className="auth-submit" type="submit">
-							Cipta akaun percuma <ArrowRight />
-						</Button>
-						{error && <p className="auth-error">{error}</p>}
-						{submitted && (
-							<p className="mock-notice">
-								Akaun berjaya dicipta. Menghala ke dashboard anda…
-							</p>
-						)}
-					</form>
+									label="Cipta kata laluan"
+								>
+									<Input
+										className="pl-10"
+										id="signup-password"
+										name="password"
+										type="password"
+										placeholder="Sekurang-kurangnya 8 aksara"
+										minLength={8}
+										required
+									/>
+								</Field>
+								<Label
+									className="flex items-center gap-2 text-sm font-normal text-slate-400"
+									htmlFor="terms"
+								>
+									<Checkbox id="terms" required />
+									Saya bersetuju untuk mencipta akaun.
+								</Label>
+								<Button
+									className="w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+									type="submit"
+								>
+									Cipta akaun percuma <ArrowRight />
+								</Button>
+								<p className="text-center text-sm text-slate-400">
+									Sudah ada akaun?{" "}
+									<Link
+										className="text-cyan-300 hover:underline"
+										search={{ redirect }}
+										to="/login"
+									>
+										Log masuk
+									</Link>
+								</p>
+								{error && (
+									<p className="rounded-md border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200">
+										{error}
+									</p>
+								)}
+								{submitted && (
+									<p className="rounded-md border border-cyan-400/25 bg-cyan-400/10 p-3 text-sm text-cyan-200">
+										Akaun berjaya dicipta. Menghala ke dashboard anda…
+									</p>
+								)}
+							</form>
+						</CardContent>
+					</Card>
 				</div>
 			</section>
 		</main>
 	);
 }
 
+function Field({
+	children,
+	icon,
+	id,
+	label,
+}: {
+	children: React.ReactNode;
+	icon: React.ReactNode;
+	id: string;
+	label: string;
+}) {
+	return (
+		<div className="space-y-2">
+			<Label className="text-slate-300" htmlFor={id}>
+				{label}
+			</Label>
+			<div className="relative">
+				<span className="pointer-events-none absolute inset-y-0 left-3 z-10 grid place-items-center text-slate-500">
+					{icon}
+				</span>
+				{children}
+			</div>
+		</div>
+	);
+}
 function sanitizeRedirect(value: unknown) {
 	return typeof value === "string" &&
 		value.startsWith("/") &&
