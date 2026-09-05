@@ -1,34 +1,17 @@
 import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
-import { getAuth } from "./auth";
-
-async function requireSession() {
-	const session = await getAuth().api.getSession({
-		headers: getRequestHeaders(),
-	});
-	if (!session) throw new Error("Please sign in to continue.");
-	return session;
-}
+import {
+	requireActiveOrganizationPermission,
+	requireOrganizationPermission,
+	requireSession,
+} from "#/server/auth/authorization";
+import { createExaminationSchema } from "#/server/validation/examination";
 
 async function requireOrganisationManager(organizationId: string) {
-	const session = await requireSession();
-	const membership = await env.DB.prepare(
-		"SELECT role FROM member WHERE organizationId = ? AND userId = ?",
-	)
-		.bind(organizationId, session.user.id)
-		.first<{ role: string }>();
-	if (!membership || !["owner", "admin"].includes(membership.role))
-		throw new Error("Organisation owner or admin access is required.");
-	const lifecycle = await env.DB.prepare(
-		"SELECT status FROM platform_organization WHERE organizationId = ?",
-	)
-		.bind(organizationId)
-		.first<{ status: string }>();
-	if (lifecycle && lifecycle.status !== "active")
-		throw new Error(
-			"This organisation is not active for examination operations.",
-		);
+	const { session } = await requireOrganizationPermission({
+		organizationId,
+		permission: "examination:manage",
+	});
 	return session;
 }
 
@@ -114,22 +97,14 @@ export const getExaminations = createServerFn({ method: "GET" })
 	});
 
 export const createExamination = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			organizationId: string;
-			title: string;
-			durationMinutes: number;
-		}) => data,
-	)
+	.validator((data: unknown) => createExaminationSchema.parse(data))
 	.handler(async ({ data }) => {
-		const session = await requireOrganisationManager(data.organizationId);
+		const { session } =
+			await requireActiveOrganizationPermission("examination:manage");
+		const organizationId = session.session.activeOrganizationId;
+		if (!organizationId)
+			throw new Error("Choose an active organisation first.");
 		const title = clean(data.title, "Title");
-		if (
-			!Number.isInteger(data.durationMinutes) ||
-			data.durationMinutes < 1 ||
-			data.durationMinutes > 480
-		)
-			throw new Error("Duration must be between 1 and 480 minutes.");
 		const id = crypto.randomUUID();
 		const now = Date.now();
 		await env.DB.prepare(
@@ -137,7 +112,7 @@ export const createExamination = createServerFn({ method: "POST" })
 		)
 			.bind(
 				id,
-				data.organizationId,
+				organizationId,
 				title,
 				data.durationMinutes,
 				session.user.id,

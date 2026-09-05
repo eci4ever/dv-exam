@@ -64,7 +64,6 @@ function ExaminationsPage() {
 		try {
 			const result = await create({
 				data: {
-					organizationId: active.id,
 					title,
 					durationMinutes: Number(duration),
 				},
