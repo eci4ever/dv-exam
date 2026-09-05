@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransitionExamination } from "./lifecycle";
+import { canSaveCandidateAnswer, canTransitionExamination } from "./lifecycle";
 
 describe("examination lifecycle", () => {
 	it("allows a draft examination to be published", () => {
@@ -23,5 +23,11 @@ describe("examination lifecycle", () => {
 
 	it("does not allow archived examinations to transition", () => {
 		expect(canTransitionExamination("archived", "publish")).toBe(false);
+	});
+
+	it("allows answers before a deadline and blocks them at the deadline", () => {
+		expect(canSaveCandidateAnswer(null, 1_000)).toBe(true);
+		expect(canSaveCandidateAnswer(1_001, 1_000)).toBe(true);
+		expect(canSaveCandidateAnswer(1_000, 1_000)).toBe(false);
 	});
 });

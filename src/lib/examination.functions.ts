@@ -16,7 +16,10 @@ import {
 	saveQuestionSchema,
 	updateExaminationStatusSchema,
 } from "#/server/validation/examination";
-import { canTransitionExamination } from "#/server/examinations/lifecycle";
+import {
+	canSaveCandidateAnswer,
+	canTransitionExamination,
+} from "#/server/examinations/lifecycle";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -329,6 +332,14 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 			throw new Error("This examination is not available.");
 		if (!assignment.attemptId && assignment.status !== "published")
 			throw new Error("This examination is closed.");
+		if (
+			!assignment.attemptId &&
+			!canSaveCandidateAnswer(
+				(assignment.endsAt as number | null) ?? null,
+				Date.now(),
+			)
+		)
+			throw new Error("This examination has reached its deadline.");
 		let attemptId = assignment.attemptId as string | null;
 		if (!attemptId) {
 			attemptId = crypto.randomUUID();
@@ -373,9 +384,15 @@ export const saveCandidateAnswer = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const valid = await env.DB.prepare(
-			"SELECT attempt.id FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId INNER JOIN examination_option option ON option.id = ? AND option.questionId = ? WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND examination.status = 'published'",
+			"SELECT attempt.id FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId INNER JOIN examination_option option ON option.id = ? AND option.questionId = ? WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND examination.status = 'published' AND (examination.endsAt IS NULL OR examination.endsAt > ?)",
 		)
-			.bind(data.optionId, data.questionId, data.attemptId, session.user.id)
+			.bind(
+				data.optionId,
+				data.questionId,
+				data.attemptId,
+				session.user.id,
+				Date.now(),
+			)
 			.first();
 		if (!valid) throw new Error("Answer cannot be saved.");
 		await env.DB.prepare(
