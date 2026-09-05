@@ -7,6 +7,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { TooltipProvider } from "#/components/ui/tooltip";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
 
@@ -25,12 +26,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "Cakna Exam — Sistem Pengurusan Peperiksaan Online",
+				title: "Cakna Exam — Online Examination Management System",
 			},
 			{
 				name: "description",
 				content:
-					"Platform pintar untuk merancang peperiksaan, mengurus markah dan memahami prestasi pelajar.",
+					"A smart platform to plan examinations, manage results and understand learner performance.",
 			},
 		],
 		links: [
@@ -52,16 +53,16 @@ function NotFoundPage() {
 					404
 				</p>
 				<h1 className="text-3xl font-semibold tracking-tight">
-					Halaman tidak ditemui
+					Page not found
 				</h1>
 				<p className="text-sm leading-6 text-slate-400">
-					Pautan ini mungkin telah dipindahkan atau tidak lagi tersedia.
+					This link may have moved or is no longer available.
 				</p>
 				<Link
 					className="inline-flex h-10 items-center justify-center rounded-md bg-cyan-300 px-4 text-sm font-medium text-slate-950 transition-colors hover:bg-cyan-200"
 					to="/"
 				>
-					Kembali ke laman utama
+					Back to home
 				</Link>
 			</section>
 		</main>
@@ -70,24 +71,26 @@ function NotFoundPage() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="ms">
+		<html lang="en">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				{children}
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-						TanStackQueryDevtools,
-					]}
-				/>
+				<TooltipProvider>
+					{children}
+					<TanStackDevtools
+						config={{
+							position: "bottom-right",
+						}}
+						plugins={[
+							{
+								name: "Tanstack Router",
+								render: <TanStackRouterDevtoolsPanel />,
+							},
+							TanStackQueryDevtools,
+						]}
+					/>
+				</TooltipProvider>
 				<Scripts />
 			</body>
 		</html>

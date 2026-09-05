@@ -64,8 +64,8 @@ function AccountPage() {
 		const result = await authClient.updateUser({ name });
 		setNotice(
 			result.error
-				? (result.error.message ?? "Profil tidak dapat dikemas kini.")
-				: "Profil anda telah dikemas kini.",
+				? (result.error.message ?? "Unable to update your profile.")
+				: "Your profile has been updated.",
 		);
 		setIsSaving(false);
 	}
@@ -77,16 +77,16 @@ function AccountPage() {
 		});
 		setNotice(
 			result.error
-				? (result.error.message ?? "E-mel verifikasi tidak dapat dihantar.")
-				: "Pautan verifikasi telah dihantar ke e-mel anda.",
+				? (result.error.message ?? "Unable to send the verification email.")
+				: "A verification link has been sent to your email.",
 		);
 	}
 	async function revokeSession(token: string) {
 		const result = await authClient.revokeSession({ token });
 		setNotice(
 			result.error
-				? (result.error.message ?? "Sesi tidak dapat ditamatkan.")
-				: "Sesi telah ditamatkan.",
+				? (result.error.message ?? "Unable to end the session.")
+				: "The session has ended.",
 		);
 		await loadSessions();
 	}
@@ -94,19 +94,21 @@ function AccountPage() {
 		const result = await authClient.revokeOtherSessions();
 		setNotice(
 			result.error
-				? (result.error.message ?? "Sesi tidak dapat ditamatkan.")
-				: "Semua sesi lain telah ditamatkan.",
+				? (result.error.message ?? "Unable to end the sessions.")
+				: "All other sessions have ended.",
 		);
 		await loadSessions();
 	}
 
 	return (
-		<DashboardShell pageTitle="Tetapan akaun" user={user}>
+		<DashboardShell pageTitle="Account settings" user={user}>
 			<div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight">Tetapan akaun</h1>
+					<h1 className="text-3xl font-bold tracking-tight">
+						Account settings
+					</h1>
 					<p className="mt-2 text-sm text-muted-foreground">
-						Urus profil, pengesahan e-mel dan sesi peranti anda.
+						Manage your profile, email verification and device sessions.
 					</p>
 				</div>
 				{notice && (
@@ -121,8 +123,7 @@ function AccountPage() {
 							<UserRound className="size-5 text-primary" /> Profil
 						</CardTitle>
 						<CardDescription>
-							Nama anda akan digunakan dalam ruang kerja dan jemputan
-							organisasi.
+							Your name is used in workspaces and organisation invitations.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -134,7 +135,7 @@ function AccountPage() {
 								className="grid gap-2 text-sm font-medium"
 								htmlFor="account-name"
 							>
-								Nama penuh
+								Full name
 								<Input
 									id="account-name"
 									onChange={(event) => setName(event.target.value)}
@@ -146,11 +147,11 @@ function AccountPage() {
 								className="grid gap-2 text-sm font-medium"
 								htmlFor="account-email"
 							>
-								E-mel
+								Email
 								<Input disabled id="account-email" value={user.email} />
 							</label>
 							<Button className="self-end" disabled={isSaving} type="submit">
-								{isSaving ? "Menyimpan…" : "Simpan profil"}
+								{isSaving ? "Saving…" : "Save profile"}
 							</Button>
 						</form>
 					</CardContent>
@@ -159,25 +160,25 @@ function AccountPage() {
 					<CardHeader className="flex-row items-center justify-between space-y-0">
 						<div>
 							<CardTitle className="flex items-center gap-2">
-								<Mail className="size-5 text-primary" /> Pengesahan e-mel
+								<Mail className="size-5 text-primary" /> Email verification
 							</CardTitle>
 							<CardDescription>
-								Alamat e-mel yang disahkan membantu melindungi akaun anda.
+								A verified email address helps protect your account.
 							</CardDescription>
 						</div>
 						<Badge variant={user.emailVerified ? "default" : "secondary"}>
-							{user.emailVerified ? "Disahkan" : "Belum disahkan"}
+							{user.emailVerified ? "Verified" : "Not verified"}
 						</Badge>
 					</CardHeader>
 					<CardContent className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
 						<p className="text-sm text-muted-foreground">{user.email}</p>
 						{user.emailVerified ? (
 							<span className="flex items-center gap-2 text-sm font-medium text-emerald-700">
-								<ShieldCheck className="size-4" /> E-mel telah disahkan
+								<ShieldCheck className="size-4" /> Email verified
 							</span>
 						) : (
 							<Button onClick={sendVerification} variant="outline">
-								Hantar pautan verifikasi
+								Send verification link
 							</Button>
 						)}
 					</CardContent>
@@ -186,21 +187,21 @@ function AccountPage() {
 					<CardHeader className="flex-row items-center justify-between space-y-0">
 						<div>
 							<CardTitle className="flex items-center gap-2">
-								<Monitor className="size-5 text-primary" /> Sesi aktif
+								<Monitor className="size-5 text-primary" /> Active sessions
 							</CardTitle>
 							<CardDescription>
-								Semak peranti yang sedang mempunyai akses ke akaun anda.
+								Review devices that currently have access to your account.
 							</CardDescription>
 						</div>
 						<Button onClick={revokeOthers} size="sm" variant="outline">
-							Tamatkan sesi lain
+							End other sessions
 						</Button>
 					</CardHeader>
 					<CardContent>
 						<div className="divide-y">
 							{isLoadingSessions ? (
 								<p className="py-5 text-sm text-muted-foreground">
-									Memuatkan sesi…
+									Loading sessions…
 								</p>
 							) : (
 								sessions.map((listedSession) => (
@@ -211,25 +212,25 @@ function AccountPage() {
 										<div>
 											<p className="text-sm font-medium">
 												{listedSession.token === session.token
-													? "Sesi semasa"
-													: "Peranti lain"}
+													? "Current session"
+													: "Other device"}
 											</p>
 											<p className="mt-1 max-w-xl truncate text-xs text-muted-foreground">
-												{listedSession.userAgent ?? "Peranti tidak dikenali"}
+												{listedSession.userAgent ?? "Unknown device"}
 												{listedSession.ipAddress
 													? ` · ${listedSession.ipAddress}`
 													: ""}
 											</p>
 										</div>
 										{listedSession.token === session.token ? (
-											<Badge variant="secondary">Semasa</Badge>
+											<Badge variant="secondary">Current</Badge>
 										) : (
 											<Button
 												onClick={() => revokeSession(listedSession.token)}
 												size="sm"
 												variant="ghost"
 											>
-												<Trash2 /> Tamatkan
+												<Trash2 /> End session
 											</Button>
 										)}
 									</div>
@@ -238,7 +239,7 @@ function AccountPage() {
 						</div>
 						<Separator className="mt-1" />
 						<p className="pt-4 text-xs text-muted-foreground">
-							Anda mungkin perlu log masuk semula jika sesi semasa ditamatkan.
+							You may need to sign in again if the current session is ended.
 						</p>
 					</CardContent>
 				</Card>

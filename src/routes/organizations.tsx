@@ -88,7 +88,7 @@ function OrganizationsPage() {
 	}
 
 	return (
-		<DashboardShell pageTitle="Organisasi" user={user}>
+		<DashboardShell pageTitle="Organisations" user={user}>
 			<div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8">
 				<section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 					<div>
@@ -96,10 +96,11 @@ function OrganizationsPage() {
 							<Building2 className="mr-1 size-3" /> Better Auth Organization
 						</Badge>
 						<h1 className="mt-3 text-3xl font-bold tracking-tight">
-							Organisasi
+							Organisations
 						</h1>
 						<p className="mt-2 text-sm text-muted-foreground">
-							Pilih ruang kerja, urus ahli dan jawab jemputan organisasi.
+							Choose a workspace, manage members and respond to organisation
+							invitations.
 						</p>
 					</div>
 					{activeOrganization && (
@@ -119,12 +120,12 @@ function OrganizationsPage() {
 					<Card className="border-primary/20 bg-primary/[0.03]">
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2">
-								<MailPlus className="size-5 text-primary" /> Jemputan anda
+								<MailPlus className="size-5 text-primary" /> Your invitations
 							</CardTitle>
 							<CardDescription>
 								{data.emailVerified
-									? "Terima atau tolak jemputan yang masih aktif."
-									: "Sahkan e-mel akaun sebelum menerima jemputan."}
+									? "Accept or decline active invitations."
+									: "Verify your account email before accepting invitations."}
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="grid gap-3">
@@ -136,7 +137,7 @@ function OrganizationsPage() {
 									<div>
 										<p className="font-medium">{invitation.organizationName}</p>
 										<p className="mt-1 text-xs text-muted-foreground">
-											Peranan: {roleLabel(invitation.role)} · Tamat{" "}
+											Role: {roleLabel(invitation.role)} · Expires{" "}
 											{formatDate(invitation.expiresAt)}
 										</p>
 									</div>
@@ -155,12 +156,12 @@ function OrganizationsPage() {
 																response: "accept",
 															},
 														}),
-													"Jemputan telah diterima.",
+													"Invitation accepted.",
 												)
 											}
 											size="sm"
 										>
-											<Check /> Terima
+											<Check /> Accept
 										</Button>
 										<Button
 											disabled={
@@ -176,13 +177,13 @@ function OrganizationsPage() {
 																response: "reject",
 															},
 														}),
-													"Jemputan telah ditolak.",
+													"Invitation declined.",
 												)
 											}
 											size="sm"
 											variant="outline"
 										>
-											<X /> Tolak
+											<X /> Decline
 										</Button>
 									</div>
 								</div>
@@ -194,9 +195,9 @@ function OrganizationsPage() {
 				<section className="grid gap-6 lg:grid-cols-[280px_1fr]">
 					<Card className="h-fit">
 						<CardHeader>
-							<CardTitle className="text-base">Ruang kerja</CardTitle>
+							<CardTitle className="text-base">Workspaces</CardTitle>
 							<CardDescription>
-								{data.organizations.length} organisasi
+								{data.organizations.length} organisations
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="grid gap-2">
@@ -238,7 +239,7 @@ function OrganizationsPage() {
 								</button>
 							))}
 							{!data.organizations.length && (
-								<EmptyState text="Belum menjadi ahli mana-mana organisasi." />
+								<EmptyState text="You are not a member of any organisation yet." />
 							)}
 						</CardContent>
 					</Card>
@@ -350,10 +351,11 @@ function OrganizationsPage() {
 									<Card>
 										<CardHeader>
 											<CardTitle className="flex items-center gap-2">
-												<UserCog className="size-5 text-primary" /> Jemput ahli
+												<UserCog className="size-5 text-primary" /> Invite
+												members
 											</CardTitle>
 											<CardDescription>
-												Better Auth akan merekod dan menghantar jemputan melalui
+												Better Auth records and sends invitations through
 												Resend.
 											</CardDescription>
 										</CardHeader>
@@ -377,29 +379,29 @@ function OrganizationsPage() {
 												}}
 											>
 												<Input
-													aria-label="E-mel ahli"
+													aria-label="Member email"
 													onChange={(event) => setEmail(event.target.value)}
-													placeholder="ahli@organisasi.my"
+													placeholder="member@organisation.com"
 													required
 													type="email"
 													value={email}
 												/>
 												<select
-													aria-label="Peranan jemputan"
+													aria-label="Invitation role"
 													className="h-9 rounded-md border bg-background px-3 text-sm"
 													onChange={(event) =>
 														setRole(event.target.value as "admin" | "member")
 													}
 													value={role}
 												>
-													<option value="member">Ahli</option>
+													<option value="member">Member</option>
 													<option value="admin">Admin</option>
 												</select>
 												<Button disabled={isWorking === "invite"} type="submit">
 													<MailPlus />{" "}
 													{isWorking === "invite"
-														? "Menghantar…"
-														: "Hantar jemputan"}
+														? "Sending…"
+														: "Send invitation"}
 												</Button>
 											</form>
 											{data.invitations.length > 0 && (
@@ -417,12 +419,12 @@ function OrganizationsPage() {
 																{invitation.email}
 															</p>
 															<p className="text-xs text-muted-foreground">
-																{roleLabel(invitation.role)} · tamat{" "}
+																{roleLabel(invitation.role)} · expires{" "}
 																{formatDate(invitation.expiresAt)}
 															</p>
 														</div>
 														<Button
-															aria-label="Batalkan jemputan"
+															aria-label="Cancel invitation"
 															disabled={isWorking === invitation.id}
 															onClick={() =>
 																runAction(
@@ -431,7 +433,7 @@ function OrganizationsPage() {
 																		cancelInvitationFn({
 																			data: { invitationId: invitation.id },
 																		}),
-																	"Jemputan telah dibatalkan.",
+																	"Invitation cancelled.",
 																)
 															}
 															size="icon-sm"
@@ -449,7 +451,7 @@ function OrganizationsPage() {
 						) : (
 							<Card>
 								<CardContent className="py-14">
-									<EmptyState text="Super Admin perlu mencipta organisasi dan menetapkan anda sebagai Owner terlebih dahulu." />
+									<EmptyState text="A Super Admin must create an organisation and assign you as its owner first." />
 								</CardContent>
 							</Card>
 						)}
@@ -462,12 +464,12 @@ function OrganizationsPage() {
 
 function roleLabel(role?: string | null) {
 	if (role === "owner") return "Owner";
-	if (role === "admin") return "Admin organisasi";
-	return "Ahli";
+	if (role === "admin") return "Organisation admin";
+	return "Member";
 }
 
 function formatDate(value: number) {
-	return new Intl.DateTimeFormat("ms-MY", {
+	return new Intl.DateTimeFormat("en-GB", {
 		day: "numeric",
 		month: "short",
 		year: "numeric",

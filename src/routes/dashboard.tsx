@@ -93,7 +93,8 @@ function DashboardPage() {
 										Waiting for examination data
 									</p>
 									<p className="mt-1 text-sm text-muted-foreground">
-										Activity charts will appear when your first examination is published.
+										Activity charts will appear when your first examination is
+										published.
 									</p>
 								</div>
 							</div>
@@ -133,9 +134,7 @@ function DashboardPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">Next steps</CardTitle>
-						<CardDescription>
-							Complete your workspace setup.
-						</CardDescription>
+						<CardDescription>Complete your workspace setup.</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-3 sm:grid-cols-3">
 						<Step done title="Account created" />

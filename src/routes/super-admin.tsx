@@ -71,13 +71,13 @@ function SuperAdminPage() {
 			});
 			setOrganizationName("");
 			setAdminEmail("");
-			setNotice(`${created.name} telah ditambah ke platform.`);
+			setNotice(`${created.name} has been added to the platform.`);
 			await refresh();
 		} catch (error) {
 			setNotice(
 				error instanceof Error
 					? error.message
-					: "Organisasi tidak dapat ditambah.",
+					: "Unable to add the organisation.",
 			);
 		} finally {
 			setIsSaving(false);
@@ -92,13 +92,13 @@ function SuperAdminPage() {
 		setWorkingUserId(userId);
 		try {
 			await updateUserAccessFn({ data: { userId, action } });
-			setNotice("Akses pengguna telah dikemas kini.");
+			setNotice("User access has been updated.");
 			await refresh();
 		} catch (error) {
 			setNotice(
 				error instanceof Error
 					? error.message
-					: "Akses pengguna tidak dapat dikemas kini.",
+					: "Unable to update user access.",
 			);
 		} finally {
 			setWorkingUserId("");
@@ -114,13 +114,11 @@ function SuperAdminPage() {
 				data: { organizationId: ownerOrganizationId, email: ownerEmail },
 			});
 			setOwnerEmail("");
-			setNotice(`${owner.name} kini Owner untuk organisasi tersebut.`);
+			setNotice(`${owner.name} is now the owner of this organisation.`);
 			await refresh();
 		} catch (error) {
 			setNotice(
-				error instanceof Error
-					? error.message
-					: "Owner tidak dapat ditetapkan.",
+				error instanceof Error ? error.message : "Unable to assign the owner.",
 			);
 		} finally {
 			setIsSaving(false);
@@ -133,36 +131,32 @@ function SuperAdminPage() {
 				<section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">
-							KAWALAN PLATFORM
+							PLATFORM CONTROL
 						</p>
 						<h1 className="mt-1 flex items-center gap-2 text-3xl font-bold tracking-tight">
-							Selamat datang, {user.name.split(" ")[0]}{" "}
+							Welcome back, {user.name.split(" ")[0]}{" "}
 							<Sparkles className="size-5 text-amber-500" />
 						</h1>
 						<p className="mt-2 text-sm text-muted-foreground">
-							Urus organisasi, pengguna dan akses pentadbiran dalam satu ruang
-							kerja.
+							Manage organisations, users and administrative access from one
+							workspace.
 						</p>
 					</div>
 					<Badge className="w-fit" variant="outline">
-						<Activity className="mr-1 size-3" /> Sistem beroperasi
+						<Activity className="mr-1 size-3" /> System operational
 					</Badge>
 				</section>
 				<section className="grid gap-4 md:grid-cols-3">
 					<Metric
 						icon={<Building2 />}
 						value={metrics.organizations}
-						label="Organisasi aktif"
+						label="Active organisations"
 					/>
-					<Metric
-						icon={<Users />}
-						value={metrics.users}
-						label="Jumlah pengguna"
-					/>
+					<Metric icon={<Users />} value={metrics.users} label="Total users" />
 					<Metric
 						icon={<Activity />}
 						value={metrics.activeSessions}
-						label="Sesi aktif"
+						label="Active sessions"
 					/>
 				</section>
 				{notice && (
@@ -177,9 +171,9 @@ function SuperAdminPage() {
 							<div className="flex items-center gap-2">
 								<CirclePlus className="size-5 text-primary" />
 								<div>
-									<CardTitle>Organisasi baharu</CardTitle>
+									<CardTitle>New organisation</CardTitle>
 									<CardDescription>
-										Cipta ruang kerja dan jemput pentadbir.
+										Create a workspace and invite an administrator.
 									</CardDescription>
 								</div>
 							</div>
@@ -190,7 +184,7 @@ function SuperAdminPage() {
 									className="grid gap-2 text-sm font-medium"
 									htmlFor="organization-name"
 								>
-									Nama organisasi
+									Organisation name
 									<Input
 										id="organization-name"
 										onChange={(event) =>
@@ -205,9 +199,9 @@ function SuperAdminPage() {
 									className="grid gap-2 text-sm font-medium"
 									htmlFor="organization-admin-email"
 								>
-									E-mel pentadbir{" "}
+									Administrator email{" "}
 									<span className="font-normal text-muted-foreground">
-										(pilihan)
+										(optional)
 									</span>
 									<Input
 										id="organization-admin-email"
@@ -218,7 +212,7 @@ function SuperAdminPage() {
 									/>
 								</label>
 								<Button className="w-full" disabled={isSaving} type="submit">
-									{isSaving ? "Menyimpan…" : "Cipta organisasi"}
+									{isSaving ? "Saving…" : "Create organisation"}
 								</Button>
 							</form>
 						</CardContent>

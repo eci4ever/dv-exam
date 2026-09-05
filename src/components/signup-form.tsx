@@ -45,7 +45,9 @@ export function SignupForm({ redirect }: { redirect: string }) {
 						});
 						setSubmitting(false);
 						if (result.error) {
-							setError(result.error.message ?? "Unable to create your account.");
+							setError(
+								result.error.message ?? "Unable to create your account.",
+							);
 							return;
 						}
 						navigate({ href: redirect });
@@ -80,9 +82,7 @@ export function SignupForm({ redirect }: { redirect: string }) {
 								required
 								type="password"
 							/>
-							<FieldDescription>
-								Use at least 8 characters.
-							</FieldDescription>
+							<FieldDescription>Use at least 8 characters.</FieldDescription>
 						</Field>
 						<Field orientation="horizontal">
 							<Checkbox id="account-confirmation" required />
