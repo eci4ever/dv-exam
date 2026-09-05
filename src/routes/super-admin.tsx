@@ -28,7 +28,9 @@ import { getSession } from "#/lib/auth.functions";
 import {
 	createOrganization,
 	getSuperAdminOverview,
+	getPlatformSettings,
 	setOrganizationOwner,
+	updatePlatformSettings,
 	updateUserAccess,
 } from "#/lib/super-admin.functions";
 
@@ -39,17 +41,22 @@ export const Route = createFileRoute("/super-admin")({
 		if (session.user.role !== "admin") throw redirect({ to: "/dashboard" });
 		return { user: session.user };
 	},
-	loader: () => getSuperAdminOverview(),
+	loader: async () => ({
+		overview: await getSuperAdminOverview(),
+		settings: await getPlatformSettings(),
+	}),
 	component: SuperAdminPage,
 });
 
 function SuperAdminPage() {
 	const { user } = Route.useRouteContext();
-	const { metrics, organizations, users } = Route.useLoaderData();
+	const { overview, settings } = Route.useLoaderData();
+	const { metrics, organizations, users } = overview;
 	const router = useRouter();
 	const createOrganizationFn = useServerFn(createOrganization);
 	const updateUserAccessFn = useServerFn(updateUserAccess);
 	const setOrganizationOwnerFn = useServerFn(setOrganizationOwner);
+	const updateSettingsFn = useServerFn(updatePlatformSettings);
 	const [organizationName, setOrganizationName] = useState("");
 	const [adminEmail, setAdminEmail] = useState("");
 	const [ownerOrganizationId, setOwnerOrganizationId] = useState("");
@@ -57,6 +64,17 @@ function SuperAdminPage() {
 	const [notice, setNotice] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 	const [workingUserId, setWorkingUserId] = useState("");
+	const [platformName, setPlatformName] = useState(
+		settings.platformName ?? "CaknaExam",
+	);
+	const [supportEmail, setSupportEmail] = useState(settings.supportEmail ?? "");
+	const [expiryHours, setExpiryHours] = useState(
+		settings.invitationExpiryHours ?? "48",
+	);
+	const [senderName, setSenderName] = useState(
+		settings.emailSenderName ?? "CaknaExam",
+	);
+	const [settingsReason, setSettingsReason] = useState("");
 	const refresh = () => router.invalidate({ sync: true });
 
 	async function handleCreateOrganization(
@@ -125,6 +143,33 @@ function SuperAdminPage() {
 		} catch (error) {
 			setNotice(
 				error instanceof Error ? error.message : "Unable to assign the owner.",
+			);
+		} finally {
+			setIsSaving(false);
+		}
+	}
+	async function handleSettings(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setIsSaving(true);
+		setNotice("");
+		try {
+			await updateSettingsFn({
+				data: {
+					platformName,
+					supportEmail,
+					invitationExpiryHours: Number(expiryHours),
+					emailSenderName: senderName,
+					reason: settingsReason,
+				},
+			});
+			setSettingsReason("");
+			setNotice("Platform settings saved. Audit record created.");
+			await refresh();
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Unable to save platform settings.",
 			);
 		} finally {
 			setIsSaving(false);
@@ -439,6 +484,64 @@ function SuperAdminPage() {
 								text="Pengguna berdaftar akan muncul di sini."
 							/>
 						)}
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle>Platform settings</CardTitle>
+						<CardDescription>
+							Operational defaults only. Credentials and infrastructure remain
+							environment-managed.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<form
+							className="grid gap-3 md:grid-cols-2"
+							onSubmit={handleSettings}
+						>
+							<Input
+								onChange={(event) => setPlatformName(event.target.value)}
+								placeholder="Platform name"
+								required
+								value={platformName}
+							/>
+							<Input
+								onChange={(event) => setSupportEmail(event.target.value)}
+								placeholder="Support email"
+								required
+								type="email"
+								value={supportEmail}
+							/>
+							<Input
+								min="1"
+								onChange={(event) => setExpiryHours(event.target.value)}
+								placeholder="Invitation expiry hours"
+								required
+								type="number"
+								value={expiryHours}
+							/>
+							<Input
+								onChange={(event) => setSenderName(event.target.value)}
+								placeholder="Email sender name"
+								required
+								value={senderName}
+							/>
+							<Input
+								className="md:col-span-2"
+								minLength={3}
+								onChange={(event) => setSettingsReason(event.target.value)}
+								placeholder="Reason for changing platform settings"
+								required
+								value={settingsReason}
+							/>
+							<Button
+								className="w-fit"
+								disabled={isSaving || settingsReason.trim().length < 3}
+								type="submit"
+							>
+								Save platform settings
+							</Button>
+						</form>
 					</CardContent>
 				</Card>
 				<p className="flex items-center gap-2 text-xs text-muted-foreground">

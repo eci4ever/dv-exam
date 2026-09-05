@@ -32,6 +32,7 @@ import {
 	respondToOrganizationInvitation,
 	setActiveOrganization,
 	updateOrganizationMember,
+	updateOrganizationProfile,
 } from "#/lib/organization.functions";
 
 export const Route = createFileRoute("/organizations")({
@@ -53,8 +54,10 @@ function OrganizationsPage() {
 	const updateMemberFn = useServerFn(updateOrganizationMember);
 	const removeMemberFn = useServerFn(removeOrganizationMember);
 	const cancelInvitationFn = useServerFn(cancelOrganizationInvitation);
+	const updateProfileFn = useServerFn(updateOrganizationProfile);
 	const respondToInvitationFn = useServerFn(respondToOrganizationInvitation);
 	const [email, setEmail] = useState("");
+	const [organizationName, setOrganizationName] = useState("");
 	const [role, setRole] = useState<"admin" | "member">("member");
 	const [notice, setNotice] = useState("");
 	const [isWorking, setIsWorking] = useState("");
@@ -251,6 +254,48 @@ function OrganizationsPage() {
 					<div className="space-y-6">
 						{activeOrganization ? (
 							<>
+								<Card>
+									<CardHeader>
+										<CardTitle>Workspace details</CardTitle>
+										<CardDescription>
+											Update the name shown to members and candidates.
+										</CardDescription>
+									</CardHeader>
+									<CardContent>
+										<form
+											className="flex flex-col gap-3 sm:flex-row"
+											onSubmit={(event) => {
+												event.preventDefault();
+												void runAction(
+													"workspace-name",
+													() =>
+														updateProfileFn({
+															data: {
+																organizationId: activeOrganization.id,
+																name:
+																	organizationName || activeOrganization.name,
+															},
+														}),
+													"Workspace details updated.",
+												).then(() => setOrganizationName(""));
+											}}
+										>
+											<Input
+												onChange={(event) =>
+													setOrganizationName(event.target.value)
+												}
+												placeholder={activeOrganization.name}
+												value={organizationName}
+											/>
+											<Button
+												disabled={isWorking === "workspace-name"}
+												type="submit"
+											>
+												Save details
+											</Button>
+										</form>
+									</CardContent>
+								</Card>
 								<Card id="members">
 									<CardHeader className="flex-row items-center justify-between space-y-0">
 										<div>

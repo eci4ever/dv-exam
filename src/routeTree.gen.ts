@@ -12,14 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ExaminationsRouteImport } from './routes/examinations'
 import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as ExaminationsExamIdRouteImport } from './routes/examinations.$examId'
 import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
 import { Route as SuperAdminOrganisationsRouteImport } from './routes/super-admin.organisations'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
+import { Route as TakeAssignmentIdRouteImport } from './routes/take.$assignmentId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +38,11 @@ const AccountRoute = AccountRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExaminationsRoute = ExaminationsRouteImport.update({
+  id: '/examinations',
+  path: '/examinations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvitationsRoute = InvitationsRouteImport.update({
@@ -62,6 +70,11 @@ const SuperAdminRoute = SuperAdminRouteImport.update({
   path: '/super-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExaminationsExamIdRoute = ExaminationsExamIdRouteImport.update({
+  id: '/$examId',
+  path: '/$examId',
+  getParentRoute: () => ExaminationsRoute,
+} as any)
 const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -77,6 +90,11 @@ const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const TakeAssignmentIdRoute = TakeAssignmentIdRouteImport.update({
+  id: '/take/$assignmentId',
+  path: '/take/$assignmentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -87,28 +105,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/examinations': typeof ExaminationsRouteWithChildren
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/examinations/$examId': typeof ExaminationsExamIdRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/take/$assignmentId': typeof TakeAssignmentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/examinations': typeof ExaminationsRouteWithChildren
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/examinations/$examId': typeof ExaminationsExamIdRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/take/$assignmentId': typeof TakeAssignmentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -116,14 +140,17 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
+  '/examinations': typeof ExaminationsRouteWithChildren
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/examinations/$examId': typeof ExaminationsExamIdRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/take/$assignmentId': typeof TakeAssignmentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -132,42 +159,51 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/dashboard'
+    | '/examinations'
     | '/invitations'
     | '/login'
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/examinations/$examId'
     | '/super-admin/audit'
     | '/super-admin/organisations'
     | '/super-admin/users'
+    | '/take/$assignmentId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/account'
     | '/dashboard'
+    | '/examinations'
     | '/invitations'
     | '/login'
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/examinations/$examId'
     | '/super-admin/audit'
     | '/super-admin/organisations'
     | '/super-admin/users'
+    | '/take/$assignmentId'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/account'
     | '/dashboard'
+    | '/examinations'
     | '/invitations'
     | '/login'
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/examinations/$examId'
     | '/super-admin/audit'
     | '/super-admin/organisations'
     | '/super-admin/users'
+    | '/take/$assignmentId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -175,11 +211,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   DashboardRoute: typeof DashboardRoute
+  ExaminationsRoute: typeof ExaminationsRouteWithChildren
   InvitationsRoute: typeof InvitationsRoute
   LoginRoute: typeof LoginRoute
   OrganizationsRoute: typeof OrganizationsRoute
   SignupRoute: typeof SignupRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  TakeAssignmentIdRoute: typeof TakeAssignmentIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -204,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/examinations': {
+      id: '/examinations'
+      path: '/examinations'
+      fullPath: '/examinations'
+      preLoaderRoute: typeof ExaminationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invitations': {
@@ -241,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/examinations/$examId': {
+      id: '/examinations/$examId'
+      path: '/$examId'
+      fullPath: '/examinations/$examId'
+      preLoaderRoute: typeof ExaminationsExamIdRouteImport
+      parentRoute: typeof ExaminationsRoute
+    }
     '/super-admin/audit': {
       id: '/super-admin/audit'
       path: '/audit'
@@ -262,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminUsersRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/take/$assignmentId': {
+      id: '/take/$assignmentId'
+      path: '/take/$assignmentId'
+      fullPath: '/take/$assignmentId'
+      preLoaderRoute: typeof TakeAssignmentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -271,6 +330,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ExaminationsRouteChildren {
+  ExaminationsExamIdRoute: typeof ExaminationsExamIdRoute
+}
+
+const ExaminationsRouteChildren: ExaminationsRouteChildren = {
+  ExaminationsExamIdRoute: ExaminationsExamIdRoute,
+}
+
+const ExaminationsRouteWithChildren = ExaminationsRoute._addFileChildren(
+  ExaminationsRouteChildren,
+)
 
 interface SuperAdminRouteChildren {
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
@@ -292,11 +363,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   DashboardRoute: DashboardRoute,
+  ExaminationsRoute: ExaminationsRouteWithChildren,
   InvitationsRoute: InvitationsRoute,
   LoginRoute: LoginRoute,
   OrganizationsRoute: OrganizationsRoute,
   SignupRoute: SignupRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  TakeAssignmentIdRoute: TakeAssignmentIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -149,6 +149,14 @@ export const createOrganization = createServerFn({ method: "POST" })
 					organizationId: organization.id,
 				},
 			});
+		await writeAudit(
+			session.user.id,
+			"organization.create",
+			"organization",
+			organization.id,
+			"Platform organisation creation",
+			{ name: organization.name, adminEmail: data.adminEmail || null },
+		);
 		return { id: organization.id, name: organization.name };
 	});
 
@@ -170,6 +178,23 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 			(data.action === "ban" || data.action === "make-user")
 		)
 			throw new Error("Anda tidak boleh menukar akses Super Admin sendiri.");
+		if (data.action === "make-user" || data.action === "ban") {
+			const target = await env.DB.prepare(
+				"SELECT role, banned FROM user WHERE id = ?",
+			)
+				.bind(data.userId)
+				.first<{ role: string | null; banned: number | null }>();
+			if (!target) throw new Error("User not found.");
+			if (target.role === "admin" && !target.banned) {
+				const activeAdminCount = await env.DB.prepare(
+					"SELECT COUNT(*) AS count FROM user WHERE role = 'admin' AND (banned = 0 OR banned IS NULL)",
+				).first<{ count: number }>();
+				if ((activeAdminCount?.count ?? 0) <= 1)
+					throw new Error(
+						"The final active platform admin cannot be removed or suspended.",
+					);
+			}
+		}
 		const auth = getAuth();
 		const headers = getRequestHeaders();
 		if (data.action === "ban")
@@ -188,6 +213,92 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 				},
 			});
 		await writeAudit(session.user.id, data.action, "user", data.userId, reason);
+		return { success: true };
+	});
+
+export const getPlatformUsers = createServerFn({ method: "GET" })
+	.validator((data: { query?: string } = {}) => data)
+	.handler(async ({ data }) => {
+		await requireSuperAdmin();
+		const query = data.query?.trim() ?? "";
+		return (
+			await env.DB.prepare(
+				`SELECT id, name, email, role, banned, emailVerified, createdAt FROM user ${query ? "WHERE lower(name) LIKE ? OR lower(email) LIKE ?" : ""} ORDER BY createdAt DESC LIMIT 100`,
+			)
+				.bind(
+					...(query
+						? [`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`]
+						: []),
+				)
+				.all()
+		).results;
+	});
+
+export const resendUserVerification = createServerFn({ method: "POST" })
+	.validator((data: { userId: string; reason: string }) => data)
+	.handler(async ({ data }) => {
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
+		const user = await env.DB.prepare(
+			"SELECT email, emailVerified FROM user WHERE id = ?",
+		)
+			.bind(data.userId)
+			.first<{ email: string; emailVerified: number }>();
+		if (!user) throw new Error("User not found.");
+		if (user.emailVerified)
+			throw new Error("This user's email is already verified.");
+		await getAuth().api.sendVerificationEmail({
+			headers: getRequestHeaders(),
+			body: { email: user.email, callbackURL: "/account" },
+		});
+		await writeAudit(
+			session.user.id,
+			"user.verification.resend",
+			"user",
+			data.userId,
+			reason,
+		);
+		return { success: true };
+	});
+
+export const getPlatformOrganizations = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	await requireSuperAdmin();
+	return (
+		await env.DB.prepare(
+			`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COALESCE(platform_organization.status, 'active') AS status, platform_organization.archivedAt, COUNT(DISTINCT member.id) AS memberCount, MAX(CASE WHEN member.role = 'owner' THEN user.name END) AS ownerName, MAX(CASE WHEN member.role = 'owner' THEN user.email END) AS ownerEmail FROM organization LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId GROUP BY organization.id ORDER BY organization.createdAt DESC`,
+		).all()
+	).results;
+});
+
+export const updatePlatformOrganization = createServerFn({ method: "POST" })
+	.validator(
+		(data: { organizationId: string; name: string; reason: string }) => data,
+	)
+	.handler(async ({ data }) => {
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
+		const name = data.name.trim();
+		if (name.length < 3)
+			throw new Error("Organisation name must be at least 3 characters.");
+		const organization = await env.DB.prepare(
+			"SELECT id FROM organization WHERE id = ?",
+		)
+			.bind(data.organizationId)
+			.first();
+		if (!organization) throw new Error("Organisation not found.");
+		await env.DB.prepare("UPDATE organization SET name = ? WHERE id = ?")
+			.bind(name, data.organizationId)
+			.run();
+		await writeAudit(
+			session.user.id,
+			"organization.update",
+			"organization",
+			data.organizationId,
+			reason,
+			{ name },
+		);
 		return { success: true };
 	});
 

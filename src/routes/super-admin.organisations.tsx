@@ -1,9 +1,20 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Building2 } from "lucide-react";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { Building2, UserCog } from "lucide-react";
+import { useState } from "react";
 import { DashboardShell } from "#/components/dashboard-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { ReasonDialog } from "#/components/reason-dialog";
+import { Badge } from "#/components/ui/badge";
+import { Button } from "#/components/ui/button";
+import { Card, CardContent } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
 import { getSession } from "#/lib/auth.functions";
-import { getSuperAdminOverview } from "#/lib/super-admin.functions";
+import {
+	getPlatformOrganizations,
+	setOrganizationOwner,
+	updateOrganizationLifecycle,
+	updatePlatformOrganization,
+} from "#/lib/super-admin.functions";
 
 export const Route = createFileRoute("/super-admin/organisations")({
 	beforeLoad: async () => {
@@ -12,38 +23,217 @@ export const Route = createFileRoute("/super-admin/organisations")({
 		if (session.user.role !== "admin") throw redirect({ to: "/dashboard" });
 		return { user: session.user };
 	},
-	loader: () => getSuperAdminOverview(),
+	loader: () => getPlatformOrganizations(),
 	component: OrganisationsPage,
 });
-
 function OrganisationsPage() {
 	const { user } = Route.useRouteContext();
-	const { organizations } = Route.useLoaderData();
+	const organizations = Route.useLoaderData() as any[];
+	const router = useRouter();
+	const lifecycle = useServerFn(updateOrganizationLifecycle);
+	const update = useServerFn(updatePlatformOrganization);
+	const owner = useServerFn(setOrganizationOwner);
+	const [notice, setNotice] = useState("");
+	async function run(action: () => Promise<unknown>, success: string) {
+		try {
+			await action();
+			setNotice(success);
+			await router.invalidate({ sync: true });
+		} catch (error) {
+			setNotice(error instanceof Error ? error.message : "Action failed.");
+		}
+	}
 	return (
-		<DashboardShell pageTitle="Platform organisations" user={user}>
-			<div className="mx-auto w-full max-w-7xl p-6">
+		<DashboardShell user={user} pageTitle="Platform organisations">
+			<div className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6 lg:p-8">
+				<section>
+					<p className="text-sm text-muted-foreground">
+						Platform administration
+					</p>
+					<h1 className="mt-1 text-2xl font-semibold">Organisations</h1>
+				</section>
+				{notice ? (
+					<p className="rounded-md border p-3 text-sm">{notice}</p>
+				) : null}
 				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Building2 className="size-5" /> Organisations
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="divide-y">
+					<CardContent className="divide-y p-0">
 						{organizations.map((organization) => (
 							<div
-								className="flex justify-between py-3 text-sm"
+								className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center"
 								key={organization.id}
 							>
-								<span>
-									{organization.name}
-									<span className="ml-2 text-muted-foreground">
-										{organization.slug}
-									</span>
-								</span>
-								<span>
-									{organization.memberCount} members ·{" "}
-									{organization.ownerName ?? "No owner"}
-								</span>
+								<div className="grid size-10 place-items-center rounded-md bg-muted">
+									<Building2 className="size-5" />
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="font-medium">{organization.name}</p>
+									<p className="text-sm text-muted-foreground">
+										/{organization.slug} · {organization.memberCount} members ·
+										Owner: {organization.ownerName ?? "Unassigned"}
+									</p>
+								</div>
+								<Badge
+									variant={
+										organization.status === "active"
+											? "outline"
+											: organization.status === "suspended"
+												? "destructive"
+												: "secondary"
+									}
+								>
+									{organization.status}
+								</Badge>
+								<div className="flex flex-wrap gap-2">
+									<ReasonDialog
+										confirmLabel="Save name"
+										description="Rename this organisation and record the reason."
+										onConfirm={(reason) => {
+											const name = window.prompt(
+												"Organisation name",
+												organization.name,
+											);
+											return name
+												? run(
+														() =>
+															update({
+																data: {
+																	organizationId: organization.id,
+																	name,
+																	reason,
+																},
+															}),
+														"Organisation updated. Audit record created.",
+													)
+												: Promise.resolve();
+										}}
+										title="Rename organisation"
+										trigger={
+											<Button size="sm" variant="outline">
+												Edit
+											</Button>
+										}
+									/>
+									<ReasonDialog
+										confirmLabel="Set owner"
+										description="The user must already have a registered account."
+										onConfirm={(reason) => {
+											const email = window.prompt("Registered user email");
+											return email
+												? run(
+														() =>
+															owner({
+																data: {
+																	organizationId: organization.id,
+																	email,
+																	reason,
+																},
+															}),
+														"Owner assigned. Audit record created.",
+													)
+												: Promise.resolve();
+										}}
+										title="Transfer ownership"
+										trigger={
+											<Button size="sm" variant="outline">
+												<UserCog /> Owner
+											</Button>
+										}
+									/>
+									{organization.status === "active" ? (
+										<ReasonDialog
+											confirmLabel="Suspend"
+											description="Suspended organisations cannot operate examinations."
+											onConfirm={(reason) =>
+												run(
+													() =>
+														lifecycle({
+															data: {
+																organizationId: organization.id,
+																action: "suspend",
+																reason,
+															},
+														}),
+													"Organisation suspended. Audit record created.",
+												)
+											}
+											title="Suspend organisation"
+											trigger={
+												<Button size="sm" variant="destructive">
+													Suspend
+												</Button>
+											}
+										/>
+									) : (
+										<ReasonDialog
+											confirmLabel="Reactivate"
+											description="This restores operational access."
+											onConfirm={(reason) =>
+												run(
+													() =>
+														lifecycle({
+															data: {
+																organizationId: organization.id,
+																action: "reactivate",
+																reason,
+															},
+														}),
+													"Organisation reactivated. Audit record created.",
+												)
+											}
+											title="Reactivate organisation"
+											trigger={<Button size="sm">Reactivate</Button>}
+										/>
+									)}
+									{organization.status === "archived" ? (
+										<ReasonDialog
+											confirmLabel="Restore"
+											description="This restores the archived organisation."
+											onConfirm={(reason) =>
+												run(
+													() =>
+														lifecycle({
+															data: {
+																organizationId: organization.id,
+																action: "restore",
+																reason,
+															},
+														}),
+													"Organisation restored. Audit record created.",
+												)
+											}
+											title="Restore organisation"
+											trigger={
+												<Button size="sm" variant="outline">
+													Restore
+												</Button>
+											}
+										/>
+									) : (
+										<ReasonDialog
+											confirmLabel="Archive"
+											description="Archive preserves all organisation and membership history."
+											onConfirm={(reason) =>
+												run(
+													() =>
+														lifecycle({
+															data: {
+																organizationId: organization.id,
+																action: "archive",
+																reason,
+															},
+														}),
+													"Organisation archived. Audit record created.",
+												)
+											}
+											title="Archive organisation"
+											trigger={
+												<Button size="sm" variant="outline">
+													Archive
+												</Button>
+											}
+										/>
+									)}
+								</div>
 							</div>
 						))}
 					</CardContent>

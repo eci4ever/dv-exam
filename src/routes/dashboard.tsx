@@ -22,6 +22,7 @@ import {
 } from "#/components/ui/card";
 import { getSession } from "#/lib/auth.functions";
 import { getOrganizationWorkspace } from "#/lib/organization.functions";
+import { getDashboardData } from "#/lib/examination.functions";
 
 export const Route = createFileRoute("/dashboard")({
 	beforeLoad: async () => {
@@ -29,17 +30,84 @@ export const Route = createFileRoute("/dashboard")({
 		if (!session) throw redirect({ to: "/login" });
 		return { user: session.user };
 	},
-	loader: () => getOrganizationWorkspace(),
+	loader: async () => ({
+		workspace: await getOrganizationWorkspace(),
+		dashboard: await getDashboardData(),
+	}),
 	component: DashboardPage,
 });
 
 function DashboardPage() {
 	const { user } = Route.useRouteContext();
-	const workspace = Route.useLoaderData();
+	const { workspace, dashboard } = Route.useLoaderData();
 	const organizationRole = workspace.organizations.find(
 		(organization) => organization.id === workspace.activeOrganizationId,
 	)?.role;
 
+	const canManage =
+		organizationRole === "owner" || organizationRole === "admin";
+	if (!canManage)
+		return (
+			<DashboardShell
+				organizationRole={organizationRole}
+				pageTitle="Dashboard"
+				user={user}
+			>
+				<div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
+					<section>
+						<p className="text-sm text-muted-foreground">Candidate portal</p>
+						<h1 className="mt-1 text-2xl font-semibold tracking-tight">
+							My examinations
+						</h1>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Only examinations assigned to you appear here.
+						</p>
+					</section>
+					<Card>
+						<CardContent className="divide-y p-0">
+							{dashboard.assignments.length ? (
+								dashboard.assignments.map((assignment: any) => (
+									<div
+										className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
+										key={assignment.id}
+									>
+										<div>
+											<p className="font-medium">{assignment.title}</p>
+											<p className="text-sm text-muted-foreground">
+												{assignment.organizationName} ·{" "}
+												{assignment.durationMinutes} minutes
+											</p>
+											{assignment.attemptStatus === "submitted" &&
+											assignment.resultsPublishedAt ? (
+												<p className="mt-1 text-sm text-primary">
+													Result: {assignment.score}/{assignment.maxScore}
+												</p>
+											) : null}
+										</div>
+										<Button asChild>
+											<Link
+												to="/take/$assignmentId"
+												params={{ assignmentId: assignment.id }}
+											>
+												{assignment.attemptStatus === "in_progress"
+													? "Resume"
+													: assignment.attemptStatus === "submitted"
+														? "View submission"
+														: "Start examination"}
+											</Link>
+										</Button>
+									</div>
+								))
+							) : (
+								<div className="p-10 text-center text-sm text-muted-foreground">
+									No examination has been assigned to you yet.
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</div>
+			</DashboardShell>
+		);
 	return (
 		<DashboardShell
 			organizationRole={organizationRole}
@@ -68,20 +136,20 @@ function DashboardPage() {
 					<Metric
 						icon={<Users />}
 						label="Registered candidates"
-						value="0"
-						helper="No candidates yet"
+						value={String(dashboard.metrics.candidateCount)}
+						helper="Assigned across your workspaces"
 					/>
 					<Metric
 						icon={<CalendarDays />}
 						label="Active examinations"
-						value="0"
-						helper="No examinations in progress"
+						value={String(dashboard.metrics.examinationCount)}
+						helper="Drafts, published and closed"
 					/>
 					<Metric
 						icon={<BarChart3 />}
 						label="Reports generated"
-						value="0"
-						helper="Your data will appear here"
+						value={String(dashboard.metrics.attemptCount)}
+						helper="Candidate submissions"
 					/>
 				</section>
 
@@ -100,11 +168,17 @@ function DashboardPage() {
 								<div className="max-w-sm">
 									<Activity className="mx-auto size-6 text-muted-foreground" />
 									<p className="mt-3 text-sm font-medium">
-										Waiting for examination data
+										Recent examinations
 									</p>
 									<p className="mt-1 text-sm text-muted-foreground">
-										Activity charts will appear when your first examination is
-										published.
+										{dashboard.managed.length
+											? dashboard.managed
+													.map(
+														(exam: any) =>
+															`${exam.title} (${exam.candidateCount} candidates)`,
+													)
+													.join(" · ")
+											: "Create your first examination to begin."}
 									</p>
 								</div>
 							</div>
@@ -117,8 +191,16 @@ function DashboardPage() {
 								<CardTitle className="text-base">Quick actions</CardTitle>
 							</CardHeader>
 							<CardContent className="grid gap-2">
-								<QuickAction icon={<FilePlus2 />} label="Create examination" />
-								<QuickAction icon={<ShieldCheck />} label="Manage security" />
+								<Button asChild className="justify-start" variant="ghost">
+									<Link to="/examinations">
+										<FilePlus2 /> Create examination
+									</Link>
+								</Button>
+								<Button asChild className="justify-start" variant="ghost">
+									<Link to="/organizations#members">
+										<ShieldCheck /> Manage candidates
+									</Link>
+								</Button>
 							</CardContent>
 						</Card>
 						<Card>

@@ -13,6 +13,18 @@ async function requireSession() {
 	return session;
 }
 
+async function requireOrganizationManager(organizationId: string) {
+	const session = await requireSession();
+	const membership = await env.DB.prepare(
+		"SELECT role FROM member WHERE organizationId = ? AND userId = ?",
+	)
+		.bind(organizationId, session.user.id)
+		.first<{ role: string }>();
+	if (!membership || !["owner", "admin"].includes(membership.role))
+		throw new Error("Organisation owner or admin access is required.");
+	return session;
+}
+
 export const getOrganizationWorkspace = createServerFn({
 	method: "GET",
 }).handler(async () => {
@@ -111,7 +123,7 @@ export const setActiveOrganization = createServerFn({ method: "POST" })
 		organizationId: data.organizationId.trim(),
 	}))
 	.handler(async ({ data }) => {
-		await requireSession();
+		await requireOrganizationManager(data.organizationId);
 		if (!data.organizationId) throw new Error("Organisasi tidak sah.");
 		await getAuth().api.setActiveOrganization({
 			headers: getRequestHeaders(),
@@ -133,7 +145,7 @@ export const inviteOrganizationMember = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		await requireSession();
+		await requireOrganizationManager(data.organizationId);
 		if (!data.organizationId || !/^\S+@\S+\.\S+$/.test(data.email))
 			throw new Error("Masukkan alamat e-mel yang sah.");
 		if (!(["admin", "member"] as string[]).includes(data.role))
@@ -159,7 +171,7 @@ export const updateOrganizationMember = createServerFn({ method: "POST" })
 		}) => data,
 	)
 	.handler(async ({ data }) => {
-		await requireSession();
+		await requireOrganizationManager(data.organizationId);
 		if (!data.organizationId || !data.memberId)
 			throw new Error("Ahli organisasi tidak sah.");
 		if (!(["admin", "member"] as string[]).includes(data.role))
@@ -180,9 +192,18 @@ export const removeOrganizationMember = createServerFn({ method: "POST" })
 		(data: { organizationId: string; memberIdOrEmail: string }) => data,
 	)
 	.handler(async ({ data }) => {
-		await requireSession();
+		await requireOrganizationManager(data.organizationId);
 		if (!data.organizationId || !data.memberIdOrEmail)
 			throw new Error("Ahli organisasi tidak sah.");
+		const target = await env.DB.prepare(
+			"SELECT role FROM member WHERE id = ? AND organizationId = ?",
+		)
+			.bind(data.memberIdOrEmail, data.organizationId)
+			.first<{ role: string }>();
+		if (target?.role === "owner")
+			throw new Error(
+				"Transfer ownership before removing the organisation owner.",
+			);
 		await getAuth().api.removeMember({
 			headers: getRequestHeaders(),
 			body: data,
@@ -193,8 +214,14 @@ export const removeOrganizationMember = createServerFn({ method: "POST" })
 export const cancelOrganizationInvitation = createServerFn({ method: "POST" })
 	.validator((data: { invitationId: string }) => data)
 	.handler(async ({ data }) => {
-		await requireSession();
 		if (!data.invitationId) throw new Error("Jemputan tidak sah.");
+		const invitation = await env.DB.prepare(
+			"SELECT organizationId FROM invitation WHERE id = ?",
+		)
+			.bind(data.invitationId)
+			.first<{ organizationId: string }>();
+		if (!invitation) throw new Error("Invitation not found.");
+		await requireOrganizationManager(invitation.organizationId);
 		await getAuth().api.cancelInvitation({
 			headers: getRequestHeaders(),
 			body: { invitationId: data.invitationId },
@@ -209,7 +236,7 @@ export const respondToOrganizationInvitation = createServerFn({
 		(data: { invitationId: string; response: "accept" | "reject" }) => data,
 	)
 	.handler(async ({ data }) => {
-		await requireSession();
+		await requireOrganizationManager(data.organizationId);
 		if (!data.invitationId || !["accept", "reject"].includes(data.response))
 			throw new Error("Tindakan jemputan tidak sah.");
 		const auth = getAuth();
@@ -219,5 +246,20 @@ export const respondToOrganizationInvitation = createServerFn({
 		};
 		if (data.response === "accept") await auth.api.acceptInvitation(request);
 		else await auth.api.rejectInvitation(request);
+		return { success: true };
+	});
+
+export const updateOrganizationProfile = createServerFn({ method: "POST" })
+	.validator((data: { organizationId: string; name: string }) => ({
+		organizationId: data.organizationId.trim(),
+		name: data.name.trim(),
+	}))
+	.handler(async ({ data }) => {
+		await requireOrganizationManager(data.organizationId);
+		if (data.name.length < 3)
+			throw new Error("Organisation name must be at least 3 characters.");
+		await env.DB.prepare("UPDATE organization SET name = ? WHERE id = ?")
+			.bind(data.name, data.organizationId)
+			.run();
 		return { success: true };
 	});
