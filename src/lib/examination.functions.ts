@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
 import {
+	requireActiveOrganizationPermission,
 	requireOrganizationPermission,
 	requireSession,
 } from "#/server/auth/authorization";
@@ -98,7 +99,11 @@ export const getExaminations = createServerFn({ method: "GET" })
 export const createExamination = createServerFn({ method: "POST" })
 	.validator((data: unknown) => createExaminationSchema.parse(data))
 	.handler(async ({ data }) => {
-		const session = await requireOrganisationManager(data.organizationId);
+		const { session } =
+			await requireActiveOrganizationPermission("examination:manage");
+		const organizationId = session.session.activeOrganizationId;
+		if (!organizationId)
+			throw new Error("Choose an active organisation first.");
 		const title = clean(data.title, "Title");
 		const id = crypto.randomUUID();
 		const now = Date.now();
@@ -107,7 +112,7 @@ export const createExamination = createServerFn({ method: "POST" })
 		)
 			.bind(
 				id,
-				data.organizationId,
+				organizationId,
 				title,
 				data.durationMinutes,
 				session.user.id,

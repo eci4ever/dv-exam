@@ -62,3 +62,13 @@ export async function requireOrganizationPermission({
 		);
 	return { session, role: membership.role };
 }
+
+export async function requireActiveOrganizationPermission(
+	permission: OrganizationPermission,
+) {
+	const session = await requireSession();
+	const organizationId = session.session.activeOrganizationId;
+	if (!organizationId)
+		throw new AuthorizationError("Choose an active organisation first.");
+	return requireOrganizationPermission({ organizationId, permission });
+}
