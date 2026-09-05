@@ -2,26 +2,18 @@ import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
+import {
+	requireOrganizationPermission,
+	requireSession,
+} from "#/server/auth/authorization";
 
 type OrganizationRole = "admin" | "member";
 
-async function requireSession() {
-	const session = await getAuth().api.getSession({
-		headers: getRequestHeaders(),
-	});
-	if (!session) throw new Error("Sila log masuk untuk meneruskan.");
-	return session;
-}
-
 async function requireOrganizationManager(organizationId: string) {
-	const session = await requireSession();
-	const membership = await env.DB.prepare(
-		"SELECT role FROM member WHERE organizationId = ? AND userId = ?",
-	)
-		.bind(organizationId, session.user.id)
-		.first<{ role: string }>();
-	if (!membership || !["owner", "admin"].includes(membership.role))
-		throw new Error("Organisation owner or admin access is required.");
+	const { session } = await requireOrganizationPermission({
+		organizationId,
+		permission: "organization:manage",
+	});
 	return session;
 }
 

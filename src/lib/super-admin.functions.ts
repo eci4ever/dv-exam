@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
+import { requireGlobalAdmin } from "#/server/auth/authorization";
 
 type UserAction = "ban" | "unban" | "make-admin" | "make-user";
 
@@ -39,12 +40,7 @@ function requireReason(reason: string) {
 }
 
 async function requireSuperAdmin() {
-	const session = await getAuth().api.getSession({
-		headers: getRequestHeaders(),
-	});
-	if (!session || session.user.role !== "admin")
-		throw new Error("Akses Super Admin diperlukan.");
-	return session;
+	return requireGlobalAdmin();
 }
 
 function slugify(value: string) {
