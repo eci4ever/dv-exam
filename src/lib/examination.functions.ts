@@ -5,7 +5,17 @@ import {
 	requireOrganizationPermission,
 	requireSession,
 } from "#/server/auth/authorization";
-import { createExaminationSchema } from "#/server/validation/examination";
+import {
+	assignCandidateSchema,
+	assignmentIdSchema,
+	attemptIdSchema,
+	createExaminationSchema,
+	examinationIdSchema,
+	getExaminationsSchema,
+	saveCandidateAnswerSchema,
+	saveQuestionSchema,
+	updateExaminationStatusSchema,
+} from "#/server/validation/examination";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -84,7 +94,7 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 );
 
 export const getExaminations = createServerFn({ method: "GET" })
-	.validator((data: { organizationId: string }) => data)
+	.validator((data: unknown) => getExaminationsSchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireOrganisationManager(data.organizationId);
 		return (
@@ -124,7 +134,7 @@ export const createExamination = createServerFn({ method: "POST" })
 	});
 
 export const getExaminationEditor = createServerFn({ method: "GET" })
-	.validator((data: { examinationId: string }) => data)
+	.validator((data: unknown) => examinationIdSchema.parse(data))
 	.handler(async ({ data }) => {
 		const { exam } = await getManagedExam(data.examinationId);
 		const [questions, members, assignments] = await Promise.all([
@@ -163,30 +173,12 @@ export const getExaminationEditor = createServerFn({ method: "GET" })
 	});
 
 export const saveQuestion = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			examinationId: string;
-			questionId?: string;
-			prompt: string;
-			points: number;
-			options: Array<{ id?: string; label: string; isCorrect: boolean }>;
-		}) => data,
-	)
+	.validator((data: unknown) => saveQuestionSchema.parse(data))
 	.handler(async ({ data }) => {
 		const { exam } = await getManagedExam(data.examinationId);
 		if (exam.status !== "draft")
 			throw new Error("Only draft examinations can be edited.");
-		const prompt = clean(data.prompt, "Question");
-		if (!Number.isInteger(data.points) || data.points < 1)
-			throw new Error("Points must be at least 1.");
-		if (
-			data.options.length < 2 ||
-			data.options.some((option) => !option.label.trim()) ||
-			data.options.filter((option) => option.isCorrect).length !== 1
-		)
-			throw new Error(
-				"Provide at least two options and exactly one correct answer.",
-			);
+		const prompt = data.prompt;
 		const questionId = data.questionId ?? crypto.randomUUID();
 		const existing = data.questionId
 			? await env.DB.prepare(
@@ -239,7 +231,7 @@ export const saveQuestion = createServerFn({ method: "POST" })
 	});
 
 export const assignCandidate = createServerFn({ method: "POST" })
-	.validator((data: { examinationId: string; userId: string }) => data)
+	.validator((data: unknown) => assignCandidateSchema.parse(data))
 	.handler(async ({ data }) => {
 		const { exam, session } = await getManagedExam(data.examinationId);
 		if (exam.status !== "draft")
@@ -267,12 +259,7 @@ export const assignCandidate = createServerFn({ method: "POST" })
 	});
 
 export const updateExaminationStatus = createServerFn({ method: "POST" })
-	.validator(
-		(data: {
-			examinationId: string;
-			action: "publish" | "close" | "archive" | "publish-results";
-		}) => data,
-	)
+	.validator((data: unknown) => updateExaminationStatusSchema.parse(data))
 	.handler(async ({ data }) => {
 		const { exam } = await getManagedExam(data.examinationId);
 		if (data.action === "publish") {
@@ -315,7 +302,7 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 	});
 
 export const getCandidateAttempt = createServerFn({ method: "GET" })
-	.validator((data: { assignmentId: string }) => data)
+	.validator((data: unknown) => assignmentIdSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const assignment = await env.DB.prepare(
@@ -370,9 +357,7 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 	});
 
 export const saveCandidateAnswer = createServerFn({ method: "POST" })
-	.validator(
-		(data: { attemptId: string; questionId: string; optionId: string }) => data,
-	)
+	.validator((data: unknown) => saveCandidateAnswerSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const valid = await env.DB.prepare(
@@ -396,7 +381,7 @@ export const saveCandidateAnswer = createServerFn({ method: "POST" })
 	});
 
 export const submitCandidateAttempt = createServerFn({ method: "POST" })
-	.validator((data: { attemptId: string }) => data)
+	.validator((data: unknown) => attemptIdSchema.parse(data))
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const attempt = await env.DB.prepare(
