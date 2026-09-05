@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-05 — PR #6:** Added Zod validation for examination questions, candidate assignments, workflow actions, attempts, and answers. Added contract tests.
 - [x] **2026-09-05 — PR #5:** Added explicit organisation-membership guards so members can select their active organisation without gaining management permissions. Added role-policy tests.
 - [x] **2026-09-05 — PR #1:** Added the authorization foundation, the organisation permission matrix, and initial examination Zod contract tests. Merged as `6b2f503`.
 - [x] **2026-09-05 — PR #2:** Added Zod contracts and tests for organisation membership and invitation mutations; fixed invitation acceptance to authorise the signed-in recipient. Merged as `1cc8a63`.
@@ -43,6 +44,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 **Completed in this phase so far:**
 
 - [x] Examination creation contract and tests.
+- [x] Examination question, candidate assignment, workflow action, attempt, and answer contracts and tests.
 - [x] Organisation, membership, and invitation mutation contracts and tests.
 - [x] Platform Admin user, organisation, lifecycle, settings, and audit-filter contracts and tests.
 
