@@ -21,6 +21,7 @@ import {
 	CardTitle,
 } from "#/components/ui/card";
 import { getSession } from "#/lib/auth.functions";
+import { getOrganizationWorkspace } from "#/lib/organization.functions";
 
 export const Route = createFileRoute("/dashboard")({
 	beforeLoad: async () => {
@@ -28,14 +29,23 @@ export const Route = createFileRoute("/dashboard")({
 		if (!session) throw redirect({ to: "/login" });
 		return { user: session.user };
 	},
+	loader: () => getOrganizationWorkspace(),
 	component: DashboardPage,
 });
 
 function DashboardPage() {
 	const { user } = Route.useRouteContext();
+	const workspace = Route.useLoaderData();
+	const organizationRole = workspace.organizations.find(
+		(organization) => organization.id === workspace.activeOrganizationId,
+	)?.role;
 
 	return (
-		<DashboardShell pageTitle="Dashboard" user={user}>
+		<DashboardShell
+			organizationRole={organizationRole}
+			pageTitle="Dashboard"
+			user={user}
+		>
 			<div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
 				<section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div>

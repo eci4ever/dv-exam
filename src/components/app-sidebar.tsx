@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import {
 	Building2,
+	FileText,
 	GraduationCap,
 	LayoutDashboard,
 	Settings,
 	ShieldCheck,
+	Users,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "#/components/nav-main";
@@ -29,21 +31,18 @@ export type SidebarUser = {
 
 export function AppSidebar({
 	user,
+	organizationRole,
 	...props
-}: React.ComponentProps<typeof Sidebar> & { user: SidebarUser }) {
-	const navItems = [
+}: React.ComponentProps<typeof Sidebar> & {
+	user: SidebarUser;
+	organizationRole?: string | null;
+}) {
+	const platformItems = [
 		{ title: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
-		{ title: "Organisations", to: "/organizations" as const, icon: Building2 },
 		{ title: "Account settings", to: "/account" as const, icon: Settings },
 	];
-
-	if (user.role === "admin") {
-		navItems.push({
-			title: "Super Admin",
-			to: "/super-admin" as const,
-			icon: ShieldCheck,
-		});
-	}
+	const canManageOrganization =
+		organizationRole === "owner" || organizationRole === "admin";
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -67,7 +66,40 @@ export function AppSidebar({
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={navItems} />
+				<NavMain label="Platform" items={platformItems} />
+				{canManageOrganization && (
+					<NavMain
+						label="Organisation"
+						items={[
+							{ title: "Workspace", to: "/organizations", icon: Building2 },
+							{
+								title: "Members & invitations",
+								to: "/organizations",
+								hash: "members",
+								icon: Users,
+							},
+						]}
+					/>
+				)}
+				{user.role === "admin" && (
+					<NavMain
+						label="Platform Admin"
+						items={[
+							{ title: "Overview", to: "/super-admin", icon: ShieldCheck },
+							{ title: "Users", to: "/super-admin/users", icon: Users },
+							{
+								title: "Organisations",
+								to: "/super-admin/organisations",
+								icon: Building2,
+							},
+							{
+								title: "Audit trails",
+								to: "/super-admin/audit",
+								icon: FileText,
+							},
+						]}
+					/>
+				)}
 			</SidebarContent>
 			<SidebarFooter>
 				<NavUser user={user} />

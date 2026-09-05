@@ -88,7 +88,11 @@ function OrganizationsPage() {
 	}
 
 	return (
-		<DashboardShell pageTitle="Organisations" user={user}>
+		<DashboardShell
+			organizationRole={currentMembership}
+			pageTitle="Organisations"
+			user={user}
+		>
 			<div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8">
 				<section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 					<div>
@@ -247,7 +251,7 @@ function OrganizationsPage() {
 					<div className="space-y-6">
 						{activeOrganization ? (
 							<>
-								<Card>
+								<Card id="members">
 									<CardHeader className="flex-row items-center justify-between space-y-0">
 										<div>
 											<CardTitle>{activeOrganization.name}</CardTitle>

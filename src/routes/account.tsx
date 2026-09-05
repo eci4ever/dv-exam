@@ -22,6 +22,7 @@ import { Input } from "#/components/ui/input";
 import { Separator } from "#/components/ui/separator";
 import { getSession } from "#/lib/auth.functions";
 import { authClient } from "#/lib/auth-client";
+import { getOrganizationWorkspace } from "#/lib/organization.functions";
 
 export const Route = createFileRoute("/account")({
 	beforeLoad: async () => {
@@ -29,11 +30,16 @@ export const Route = createFileRoute("/account")({
 		if (!session) throw redirect({ to: "/login" });
 		return { user: session.user, session: session.session };
 	},
+	loader: () => getOrganizationWorkspace(),
 	component: AccountPage,
 });
 
 function AccountPage() {
 	const { user, session } = Route.useRouteContext();
+	const workspace = Route.useLoaderData();
+	const organizationRole = workspace.organizations.find(
+		(organization) => organization.id === workspace.activeOrganizationId,
+	)?.role;
 	const [name, setName] = useState(user.name);
 	const [sessions, setSessions] = useState<
 		Array<{
@@ -101,7 +107,11 @@ function AccountPage() {
 	}
 
 	return (
-		<DashboardShell pageTitle="Account settings" user={user}>
+		<DashboardShell
+			organizationRole={organizationRole}
+			pageTitle="Account settings"
+			user={user}
+		>
 			<div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">

@@ -91,7 +91,9 @@ function SuperAdminPage() {
 		setNotice("");
 		setWorkingUserId(userId);
 		try {
-			await updateUserAccessFn({ data: { userId, action } });
+			await updateUserAccessFn({
+				data: { userId, action, reason: "Administrative access change" },
+			});
 			setNotice("User access has been updated.");
 			await refresh();
 		} catch (error) {
@@ -111,7 +113,11 @@ function SuperAdminPage() {
 		setIsSaving(true);
 		try {
 			const owner = await setOrganizationOwnerFn({
-				data: { organizationId: ownerOrganizationId, email: ownerEmail },
+				data: {
+					organizationId: ownerOrganizationId,
+					email: ownerEmail,
+					reason: "Organisation ownership assignment",
+				},
 			});
 			setOwnerEmail("");
 			setNotice(`${owner.name} is now the owner of this organisation.`);

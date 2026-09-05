@@ -5,6 +5,39 @@ import { getAuth } from "./auth";
 
 type UserAction = "ban" | "unban" | "make-admin" | "make-user";
 
+type AuditedUserAction = UserAction & { reason: string };
+
+async function writeAudit(
+	actorUserId: string,
+	action: string,
+	targetType: string,
+	targetId: string | null,
+	reason: string,
+	metadata: Record<string, unknown> = {},
+) {
+	await env.DB.prepare(
+		"INSERT INTO platform_audit_log (id, actorUserId, action, targetType, targetId, reason, outcome, metadata, createdAt) VALUES (?, ?, ?, ?, ?, ?, 'success', ?, ?)",
+	)
+		.bind(
+			crypto.randomUUID(),
+			actorUserId,
+			action,
+			targetType,
+			targetId,
+			reason,
+			JSON.stringify(metadata),
+			Date.now(),
+		)
+		.run();
+}
+
+function requireReason(reason: string) {
+	const value = reason.trim();
+	if (value.length < 3)
+		throw new Error("A reason of at least 3 characters is required.");
+	return value;
+}
+
 async function requireSuperAdmin() {
 	const session = await getAuth().api.getSession({
 		headers: getRequestHeaders(),
@@ -120,9 +153,13 @@ export const createOrganization = createServerFn({ method: "POST" })
 	});
 
 export const updateUserAccess = createServerFn({ method: "POST" })
-	.validator((data: { userId: string; action: UserAction }) => data)
+	.validator((data: AuditedUserAction) => ({
+		...data,
+		reason: data.reason.trim(),
+	}))
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
 		if (
 			!data.userId ||
 			!["ban", "unban", "make-admin", "make-user"].includes(data.action)
@@ -150,16 +187,21 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 					role: data.action === "make-admin" ? "admin" : "user",
 				},
 			});
+		await writeAudit(session.user.id, data.action, "user", data.userId, reason);
 		return { success: true };
 	});
 
 export const setOrganizationOwner = createServerFn({ method: "POST" })
-	.validator((data: { organizationId: string; email: string }) => ({
-		organizationId: data.organizationId,
-		email: data.email.trim().toLowerCase(),
-	}))
+	.validator(
+		(data: { organizationId: string; email: string; reason: string }) => ({
+			organizationId: data.organizationId,
+			email: data.email.trim().toLowerCase(),
+			reason: data.reason.trim(),
+		}),
+	)
 	.handler(async ({ data }) => {
-		await requireSuperAdmin();
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
 		if (!data.organizationId || !/^\S+@\S+\.\S+$/.test(data.email)) {
 			throw new Error("Pilih organisasi dan masukkan e-mel pengguna yang sah.");
 		}
@@ -196,5 +238,166 @@ export const setOrganizationOwner = createServerFn({ method: "POST" })
 					).bind(crypto.randomUUID(), data.organizationId, user.id, Date.now()),
 		];
 		await env.DB.batch(statements);
+		await writeAudit(
+			session.user.id,
+			"owner.assign",
+			"organization",
+			data.organizationId,
+			reason,
+			{ email: data.email },
+		);
 		return { name: user.name, email: data.email };
+	});
+
+export const updateOrganizationLifecycle = createServerFn({ method: "POST" })
+	.validator(
+		(data: {
+			organizationId: string;
+			action: "suspend" | "reactivate" | "archive" | "restore";
+			reason: string;
+		}) => data,
+	)
+	.handler(async ({ data }) => {
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
+		if (!data.organizationId) throw new Error("Organisation is required.");
+		const status =
+			data.action === "suspend"
+				? "suspended"
+				: data.action === "archive"
+					? "archived"
+					: "active";
+		const archivedAt = status === "archived" ? Date.now() : null;
+		await env.DB.prepare(
+			"INSERT INTO platform_organization (organizationId, status, archivedAt, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(organizationId) DO UPDATE SET status = excluded.status, archivedAt = excluded.archivedAt, updatedAt = excluded.updatedAt",
+		)
+			.bind(data.organizationId, status, archivedAt, Date.now())
+			.run();
+		await writeAudit(
+			session.user.id,
+			`organization.${data.action}`,
+			"organization",
+			data.organizationId,
+			reason,
+		);
+		return { status };
+	});
+
+export const revokeUserSessions = createServerFn({ method: "POST" })
+	.validator((data: { userId: string; reason: string }) => data)
+	.handler(async ({ data }) => {
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
+		if (data.userId === session.user.id)
+			throw new Error("You cannot revoke your own sessions here.");
+		await env.DB.prepare("DELETE FROM session WHERE userId = ?")
+			.bind(data.userId)
+			.run();
+		await writeAudit(
+			session.user.id,
+			"user.sessions.revoke",
+			"user",
+			data.userId,
+			reason,
+		);
+		return { success: true };
+	});
+
+export const getPlatformAuditLog = createServerFn({ method: "GET" })
+	.validator(
+		(
+			data: {
+				action?: string;
+				actor?: string;
+				target?: string;
+				from?: number;
+				to?: number;
+			} = {},
+		) => data,
+	)
+	.handler(async ({ data }) => {
+		await requireSuperAdmin();
+		const clauses = ["1 = 1"];
+		const values: Array<string | number> = [];
+		if (data.action) {
+			clauses.push("audit.action = ?");
+			values.push(data.action);
+		}
+		if (data.actor) {
+			clauses.push("audit.actorUserId = ?");
+			values.push(data.actor);
+		}
+		if (data.target) {
+			clauses.push("audit.targetId = ?");
+			values.push(data.target);
+		}
+		if (data.from) {
+			clauses.push("audit.createdAt >= ?");
+			values.push(data.from);
+		}
+		if (data.to) {
+			clauses.push("audit.createdAt <= ?");
+			values.push(data.to);
+		}
+		const query = `SELECT audit.*, user.name AS actorName, user.email AS actorEmail FROM platform_audit_log audit INNER JOIN user ON user.id = audit.actorUserId WHERE ${clauses.join(" AND ")} ORDER BY audit.createdAt DESC LIMIT 100`;
+		return (
+			await env.DB.prepare(query)
+				.bind(...values)
+				.all()
+		).results;
+	});
+
+export const getPlatformSettings = createServerFn({ method: "GET" }).handler(
+	async () => {
+		await requireSuperAdmin();
+		const rows = await env.DB.prepare(
+			"SELECT key, value FROM platform_setting",
+		).all<{ key: string; value: string }>();
+		return Object.fromEntries(rows.results.map((row) => [row.key, row.value]));
+	},
+);
+
+export const updatePlatformSettings = createServerFn({ method: "POST" })
+	.validator(
+		(data: {
+			platformName: string;
+			supportEmail: string;
+			invitationExpiryHours: number;
+			emailSenderName: string;
+			reason: string;
+		}) => data,
+	)
+	.handler(async ({ data }) => {
+		const session = await requireSuperAdmin();
+		const reason = requireReason(data.reason);
+		if (!/^\S+@\S+\.\S+$/.test(data.supportEmail))
+			throw new Error("A valid support email is required.");
+		if (
+			!Number.isInteger(data.invitationExpiryHours) ||
+			data.invitationExpiryHours < 1 ||
+			data.invitationExpiryHours > 720
+		)
+			throw new Error("Invitation expiry must be between 1 and 720 hours.");
+		const settings = {
+			platformName: data.platformName.trim(),
+			supportEmail: data.supportEmail.trim().toLowerCase(),
+			invitationExpiryHours: String(data.invitationExpiryHours),
+			emailSenderName: data.emailSenderName.trim(),
+		};
+		await env.DB.batch(
+			Object.entries(settings).map(([key, value]) =>
+				env.DB.prepare(
+					"INSERT INTO platform_setting (key, value, updatedByUserId, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedByUserId = excluded.updatedByUserId, updatedAt = excluded.updatedAt",
+				).bind(key, value, session.user.id, Date.now()),
+			),
+		);
+		await writeAudit(
+			session.user.id,
+			"platform.settings.update",
+			"platform",
+			null,
+			reason,
+			settings,
+		);
+		return settings;
 	});

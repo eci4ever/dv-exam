@@ -17,6 +17,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
+import { Route as SuperAdminOrganisationsRouteImport } from './routes/super-admin.organisations'
+import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +62,21 @@ const SuperAdminRoute = SuperAdminRouteImport.update({
   path: '/super-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminOrganisationsRoute = SuperAdminOrganisationsRouteImport.update({
+  id: '/organisations',
+  path: '/organisations',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -73,7 +91,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
-  '/super-admin': typeof SuperAdminRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -84,7 +105,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
-  '/super-admin': typeof SuperAdminRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -96,7 +120,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
   '/signup': typeof SignupRoute
-  '/super-admin': typeof SuperAdminRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/organisations': typeof SuperAdminOrganisationsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +137,9 @@ export interface FileRouteTypes {
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/super-admin/audit'
+    | '/super-admin/organisations'
+    | '/super-admin/users'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +151,9 @@ export interface FileRouteTypes {
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/super-admin/audit'
+    | '/super-admin/organisations'
+    | '/super-admin/users'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -132,6 +165,9 @@ export interface FileRouteTypes {
     | '/organizations'
     | '/signup'
     | '/super-admin'
+    | '/super-admin/audit'
+    | '/super-admin/organisations'
+    | '/super-admin/users'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -143,7 +179,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OrganizationsRoute: typeof OrganizationsRoute
   SignupRoute: typeof SignupRoute
-  SuperAdminRoute: typeof SuperAdminRoute
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -205,6 +241,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/audit': {
+      id: '/super-admin/audit'
+      path: '/audit'
+      fullPath: '/super-admin/audit'
+      preLoaderRoute: typeof SuperAdminAuditRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/organisations': {
+      id: '/super-admin/organisations'
+      path: '/organisations'
+      fullPath: '/super-admin/organisations'
+      preLoaderRoute: typeof SuperAdminOrganisationsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/users': {
+      id: '/super-admin/users'
+      path: '/users'
+      fullPath: '/super-admin/users'
+      preLoaderRoute: typeof SuperAdminUsersRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -215,6 +272,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SuperAdminRouteChildren {
+  SuperAdminAuditRoute: typeof SuperAdminAuditRoute
+  SuperAdminOrganisationsRoute: typeof SuperAdminOrganisationsRoute
+  SuperAdminUsersRoute: typeof SuperAdminUsersRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminAuditRoute: SuperAdminAuditRoute,
+  SuperAdminOrganisationsRoute: SuperAdminOrganisationsRoute,
+  SuperAdminUsersRoute: SuperAdminUsersRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
@@ -223,7 +296,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OrganizationsRoute: OrganizationsRoute,
   SignupRoute: SignupRoute,
-  SuperAdminRoute: SuperAdminRoute,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
