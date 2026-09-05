@@ -16,6 +16,7 @@ import {
 	saveQuestionSchema,
 	updateExaminationStatusSchema,
 } from "#/server/validation/examination";
+import { canTransitionExamination } from "#/server/examinations/lifecycle";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -28,7 +29,12 @@ async function requireOrganisationManager(organizationId: string) {
 async function getManagedExam(examinationId: string) {
 	const exam = await env.DB.prepare("SELECT * FROM examination WHERE id = ?")
 		.bind(examinationId)
-		.first<{ id: string; organizationId: string; status: string }>();
+		.first<{
+			id: string;
+			organizationId: string;
+			status: string;
+			resultsPublishedAt: number | null;
+		}>();
 	if (!exam) throw new Error("Examination not found.");
 	const session = await requireOrganisationManager(exam.organizationId);
 	return { exam, session };
@@ -262,6 +268,12 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 	.validator((data: unknown) => updateExaminationStatusSchema.parse(data))
 	.handler(async ({ data }) => {
 		const { exam } = await getManagedExam(data.examinationId);
+		if (!canTransitionExamination(exam.status, data.action))
+			throw new Error(
+				`The ${data.action} action is not available while this examination is ${exam.status}.`,
+			);
+		if (data.action === "publish-results" && exam.resultsPublishedAt)
+			throw new Error("Results have already been published.");
 		if (data.action === "publish") {
 			const readiness = await env.DB.prepare(
 				"SELECT (SELECT COUNT(*) FROM examination_question WHERE examinationId = ?) AS questions, (SELECT COUNT(*) FROM examination_assignment WHERE examinationId = ?) AS candidates",

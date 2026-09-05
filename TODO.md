@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-05 — PR #7:** Added server-enforced examination lifecycle rules and tests for publish, close, archive, and result-release transitions.
 - [x] **2026-09-05 — PR #6:** Added Zod validation for examination questions, candidate assignments, workflow actions, attempts, and answers. Added contract tests.
 - [x] **2026-09-05 — PR #5:** Added explicit organisation-membership guards so members can select their active organisation without gaining management permissions. Added role-policy tests.
 - [x] **2026-09-05 — PR #1:** Added the authorization foundation, the organisation permission matrix, and initial examination Zod contract tests. Merged as `6b2f503`.
@@ -60,6 +61,10 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 **Done when:** application database access is centralized through Drizzle repositories/services and every tenant query scopes `organizationId`.
 
 ## Phase 4 — Examination workflow hardening
+
+**Completed in this phase so far:**
+
+- [x] Added server-enforced lifecycle transition rules for publishing, closing, archiving, and releasing results.
 
 - [ ] Derive the active organisation server-side for examination creation/listing; validate any selected organisation against authenticated membership.
 - [ ] Add explicit permission checks for create, edit, publish, close, archive, assign candidates and release results.
