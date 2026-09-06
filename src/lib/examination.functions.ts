@@ -23,6 +23,7 @@ import {
 	canViewCandidateResult,
 } from "#/server/examinations/lifecycle";
 import { writeAuditEvent } from "#/server/audit/events.server";
+import { invalidInput, notFound } from "#/server/errors";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -41,14 +42,14 @@ async function getManagedExam(examinationId: string) {
 			status: string;
 			resultsPublishedAt: number | null;
 		}>();
-	if (!exam) throw new Error("Examination not found.");
+	if (!exam) throw notFound("Examination not found.");
 	const session = await requireOrganisationManager(exam.organizationId);
 	return { exam, session };
 }
 
 function clean(value: string, label: string) {
 	const result = value.trim();
-	if (!result) throw new Error(`${label} is required.`);
+	if (!result) throw invalidInput(`${label} is required.`);
 	return result;
 }
 

@@ -5,6 +5,17 @@ import {
 	isOrganizationMemberRole,
 	type OrganizationPermission,
 } from "./authorization-policy";
+import { DomainError, forbidden, unauthorized } from "#/server/errors";
+
+describe("domain errors", () => {
+	it("keeps safe authorization failures machine-readable", () => {
+		expect(forbidden("Access denied")).toMatchObject({
+			code: "forbidden",
+			message: "Access denied",
+		});
+		expect(unauthorized("Sign in")).toBeInstanceOf(DomainError);
+	});
+});
 
 describe("organization authorization policy", () => {
 	const managementPermissions: OrganizationPermission[] = [
