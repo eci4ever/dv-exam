@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	hasOrganizationPermission,
+	canUpdateOrganizationMemberRole,
 	isOrganizationMemberRole,
 	type OrganizationPermission,
 } from "./authorization-policy";
@@ -33,5 +34,10 @@ describe("organization authorization policy", () => {
 
 	it("rejects unknown organisation roles", () => {
 		expect(isOrganizationMemberRole("viewer")).toBe(false);
+	});
+
+	it("protects an organisation owner from role changes", () => {
+		expect(canUpdateOrganizationMemberRole("owner")).toBe(false);
+		expect(canUpdateOrganizationMemberRole("admin")).toBe(true);
 	});
 });

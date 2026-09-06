@@ -6,6 +6,10 @@ export function isOrganizationMemberRole(role: string) {
 	return ["owner", "admin", "member"].includes(role);
 }
 
+export function canUpdateOrganizationMemberRole(currentRole: string) {
+	return currentRole !== "owner";
+}
+
 export function hasOrganizationPermission(
 	role: string,
 	permission: OrganizationPermission,
