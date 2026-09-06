@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #37:** Updated the Biome schema and applied safe lint fixes to establish a passing lint baseline.
 - [x] **2026-09-06 — PR #36:** Replaced Platform Admin organisation browser prompts with shadcn value-and-reason dialogs.
 - [x] **2026-09-06 — PR #35:** Added and locally verified D1 indexes for active examination, invitation, and membership query paths.
 - [x] **2026-09-06 — PR #34:** Expanded the Drizzle schema to cover application-owned platform governance and examination D1 tables and indexes.
@@ -44,7 +45,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 - [ ] Inspect and document the current D1 schema, Better Auth tables, migration journal, server functions and route guards.
 - [ ] Add a working `typecheck` script if TypeScript supports it cleanly.
-- [ ] Resolve the repository-wide Biome schema/version mismatch and establish a passing formatting/lint baseline.
+- [x] Resolve the repository-wide Biome schema/version mismatch and establish a passing formatting/lint baseline.
 - [x] Add route-level error and pending states for protected areas without exposing internal database errors.
 - [x] Document local and remote migration commands, including rollback/recovery expectations.
 

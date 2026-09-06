@@ -59,9 +59,13 @@ export function ValueReasonDialog({
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
-				<label className="grid gap-2 text-sm font-medium">
+				<label
+					className="grid gap-2 text-sm font-medium"
+					htmlFor="governance-value"
+				>
 					{label}
 					<Input
+						id="governance-value"
 						onChange={(event) => setValue(event.target.value)}
 						placeholder={placeholder}
 						value={value}

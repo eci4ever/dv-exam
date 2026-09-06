@@ -93,7 +93,7 @@ function EditorPage() {
 									value={prompt}
 								/>
 								{options.map((option, index) => (
-									<div className="flex items-center gap-2" key={index}>
+									<div className="flex items-center gap-2" key={option}>
 										<input
 											checked={correct === String(index)}
 											name="correct"
