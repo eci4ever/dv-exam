@@ -6,6 +6,7 @@ import { requireGlobalAdmin } from "#/server/auth/authorization";
 import {
 	createOrganizationSchema,
 	platformAuditLogQuerySchema,
+	platformOrganizationsQuerySchema,
 	platformUsersQuerySchema,
 	resendUserVerificationSchema,
 	revokeUserSessionsSchema,
@@ -256,14 +257,20 @@ export const resendUserVerification = createServerFn({ method: "POST" })
 
 export const getPlatformOrganizations = createServerFn({
 	method: "GET",
-}).handler(async () => {
-	await requireSuperAdmin();
-	return (
-		await env.DB.prepare(
-			`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COALESCE(platform_organization.status, 'active') AS status, platform_organization.archivedAt, COUNT(DISTINCT member.id) AS memberCount, MAX(CASE WHEN member.role = 'owner' THEN user.name END) AS ownerName, MAX(CASE WHEN member.role = 'owner' THEN user.email END) AS ownerEmail FROM organization LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId GROUP BY organization.id ORDER BY organization.createdAt DESC`,
-		).all()
-	).results;
-});
+})
+	.validator((data: unknown) => platformOrganizationsQuerySchema.parse(data))
+	.handler(async ({ data }) => {
+		await requireSuperAdmin();
+		const organizations = await env.DB.prepare(
+			`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COALESCE(platform_organization.status, 'active') AS status, platform_organization.archivedAt, COUNT(DISTINCT member.id) AS memberCount, MAX(CASE WHEN member.role = 'owner' THEN user.name END) AS ownerName, MAX(CASE WHEN member.role = 'owner' THEN user.email END) AS ownerEmail FROM organization LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId GROUP BY organization.id ORDER BY organization.createdAt DESC LIMIT ? OFFSET ?`,
+		)
+			.bind(data.limit + 1, data.offset)
+			.all();
+		return {
+			organizations: organizations.results.slice(0, data.limit),
+			hasMore: organizations.results.length > data.limit,
+		};
+	});
 
 export const updatePlatformOrganization = createServerFn({ method: "POST" })
 	.validator((data: unknown) => updatePlatformOrganizationSchema.parse(data))

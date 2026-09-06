@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #15:** Added validated, bounded pagination for Platform Admin organisations.
 - [x] **2026-09-06 — PR #14:** Added validated server-side search and pagination for Platform Admin users.
 - [x] **2026-09-06 — PR #13:** Added validated, bounded pagination to Platform Admin audit trails with Previous and Next controls.
 - [x] **2026-09-06 — PR #12:** Added immutable audit events for organisation invitations, member changes, removals, and profile updates. Protected owner roles from direct changes before ownership transfer.
