@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #36:** Replaced Platform Admin organisation browser prompts with shadcn value-and-reason dialogs.
 - [x] **2026-09-06 — PR #35:** Added and locally verified D1 indexes for active examination, invitation, and membership query paths.
 - [x] **2026-09-06 — PR #34:** Expanded the Drizzle schema to cover application-owned platform governance and examination D1 tables and indexes.
 - [x] **2026-09-06 — PR #33:** Applied typed safe errors and target-existence checks across Platform Admin governance mutations.
@@ -125,7 +126,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 - [ ] Move data mutations to query mutations with targeted cache invalidation.
 - [ ] Clear/invalidate organisation-scoped caches when active organisation changes.
 - [ ] Add loading, empty, error and success states to all sidebar modules.
-- [ ] Replace temporary browser prompts with shadcn dialogs/forms for ownership transfer and organisation editing.
+- [x] Replace temporary browser prompts with shadcn dialogs/forms for ownership transfer and organisation editing.
 
 **Done when:** client cache cannot show data from a previously active organisation and every mutation has clear feedback.
 
