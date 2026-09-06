@@ -15,6 +15,7 @@ import {
 	revokeUserSessions,
 	updateUserAccess,
 } from "#/lib/super-admin.functions";
+import type { PlatformUserPage } from "#/lib/platform-admin.types";
 
 export const Route = createFileRoute("/super-admin/users")({
 	beforeLoad: async () => {
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/super-admin/users")({
 
 function UsersPage() {
 	const { user } = Route.useRouteContext();
-	const initial = Route.useLoaderData() as { users: any[]; hasMore: boolean };
+	const initial = Route.useLoaderData() as PlatformUserPage;
 	const router = useRouter();
 	const access = useServerFn(updateUserAccess);
 	const getUsers = useServerFn(getPlatformUsers);
@@ -45,7 +46,7 @@ function UsersPage() {
 			setNotice("");
 			const result = (await getUsers({
 				data: { query: query || undefined, offset: nextOffset },
-			})) as { users: any[]; hasMore: boolean };
+			})) as PlatformUserPage;
 			setUsers(result.users);
 			setHasMore(result.hasMore);
 			setOffset(nextOffset);
@@ -60,7 +61,7 @@ function UsersPage() {
 		try {
 			const result = (await getUsers({
 				data: { offset: 0 },
-			})) as { users: any[]; hasMore: boolean };
+			})) as PlatformUserPage;
 			setUsers(result.users);
 			setHasMore(result.hasMore);
 			setOffset(0);

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { getSession } from "#/lib/auth.functions";
 import { getPlatformAuditLog } from "#/lib/super-admin.functions";
+import type { PlatformAuditPage } from "#/lib/platform-admin.types";
 
 function formatAuditContext(metadata: unknown) {
 	if (typeof metadata !== "string" || !metadata) return null;
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/super-admin/audit")({
 });
 function AuditPage() {
 	const { user } = Route.useRouteContext();
-	const initial = Route.useLoaderData() as { records: any[]; hasMore: boolean };
+	const initial = Route.useLoaderData() as PlatformAuditPage;
 	const queryLog = useServerFn(getPlatformAuditLog);
 	const [records, setRecords] = useState(initial.records);
 	const [hasMore, setHasMore] = useState(initial.hasMore);
@@ -57,7 +58,7 @@ function AuditPage() {
 					to: to ? new Date(to).getTime() : undefined,
 					offset: nextOffset,
 				},
-			})) as { records: any[]; hasMore: boolean };
+			})) as PlatformAuditPage;
 			setRecords(result.records);
 			setHasMore(result.hasMore);
 			setOffset(nextOffset);
@@ -78,7 +79,7 @@ function AuditPage() {
 		try {
 			const result = (await queryLog({
 				data: { offset: 0 },
-			})) as { records: any[]; hasMore: boolean };
+			})) as PlatformAuditPage;
 			setRecords(result.records);
 			setHasMore(result.hasMore);
 			setOffset(0);
