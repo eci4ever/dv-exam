@@ -56,12 +56,16 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const session = await requireSession();
 		const memberships = await env.DB.prepare(
-			"SELECT organization.id, organization.name, member.role FROM member INNER JOIN organization ON organization.id = member.organizationId WHERE member.userId = ? ORDER BY organization.name",
+			"SELECT organization.id, organization.name, member.role, COALESCE(platform_organization.status, 'active') AS status FROM member INNER JOIN organization ON organization.id = member.organizationId LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id WHERE member.userId = ? ORDER BY organization.name",
 		)
 			.bind(session.user.id)
-			.all<{ id: string; name: string; role: string }>();
+			.all<{ id: string; name: string; role: string; status: string }>();
 		const managerOrganisationIds = memberships.results
-			.filter((membership) => ["owner", "admin"].includes(membership.role))
+			.filter(
+				(membership) =>
+					["owner", "admin"].includes(membership.role) &&
+					membership.status === "active",
+			)
 			.map((membership) => membership.id);
 		const assignments = await env.DB.prepare(
 			`SELECT assignment.id, examination.id AS examinationId, examination.title, examination.durationMinutes, examination.status, examination.endsAt, examination.resultsPublishedAt, organization.name AS organizationName, attempt.id AS attemptId, attempt.status AS attemptStatus, attempt.score, attempt.maxScore
