@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #13:** Added validated, bounded pagination to Platform Admin audit trails with Previous and Next controls.
 - [x] **2026-09-06 — PR #12:** Added immutable audit events for organisation invitations, member changes, removals, and profile updates. Protected owner roles from direct changes before ownership transfer.
 - [x] **2026-09-06 — PR #11:** Added immutable audit events for examination creation, question changes, candidate assignment, lifecycle actions, and candidate submissions.
 - [x] **2026-09-06 — PR #10:** Prevented candidate scores from being returned by dashboard, attempt, and submission server functions before results are published. Added result-visibility coverage.

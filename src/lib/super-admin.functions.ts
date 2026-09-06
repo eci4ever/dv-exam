@@ -409,12 +409,14 @@ export const getPlatformAuditLog = createServerFn({ method: "GET" })
 			clauses.push("audit.createdAt <= ?");
 			values.push(data.to);
 		}
-		const query = `SELECT audit.*, user.name AS actorName, user.email AS actorEmail FROM platform_audit_log audit INNER JOIN user ON user.id = audit.actorUserId WHERE ${clauses.join(" AND ")} ORDER BY audit.createdAt DESC LIMIT 100`;
-		return (
-			await env.DB.prepare(query)
-				.bind(...values)
-				.all()
-		).results;
+		const query = `SELECT audit.*, user.name AS actorName, user.email AS actorEmail FROM platform_audit_log audit INNER JOIN user ON user.id = audit.actorUserId WHERE ${clauses.join(" AND ")} ORDER BY audit.createdAt DESC LIMIT ? OFFSET ?`;
+		const records = await env.DB.prepare(query)
+			.bind(...values, data.limit + 1, data.offset)
+			.all();
+		return {
+			records: records.results.slice(0, data.limit),
+			hasMore: records.results.length > data.limit,
+		};
 	});
 
 export const getPlatformSettings = createServerFn({ method: "GET" }).handler(
