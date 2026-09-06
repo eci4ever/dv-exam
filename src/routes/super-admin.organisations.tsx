@@ -88,185 +88,191 @@ function OrganisationsPage() {
 				</div>
 				<Card>
 					<CardContent className="divide-y p-0">
-						{organizations.map((organization) => (
-							<div
-								className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center"
-								key={organization.id}
-							>
-								<div className="grid size-10 place-items-center rounded-md bg-muted">
-									<Building2 className="size-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="font-medium">{organization.name}</p>
-									<p className="text-sm text-muted-foreground">
-										/{organization.slug} · {organization.memberCount} members ·
-										Owner: {organization.ownerName ?? "Unassigned"}
-									</p>
-								</div>
-								<Badge
-									variant={
-										organization.status === "active"
-											? "outline"
-											: organization.status === "suspended"
-												? "destructive"
-												: "secondary"
-									}
+						{organizations.length ? (
+							organizations.map((organization) => (
+								<div
+									className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center"
+									key={organization.id}
 								>
-									{organization.status}
-								</Badge>
-								<div className="flex flex-wrap gap-2">
-									<ReasonDialog
-										confirmLabel="Save name"
-										description="Rename this organisation and record the reason."
-										onConfirm={(reason) => {
-											const name = window.prompt(
-												"Organisation name",
-												organization.name,
-											);
-											return name
-												? run(
+									<div className="grid size-10 place-items-center rounded-md bg-muted">
+										<Building2 className="size-5" />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="font-medium">{organization.name}</p>
+										<p className="text-sm text-muted-foreground">
+											/{organization.slug} · {organization.memberCount} members
+											· Owner: {organization.ownerName ?? "Unassigned"}
+										</p>
+									</div>
+									<Badge
+										variant={
+											organization.status === "active"
+												? "outline"
+												: organization.status === "suspended"
+													? "destructive"
+													: "secondary"
+										}
+									>
+										{organization.status}
+									</Badge>
+									<div className="flex flex-wrap gap-2">
+										<ReasonDialog
+											confirmLabel="Save name"
+											description="Rename this organisation and record the reason."
+											onConfirm={(reason) => {
+												const name = window.prompt(
+													"Organisation name",
+													organization.name,
+												);
+												return name
+													? run(
+															() =>
+																update({
+																	data: {
+																		organizationId: organization.id,
+																		name,
+																		reason,
+																	},
+																}),
+															"Organisation updated. Audit record created.",
+														)
+													: Promise.resolve();
+											}}
+											title="Rename organisation"
+											trigger={
+												<Button size="sm" variant="outline">
+													Edit
+												</Button>
+											}
+										/>
+										<ReasonDialog
+											confirmLabel="Set owner"
+											description="The user must already have a registered account."
+											onConfirm={(reason) => {
+												const email = window.prompt("Registered user email");
+												return email
+													? run(
+															() =>
+																owner({
+																	data: {
+																		organizationId: organization.id,
+																		email,
+																		reason,
+																	},
+																}),
+															"Owner assigned. Audit record created.",
+														)
+													: Promise.resolve();
+											}}
+											title="Transfer ownership"
+											trigger={
+												<Button size="sm" variant="outline">
+													<UserCog /> Owner
+												</Button>
+											}
+										/>
+										{organization.status === "active" ? (
+											<ReasonDialog
+												confirmLabel="Suspend"
+												description="Suspended organisations cannot operate examinations."
+												onConfirm={(reason) =>
+													run(
 														() =>
-															update({
+															lifecycle({
 																data: {
 																	organizationId: organization.id,
-																	name,
+																	action: "suspend",
 																	reason,
 																},
 															}),
-														"Organisation updated. Audit record created.",
+														"Organisation suspended. Audit record created.",
 													)
-												: Promise.resolve();
-										}}
-										title="Rename organisation"
-										trigger={
-											<Button size="sm" variant="outline">
-												Edit
-											</Button>
-										}
-									/>
-									<ReasonDialog
-										confirmLabel="Set owner"
-										description="The user must already have a registered account."
-										onConfirm={(reason) => {
-											const email = window.prompt("Registered user email");
-											return email
-												? run(
+												}
+												title="Suspend organisation"
+												trigger={
+													<Button size="sm" variant="destructive">
+														Suspend
+													</Button>
+												}
+											/>
+										) : (
+											<ReasonDialog
+												confirmLabel="Reactivate"
+												description="This restores operational access."
+												onConfirm={(reason) =>
+													run(
 														() =>
-															owner({
+															lifecycle({
 																data: {
 																	organizationId: organization.id,
-																	email,
+																	action: "reactivate",
 																	reason,
 																},
 															}),
-														"Owner assigned. Audit record created.",
+														"Organisation reactivated. Audit record created.",
 													)
-												: Promise.resolve();
-										}}
-										title="Transfer ownership"
-										trigger={
-											<Button size="sm" variant="outline">
-												<UserCog /> Owner
-											</Button>
-										}
-									/>
-									{organization.status === "active" ? (
-										<ReasonDialog
-											confirmLabel="Suspend"
-											description="Suspended organisations cannot operate examinations."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														lifecycle({
-															data: {
-																organizationId: organization.id,
-																action: "suspend",
-																reason,
-															},
-														}),
-													"Organisation suspended. Audit record created.",
-												)
-											}
-											title="Suspend organisation"
-											trigger={
-												<Button size="sm" variant="destructive">
-													Suspend
-												</Button>
-											}
-										/>
-									) : (
-										<ReasonDialog
-											confirmLabel="Reactivate"
-											description="This restores operational access."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														lifecycle({
-															data: {
-																organizationId: organization.id,
-																action: "reactivate",
-																reason,
-															},
-														}),
-													"Organisation reactivated. Audit record created.",
-												)
-											}
-											title="Reactivate organisation"
-											trigger={<Button size="sm">Reactivate</Button>}
-										/>
-									)}
-									{organization.status === "archived" ? (
-										<ReasonDialog
-											confirmLabel="Restore"
-											description="This restores the archived organisation."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														lifecycle({
-															data: {
-																organizationId: organization.id,
-																action: "restore",
-																reason,
-															},
-														}),
-													"Organisation restored. Audit record created.",
-												)
-											}
-											title="Restore organisation"
-											trigger={
-												<Button size="sm" variant="outline">
-													Restore
-												</Button>
-											}
-										/>
-									) : (
-										<ReasonDialog
-											confirmLabel="Archive"
-											description="Archive preserves all organisation and membership history."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														lifecycle({
-															data: {
-																organizationId: organization.id,
-																action: "archive",
-																reason,
-															},
-														}),
-													"Organisation archived. Audit record created.",
-												)
-											}
-											title="Archive organisation"
-											trigger={
-												<Button size="sm" variant="outline">
-													Archive
-												</Button>
-											}
-										/>
-									)}
+												}
+												title="Reactivate organisation"
+												trigger={<Button size="sm">Reactivate</Button>}
+											/>
+										)}
+										{organization.status === "archived" ? (
+											<ReasonDialog
+												confirmLabel="Restore"
+												description="This restores the archived organisation."
+												onConfirm={(reason) =>
+													run(
+														() =>
+															lifecycle({
+																data: {
+																	organizationId: organization.id,
+																	action: "restore",
+																	reason,
+																},
+															}),
+														"Organisation restored. Audit record created.",
+													)
+												}
+												title="Restore organisation"
+												trigger={
+													<Button size="sm" variant="outline">
+														Restore
+													</Button>
+												}
+											/>
+										) : (
+											<ReasonDialog
+												confirmLabel="Archive"
+												description="Archive preserves all organisation and membership history."
+												onConfirm={(reason) =>
+													run(
+														() =>
+															lifecycle({
+																data: {
+																	organizationId: organization.id,
+																	action: "archive",
+																	reason,
+																},
+															}),
+														"Organisation archived. Audit record created.",
+													)
+												}
+												title="Archive organisation"
+												trigger={
+													<Button size="sm" variant="outline">
+														Archive
+													</Button>
+												}
+											/>
+										)}
+									</div>
 								</div>
-							</div>
-						))}
+							))
+						) : (
+							<p className="p-8 text-center text-sm text-muted-foreground">
+								No organisations match this search.
+							</p>
+						)}
 					</CardContent>
 				</Card>
 				<div className="flex items-center justify-between gap-3">
