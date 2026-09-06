@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #40:** Added the first tenant-aware examination repository and moved managed examination lookup and organisation listing into it.
 - [x] **2026-09-06 — PR #39:** Replaced Platform Admin list `any` casts with explicit client-safe list response types.
 - [x] **2026-09-06 — PR #38:** Documented the D1 migration journal, table ownership, and protected server-function boundaries.
 - [x] **2026-09-06 — PR #37:** Updated the Biome schema and applied safe lint fixes to establish a passing lint baseline.
