@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, UserCog } from "lucide-react";
+import { Building2, Search, UserCog } from "lucide-react";
 import { useState } from "react";
 import { DashboardShell } from "#/components/dashboard-shell";
 import { ReasonDialog } from "#/components/reason-dialog";
@@ -40,10 +40,11 @@ function OrganisationsPage() {
 	const [organizations, setOrganizations] = useState(initial.organizations);
 	const [hasMore, setHasMore] = useState(initial.hasMore);
 	const [offset, setOffset] = useState(0);
+	const [query, setQuery] = useState("");
 	const [notice, setNotice] = useState("");
 	async function loadOrganizations(nextOffset: number) {
 		const result = (await getOrganizations({
-			data: { offset: nextOffset },
+			data: { query: query || undefined, offset: nextOffset },
 		})) as { organizations: any[]; hasMore: boolean };
 		setOrganizations(result.organizations);
 		setHasMore(result.hasMore);
@@ -71,6 +72,20 @@ function OrganisationsPage() {
 				{notice ? (
 					<p className="rounded-md border p-3 text-sm">{notice}</p>
 				) : null}
+				<div className="flex max-w-md gap-2">
+					<Input
+						onChange={(event) => setQuery(event.target.value)}
+						placeholder="Search organisation"
+						value={query}
+					/>
+					<Button
+						onClick={() => void loadOrganizations(0)}
+						type="button"
+						variant="outline"
+					>
+						<Search /> Search
+					</Button>
+				</div>
 				<Card>
 					<CardContent className="divide-y p-0">
 						{organizations.map((organization) => (

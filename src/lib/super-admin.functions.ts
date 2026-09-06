@@ -256,10 +256,17 @@ export const getPlatformOrganizations = createServerFn({
 	.validator((data: unknown) => platformOrganizationsQuerySchema.parse(data))
 	.handler(async ({ data }) => {
 		await requireSuperAdmin();
+		const query = data.query ?? "";
 		const organizations = await env.DB.prepare(
-			`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COALESCE(platform_organization.status, 'active') AS status, platform_organization.archivedAt, COUNT(DISTINCT member.id) AS memberCount, MAX(CASE WHEN member.role = 'owner' THEN user.name END) AS ownerName, MAX(CASE WHEN member.role = 'owner' THEN user.email END) AS ownerEmail FROM organization LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId GROUP BY organization.id ORDER BY organization.createdAt DESC LIMIT ? OFFSET ?`,
+			`SELECT organization.id, organization.name, organization.slug, organization.createdAt, COALESCE(platform_organization.status, 'active') AS status, platform_organization.archivedAt, COUNT(DISTINCT member.id) AS memberCount, MAX(CASE WHEN member.role = 'owner' THEN user.name END) AS ownerName, MAX(CASE WHEN member.role = 'owner' THEN user.email END) AS ownerEmail FROM organization LEFT JOIN platform_organization ON platform_organization.organizationId = organization.id LEFT JOIN member ON member.organizationId = organization.id LEFT JOIN user ON user.id = member.userId ${query ? "WHERE lower(organization.name) LIKE ? OR lower(organization.slug) LIKE ?" : ""} GROUP BY organization.id ORDER BY organization.createdAt DESC LIMIT ? OFFSET ?`,
 		)
-			.bind(data.limit + 1, data.offset)
+			.bind(
+				...(query
+					? [`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`]
+					: []),
+				data.limit + 1,
+				data.offset,
+			)
 			.all();
 		return {
 			organizations: organizations.results.slice(0, data.limit),
