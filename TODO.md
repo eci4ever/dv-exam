@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #31:** Added typed safe domain errors for authorization and core examination lookup/input failures, with policy coverage.
 - [x] **2026-09-06 — PR #30:** Added safe root loading/error/not-found states and documented local/remote D1 migration, backup, and recovery procedures.
 - [x] **2026-09-06 — PR #29:** Improved Platform Admin list recovery: audit reset reloads current data, audit filtering is safely invoked, and users/organisations have clearable searches with safe loading errors.
 - [x] **2026-09-06 — PR #28:** Added an empty search state to Platform Admin organisations.
