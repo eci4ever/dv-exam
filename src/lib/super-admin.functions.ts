@@ -405,8 +405,8 @@ export const getPlatformAuditLog = createServerFn({ method: "GET" })
 			values.push(data.action);
 		}
 		if (data.actor) {
-			clauses.push("audit.actorUserId = ?");
-			values.push(data.actor);
+			clauses.push("(audit.actorUserId = ? OR lower(user.email) = lower(?))");
+			values.push(data.actor, data.actor);
 		}
 		if (data.target) {
 			clauses.push("audit.targetId = ?");
