@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #18:** Added D1 indexes for audit action, actor, target, and chronological filtering. Verified the migration locally.
 - [x] **2026-09-06 — PR #17:** Displayed safe audit context in Platform Admin audit records.
 - [x] **2026-09-06 — PR #16:** Added actor and date filters to the Platform Admin audit interface.
 - [x] **2026-09-06 — PR #15:** Added validated, bounded pagination for Platform Admin organisations.
