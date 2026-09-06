@@ -28,12 +28,27 @@ export const Route = createFileRoute("/super-admin/organisations")({
 });
 function OrganisationsPage() {
 	const { user } = Route.useRouteContext();
-	const organizations = Route.useLoaderData() as any[];
+	const initial = Route.useLoaderData() as {
+		organizations: any[];
+		hasMore: boolean;
+	};
 	const router = useRouter();
 	const lifecycle = useServerFn(updateOrganizationLifecycle);
 	const update = useServerFn(updatePlatformOrganization);
 	const owner = useServerFn(setOrganizationOwner);
+	const getOrganizations = useServerFn(getPlatformOrganizations);
+	const [organizations, setOrganizations] = useState(initial.organizations);
+	const [hasMore, setHasMore] = useState(initial.hasMore);
+	const [offset, setOffset] = useState(0);
 	const [notice, setNotice] = useState("");
+	async function loadOrganizations(nextOffset: number) {
+		const result = (await getOrganizations({
+			data: { offset: nextOffset },
+		})) as { organizations: any[]; hasMore: boolean };
+		setOrganizations(result.organizations);
+		setHasMore(result.hasMore);
+		setOffset(nextOffset);
+	}
 	async function run(action: () => Promise<unknown>, success: string) {
 		try {
 			await action();
@@ -238,6 +253,24 @@ function OrganisationsPage() {
 						))}
 					</CardContent>
 				</Card>
+				<div className="flex items-center justify-between gap-3">
+					<Button
+						disabled={offset === 0}
+						onClick={() => void loadOrganizations(Math.max(0, offset - 50))}
+						type="button"
+						variant="outline"
+					>
+						Previous
+					</Button>
+					<Button
+						disabled={!hasMore}
+						onClick={() => void loadOrganizations(offset + 50)}
+						type="button"
+						variant="outline"
+					>
+						Next
+					</Button>
+				</div>
 			</div>
 		</DashboardShell>
 	);

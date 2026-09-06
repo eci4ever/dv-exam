@@ -23,6 +23,13 @@ export const platformUsersQuerySchema = z
 	})
 	.default({});
 
+export const platformOrganizationsQuerySchema = z
+	.object({
+		limit: z.number().int().min(1).max(100).default(50),
+		offset: z.number().int().nonnegative().default(0),
+	})
+	.default({});
+
 export const resendUserVerificationSchema = z.object({
 	userId: idSchema,
 	reason: reasonSchema,
