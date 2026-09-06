@@ -4,6 +4,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
 import { requireGlobalAdmin } from "#/server/auth/authorization";
 import { writeAuditEvent } from "#/server/audit/events.server";
+import { invalidInput, invalidState, notFound } from "#/server/errors";
 import {
 	createOrganizationSchema,
 	platformAuditLogQuerySchema,
@@ -39,7 +40,7 @@ async function writeAudit(
 function requireReason(reason: string) {
 	const value = reason.trim();
 	if (value.length < 3)
-		throw new Error("A reason of at least 3 characters is required.");
+		throw invalidInput("A reason of at least 3 characters is required.");
 	return value;
 }
 
@@ -120,7 +121,7 @@ export const createOrganization = createServerFn({ method: "POST" })
 		const session = await requireSuperAdmin();
 		const baseSlug = slugify(data.name);
 		if (!baseSlug)
-			throw new Error("Nama organisasi tidak boleh dijadikan slug.");
+			throw invalidInput("Organisation name cannot be converted to a slug.");
 		const existing = await env.DB.prepare(
 			"SELECT id FROM organization WHERE slug = ?",
 		)
@@ -162,20 +163,20 @@ export const updateUserAccess = createServerFn({ method: "POST" })
 			data.userId === session.user.id &&
 			(data.action === "ban" || data.action === "make-user")
 		)
-			throw new Error("Anda tidak boleh menukar akses Super Admin sendiri.");
+			throw invalidState("You cannot change your own Platform Admin access.");
 		if (data.action === "make-user" || data.action === "ban") {
 			const target = await env.DB.prepare(
 				"SELECT role, banned FROM user WHERE id = ?",
 			)
 				.bind(data.userId)
 				.first<{ role: string | null; banned: number | null }>();
-			if (!target) throw new Error("User not found.");
+			if (!target) throw notFound("User not found.");
 			if (target.role === "admin" && !target.banned) {
 				const activeAdminCount = await env.DB.prepare(
 					"SELECT COUNT(*) AS count FROM user WHERE role = 'admin' AND (banned = 0 OR banned IS NULL)",
 				).first<{ count: number }>();
 				if ((activeAdminCount?.count ?? 0) <= 1)
-					throw new Error(
+					throw invalidState(
 						"The final active platform admin cannot be removed or suspended.",
 					);
 			}
@@ -233,9 +234,9 @@ export const resendUserVerification = createServerFn({ method: "POST" })
 		)
 			.bind(data.userId)
 			.first<{ email: string; emailVerified: number }>();
-		if (!user) throw new Error("User not found.");
+		if (!user) throw notFound("User not found.");
 		if (user.emailVerified)
-			throw new Error("This user's email is already verified.");
+			throw invalidState("This user's email is already verified.");
 		await getAuth().api.sendVerificationEmail({
 			headers: getRequestHeaders(),
 			body: { email: user.email, callbackURL: "/account" },
@@ -285,7 +286,7 @@ export const updatePlatformOrganization = createServerFn({ method: "POST" })
 		)
 			.bind(data.organizationId)
 			.first();
-		if (!organization) throw new Error("Organisation not found.");
+		if (!organization) throw notFound("Organisation not found.");
 		await env.DB.prepare("UPDATE organization SET name = ? WHERE id = ?")
 			.bind(name, data.organizationId)
 			.run();
@@ -313,10 +314,10 @@ export const setOrganizationOwner = createServerFn({ method: "POST" })
 				.bind(data.email)
 				.first<{ id: string; name: string }>(),
 		]);
-		if (!organization) throw new Error("Organisasi tidak ditemui.");
+		if (!organization) throw notFound("Organisation not found.");
 		if (!user) {
-			throw new Error(
-				"Pengguna belum berdaftar. Minta mereka daftar sebelum menetapkan Owner.",
+			throw notFound(
+				"User is not registered. Ask them to sign up before assigning ownership.",
 			);
 		}
 
@@ -354,6 +355,12 @@ export const updateOrganizationLifecycle = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
+		const organization = await env.DB.prepare(
+			"SELECT id FROM organization WHERE id = ?",
+		)
+			.bind(data.organizationId)
+			.first<{ id: string }>();
+		if (!organization) throw notFound("Organisation not found.");
 		const status =
 			data.action === "suspend"
 				? "suspended"
@@ -382,7 +389,7 @@ export const revokeUserSessions = createServerFn({ method: "POST" })
 		const session = await requireSuperAdmin();
 		const reason = requireReason(data.reason);
 		if (data.userId === session.user.id)
-			throw new Error("You cannot revoke your own sessions here.");
+			throw invalidState("You cannot revoke your own sessions here.");
 		await env.DB.prepare("DELETE FROM session WHERE userId = ?")
 			.bind(data.userId)
 			.run();

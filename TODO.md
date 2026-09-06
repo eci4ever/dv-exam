@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #33:** Applied typed safe errors and target-existence checks across Platform Admin governance mutations.
 - [x] **2026-09-06 — PR #32:** Applied typed not-found and invalid-state errors to organisation member and invitation management.
 - [x] **2026-09-06 — PR #31:** Added typed safe domain errors for authorization and core examination lookup/input failures, with policy coverage.
 - [x] **2026-09-06 — PR #30:** Added safe root loading/error/not-found states and documented local/remote D1 migration, backup, and recovery procedures.
