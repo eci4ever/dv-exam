@@ -4,6 +4,7 @@ import { Building2, Search, UserCog } from "lucide-react";
 import { useState } from "react";
 import { DashboardShell } from "#/components/dashboard-shell";
 import { ReasonDialog } from "#/components/reason-dialog";
+import { ValueReasonDialog } from "#/components/value-reason-dialog";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
@@ -152,28 +153,25 @@ function OrganisationsPage() {
 										{organization.status}
 									</Badge>
 									<div className="flex flex-wrap gap-2">
-										<ReasonDialog
+										<ValueReasonDialog
 											confirmLabel="Save name"
+											defaultValue={organization.name}
 											description="Rename this organisation and record the reason."
-											onConfirm={(reason) => {
-												const name = window.prompt(
-													"Organisation name",
-													organization.name,
-												);
-												return name
-													? run(
-															() =>
-																update({
-																	data: {
-																		organizationId: organization.id,
-																		name,
-																		reason,
-																	},
-																}),
-															"Organisation updated. Audit record created.",
-														)
-													: Promise.resolve();
-											}}
+											label="Organisation name"
+											onConfirm={(name, reason) =>
+												run(
+													() =>
+														update({
+															data: {
+																organizationId: organization.id,
+																name,
+																reason,
+															},
+														}),
+													"Organisation updated. Audit record created.",
+												)
+											}
+											placeholder="Organisation name"
 											title="Rename organisation"
 											trigger={
 												<Button size="sm" variant="outline">
@@ -181,25 +179,25 @@ function OrganisationsPage() {
 												</Button>
 											}
 										/>
-										<ReasonDialog
+										<ValueReasonDialog
 											confirmLabel="Set owner"
+											defaultValue=""
 											description="The user must already have a registered account."
-											onConfirm={(reason) => {
-												const email = window.prompt("Registered user email");
-												return email
-													? run(
-															() =>
-																owner({
-																	data: {
-																		organizationId: organization.id,
-																		email,
-																		reason,
-																	},
-																}),
-															"Owner assigned. Audit record created.",
-														)
-													: Promise.resolve();
-											}}
+											label="Registered user email"
+											onConfirm={(email, reason) =>
+												run(
+													() =>
+														owner({
+															data: {
+																organizationId: organization.id,
+																email,
+																reason,
+															},
+														}),
+													"Owner assigned. Audit record created.",
+												)
+											}
+											placeholder="name@example.com"
 											title="Transfer ownership"
 											trigger={
 												<Button size="sm" variant="outline">
