@@ -54,6 +54,8 @@ export const platformAuditLogQuerySchema = z
 		target: idSchema.optional(),
 		from: z.number().int().nonnegative().optional(),
 		to: z.number().int().nonnegative().optional(),
+		limit: z.number().int().min(1).max(100).default(50),
+		offset: z.number().int().nonnegative().default(0),
 	})
 	.refine((data) => !data.from || !data.to || data.from <= data.to, {
 		message: "The start date must be before the end date.",

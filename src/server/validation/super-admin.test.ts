@@ -35,4 +35,15 @@ describe("super admin input", () => {
 			platformAuditLogQuerySchema.parse({ from: 200, to: 100 }),
 		).toThrow();
 	});
+
+	it("applies safe defaults for audit pagination", () => {
+		expect(platformAuditLogQuerySchema.parse({})).toMatchObject({
+			limit: 50,
+			offset: 0,
+		});
+	});
+
+	it("rejects an oversized audit page", () => {
+		expect(() => platformAuditLogQuerySchema.parse({ limit: 101 })).toThrow();
+	});
 });

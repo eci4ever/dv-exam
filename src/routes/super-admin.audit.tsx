@@ -21,20 +21,27 @@ export const Route = createFileRoute("/super-admin/audit")({
 });
 function AuditPage() {
 	const { user } = Route.useRouteContext();
-	const initial = Route.useLoaderData() as any[];
+	const initial = Route.useLoaderData() as { records: any[]; hasMore: boolean };
 	const router = useRouter();
 	const queryLog = useServerFn(getPlatformAuditLog);
-	const [records, setRecords] = useState(initial);
+	const [records, setRecords] = useState(initial.records);
+	const [hasMore, setHasMore] = useState(initial.hasMore);
+	const [offset, setOffset] = useState(0);
 	const [action, setAction] = useState("");
 	const [target, setTarget] = useState("");
 	const [notice, setNotice] = useState("");
-	async function filter() {
+	async function filter(nextOffset = 0) {
 		try {
-			setRecords(
-				(await queryLog({
-					data: { action: action || undefined, target: target || undefined },
-				})) as any[],
-			);
+			const result = (await queryLog({
+				data: {
+					action: action || undefined,
+					target: target || undefined,
+					offset: nextOffset,
+				},
+			})) as { records: any[]; hasMore: boolean };
+			setRecords(result.records);
+			setHasMore(result.hasMore);
+			setOffset(nextOffset);
 		} catch (error) {
 			setNotice(
 				error instanceof Error
@@ -76,7 +83,9 @@ function AuditPage() {
 							onClick={() => {
 								setAction("");
 								setTarget("");
-								setRecords(initial);
+								setRecords(initial.records);
+								setHasMore(initial.hasMore);
+								setOffset(0);
 								void router.invalidate();
 							}}
 							type="button"
@@ -117,6 +126,24 @@ function AuditPage() {
 						)}
 					</CardContent>
 				</Card>
+				<div className="flex items-center justify-between gap-3">
+					<Button
+						disabled={offset === 0}
+						onClick={() => void filter(Math.max(0, offset - 50))}
+						type="button"
+						variant="outline"
+					>
+						Previous
+					</Button>
+					<Button
+						disabled={!hasMore}
+						onClick={() => void filter(offset + 50)}
+						type="button"
+						variant="outline"
+					>
+						Next
+					</Button>
+				</div>
 			</div>
 		</DashboardShell>
 	);
