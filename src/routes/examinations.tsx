@@ -41,9 +41,7 @@ export const Route = createFileRoute("/examinations")({
 		return {
 			workspace,
 			active,
-			examinations: await getExaminations({
-				data: { organizationId: active.id },
-			}),
+			examinations: await getExaminations(),
 		};
 	},
 	component: ExaminationsPage,
