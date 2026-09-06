@@ -87,7 +87,7 @@ function AuditPage() {
 						<Input
 							className="max-w-xs"
 							onChange={(event) => setActor(event.target.value)}
-							placeholder="Actor user ID"
+							placeholder="Actor ID or email"
 							value={actor}
 						/>
 						<Input

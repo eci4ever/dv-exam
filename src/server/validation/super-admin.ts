@@ -61,7 +61,7 @@ export const revokeUserSessionsSchema = z.object({
 export const platformAuditLogQuerySchema = z
 	.object({
 		action: z.string().trim().max(200).optional(),
-		actor: idSchema.optional(),
+		actor: z.string().trim().min(1).max(200).optional(),
 		target: idSchema.optional(),
 		from: z.number().int().nonnegative().optional(),
 		to: z.number().int().nonnegative().optional(),
