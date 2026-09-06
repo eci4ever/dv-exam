@@ -111,13 +111,17 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 
 export const getExaminations = createServerFn({ method: "GET" })
 	.validator((data: unknown) => getExaminationsSchema.parse(data))
-	.handler(async ({ data }) => {
-		await requireOrganisationManager(data.organizationId);
+	.handler(async () => {
+		const { session } =
+			await requireActiveOrganizationPermission("examination:manage");
+		const organizationId = session.session.activeOrganizationId;
+		if (!organizationId)
+			throw new Error("Choose an active organisation first.");
 		return (
 			await env.DB.prepare(
 				"SELECT examination.*, COUNT(DISTINCT examination_assignment.id) AS candidateCount FROM examination LEFT JOIN examination_assignment ON examination_assignment.examinationId = examination.id WHERE examination.organizationId = ? GROUP BY examination.id ORDER BY examination.updatedAt DESC",
 			)
-				.bind(data.organizationId)
+				.bind(organizationId)
 				.all()
 		).results;
 	});

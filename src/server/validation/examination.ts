@@ -7,7 +7,7 @@ export const createExaminationSchema = z.object({
 	durationMinutes: z.number().int().min(1).max(480),
 });
 
-export const getExaminationsSchema = z.object({ organizationId: idSchema });
+export const getExaminationsSchema = z.object({}).default({});
 export const examinationIdSchema = z.object({ examinationId: idSchema });
 export const assignmentIdSchema = z.object({ assignmentId: idSchema });
 export const attemptIdSchema = z.object({ attemptId: idSchema });
