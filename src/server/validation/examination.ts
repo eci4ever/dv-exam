@@ -49,3 +49,13 @@ export const saveCandidateAnswerSchema = z.object({
 	questionId: idSchema,
 	optionId: idSchema,
 });
+
+export type CreateExaminationInput = z.infer<typeof createExaminationSchema>;
+export type SaveQuestionInput = z.infer<typeof saveQuestionSchema>;
+export type AssignCandidateInput = z.infer<typeof assignCandidateSchema>;
+export type UpdateExaminationStatusInput = z.infer<
+	typeof updateExaminationStatusSchema
+>;
+export type SaveCandidateAnswerInput = z.infer<
+	typeof saveCandidateAnswerSchema
+>;
