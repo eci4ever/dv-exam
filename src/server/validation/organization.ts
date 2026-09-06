@@ -31,3 +31,13 @@ export const updateOrganizationProfileSchema = z.object({
 	organizationId: organizationIdSchema,
 	name: z.string().trim().min(3).max(200),
 });
+
+export type SetActiveOrganizationInput = z.infer<
+	typeof setActiveOrganizationSchema
+>;
+export type InviteOrganizationMemberInput = z.infer<
+	typeof inviteOrganizationMemberSchema
+>;
+export type UpdateOrganizationMemberInput = z.infer<
+	typeof updateOrganizationMemberSchema
+>;

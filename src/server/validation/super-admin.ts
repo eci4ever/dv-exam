@@ -81,3 +81,11 @@ export const updatePlatformSettingsSchema = z.object({
 	emailSenderName: z.string().trim().min(1).max(200),
 	reason: reasonSchema,
 });
+
+export type UpdateUserAccessInput = z.infer<typeof updateUserAccessSchema>;
+export type UpdateOrganizationLifecycleInput = z.infer<
+	typeof updateOrganizationLifecycleSchema
+>;
+export type UpdatePlatformSettingsInput = z.infer<
+	typeof updatePlatformSettingsSchema
+>;
