@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #23:** Consolidated Platform Admin audit persistence onto the shared server-side audit writer.
 - [x] **2026-09-06 — PR #22:** Allowed Platform Admin audit filtering by actor email as well as internal user ID.
 - [x] **2026-09-06 — PR #21:** Refreshed the current Platform Admin organisations page after governance actions.
 - [x] **2026-09-06 — PR #20:** Refreshed the current Platform Admin users page after access, session, or verification actions.

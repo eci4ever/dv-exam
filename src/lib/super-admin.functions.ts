@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getAuth } from "./auth";
 import { requireGlobalAdmin } from "#/server/auth/authorization";
+import { writeAuditEvent } from "#/server/audit/events.server";
 import {
 	createOrganizationSchema,
 	platformAuditLogQuerySchema,
@@ -25,20 +26,14 @@ async function writeAudit(
 	reason: string,
 	metadata: Record<string, unknown> = {},
 ) {
-	await env.DB.prepare(
-		"INSERT INTO platform_audit_log (id, actorUserId, action, targetType, targetId, reason, outcome, metadata, createdAt) VALUES (?, ?, ?, ?, ?, ?, 'success', ?, ?)",
-	)
-		.bind(
-			crypto.randomUUID(),
-			actorUserId,
-			action,
-			targetType,
-			targetId,
-			reason,
-			JSON.stringify(metadata),
-			Date.now(),
-		)
-		.run();
+	await writeAuditEvent({
+		actorUserId,
+		action,
+		targetType,
+		targetId,
+		reason,
+		metadata,
+	});
 }
 
 function requireReason(reason: string) {
