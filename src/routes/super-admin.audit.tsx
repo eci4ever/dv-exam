@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { FileText, Filter } from "lucide-react";
 import { useState } from "react";
@@ -36,7 +36,6 @@ export const Route = createFileRoute("/super-admin/audit")({
 function AuditPage() {
 	const { user } = Route.useRouteContext();
 	const initial = Route.useLoaderData() as { records: any[]; hasMore: boolean };
-	const router = useRouter();
 	const queryLog = useServerFn(getPlatformAuditLog);
 	const [records, setRecords] = useState(initial.records);
 	const [hasMore, setHasMore] = useState(initial.hasMore);
@@ -67,6 +66,28 @@ function AuditPage() {
 				error instanceof Error
 					? error.message
 					: "Unable to filter audit records.",
+			);
+		}
+	}
+	async function resetFilters() {
+		setAction("");
+		setActor("");
+		setTarget("");
+		setFrom("");
+		setTo("");
+		try {
+			const result = (await queryLog({
+				data: { offset: 0 },
+			})) as { records: any[]; hasMore: boolean };
+			setRecords(result.records);
+			setHasMore(result.hasMore);
+			setOffset(0);
+			setNotice("");
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Unable to reload audit records.",
 			);
 		}
 	}
@@ -116,17 +137,7 @@ function AuditPage() {
 							<Filter /> Filter
 						</Button>
 						<Button
-							onClick={() => {
-								setAction("");
-								setActor("");
-								setTarget("");
-								setFrom("");
-								setTo("");
-								setRecords(initial.records);
-								setHasMore(initial.hasMore);
-								setOffset(0);
-								void router.invalidate();
-							}}
+							onClick={() => void resetFilters()}
 							type="button"
 							variant="ghost"
 						>
