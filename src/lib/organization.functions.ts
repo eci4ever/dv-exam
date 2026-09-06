@@ -18,6 +18,7 @@ import {
 	updateOrganizationProfileSchema,
 } from "#/server/validation/organization";
 import { writeAuditEvent } from "#/server/audit/events.server";
+import { invalidState, notFound } from "#/server/errors";
 
 async function requireOrganizationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -168,9 +169,9 @@ export const updateOrganizationMember = createServerFn({ method: "POST" })
 		)
 			.bind(data.memberId, data.organizationId)
 			.first<{ role: string }>();
-		if (!target) throw new Error("Organisation member not found.");
+		if (!target) throw notFound("Organisation member not found.");
 		if (!canUpdateOrganizationMemberRole(target.role))
-			throw new Error(
+			throw invalidState(
 				"Transfer ownership before changing the organisation owner's role.",
 			);
 		await getAuth().api.updateMemberRole({
@@ -202,7 +203,7 @@ export const removeOrganizationMember = createServerFn({ method: "POST" })
 			.bind(data.memberIdOrEmail, data.organizationId)
 			.first<{ role: string }>();
 		if (target?.role === "owner")
-			throw new Error(
+			throw invalidState(
 				"Transfer ownership before removing the organisation owner.",
 			);
 		await getAuth().api.removeMember({
@@ -228,7 +229,7 @@ export const cancelOrganizationInvitation = createServerFn({ method: "POST" })
 		)
 			.bind(data.invitationId)
 			.first<{ organizationId: string }>();
-		if (!invitation) throw new Error("Invitation not found.");
+		if (!invitation) throw notFound("Invitation not found.");
 		const session = await requireOrganizationManager(invitation.organizationId);
 		await getAuth().api.cancelInvitation({
 			headers: getRequestHeaders(),
