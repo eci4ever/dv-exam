@@ -9,6 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { getSession } from "#/lib/auth.functions";
 import { getPlatformAuditLog } from "#/lib/super-admin.functions";
+
+function formatAuditContext(metadata: unknown) {
+	if (typeof metadata !== "string" || !metadata) return null;
+	try {
+		const value = JSON.parse(metadata);
+		if (!value || typeof value !== "object" || Array.isArray(value))
+			return null;
+		return Object.entries(value)
+			.map(([key, item]) => `${key}: ${String(item)}`)
+			.join(" · ");
+	} catch {
+		return null;
+	}
+}
 export const Route = createFileRoute("/super-admin/audit")({
 	beforeLoad: async () => {
 		const session = await getSession();
@@ -128,22 +142,30 @@ function AuditPage() {
 					</CardHeader>
 					<CardContent className="divide-y">
 						{records.length ? (
-							records.map((audit) => (
-								<div className="py-4" key={audit.id}>
-									<div className="flex flex-wrap items-center gap-2">
-										<p className="font-medium">{audit.action}</p>
-										<Badge variant="outline">{audit.outcome}</Badge>
+							records.map((audit) => {
+								const context = formatAuditContext(audit.metadata);
+								return (
+									<div className="py-4" key={audit.id}>
+										<div className="flex flex-wrap items-center gap-2">
+											<p className="font-medium">{audit.action}</p>
+											<Badge variant="outline">{audit.outcome}</Badge>
+										</div>
+										<p className="mt-1 text-sm text-muted-foreground">
+											Actor: {audit.actorName} · Target: {audit.targetType}{" "}
+											{audit.targetId ?? "platform"}
+										</p>
+										<p className="mt-1 text-sm">Reason: {audit.reason}</p>
+										{context ? (
+											<p className="mt-1 text-xs text-muted-foreground">
+												Context: {context}
+											</p>
+										) : null}
+										<p className="mt-1 text-xs text-muted-foreground">
+											{new Date(audit.createdAt).toLocaleString()}
+										</p>
 									</div>
-									<p className="mt-1 text-sm text-muted-foreground">
-										Actor: {audit.actorName} · Target: {audit.targetType}{" "}
-										{audit.targetId ?? "platform"}
-									</p>
-									<p className="mt-1 text-sm">Reason: {audit.reason}</p>
-									<p className="mt-1 text-xs text-muted-foreground">
-										{new Date(audit.createdAt).toLocaleString()}
-									</p>
-								</div>
-							))
+								);
+							})
 						) : (
 							<p className="py-8 text-center text-sm text-muted-foreground">
 								No audit records match these filters.
