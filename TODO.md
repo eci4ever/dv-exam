@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #35:** Added and locally verified D1 indexes for active examination, invitation, and membership query paths.
 - [x] **2026-09-06 — PR #34:** Expanded the Drizzle schema to cover application-owned platform governance and examination D1 tables and indexes.
 - [x] **2026-09-06 — PR #33:** Applied typed safe errors and target-existence checks across Platform Admin governance mutations.
 - [x] **2026-09-06 — PR #32:** Applied typed not-found and invalid-state errors to organisation member and invitation management.
@@ -83,7 +84,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 - [ ] Create repository modules that always accept trusted `organizationId` for tenant-owned reads/writes.
 - [ ] Move business workflows from `src/lib/*.functions.ts` into server-side services; keep server functions thin: validate → authorize → service → typed response.
 - [ ] Use D1-compatible Drizzle queries and transactions/batches for multi-record operations.
-- [ ] Add or validate indexes for active query paths: organisation/status, organisation/created date, assignment/user, attempt/assignment and audit filters.
+- [x] Add or validate indexes for active query paths: organisation/status, organisation/created date, assignment/user, attempt/assignment and audit filters.
 
 **Done when:** application database access is centralized through Drizzle repositories/services and every tenant query scopes `organizationId`.
 
