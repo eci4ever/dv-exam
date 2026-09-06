@@ -65,8 +65,8 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 			.map((membership) => membership.id);
 		const assignments = await env.DB.prepare(
 			`SELECT assignment.id, examination.id AS examinationId, examination.title, examination.durationMinutes, examination.status, examination.endsAt, examination.resultsPublishedAt, organization.name AS organizationName, attempt.id AS attemptId, attempt.status AS attemptStatus, attempt.score, attempt.maxScore
-			 FROM examination_assignment assignment INNER JOIN examination ON examination.id = assignment.examinationId INNER JOIN organization ON organization.id = examination.organizationId LEFT JOIN examination_attempt attempt ON attempt.assignmentId = assignment.id
-			 WHERE assignment.userId = ? AND examination.status IN ('published', 'closed') ORDER BY examination.endsAt IS NULL, examination.endsAt ASC, examination.createdAt DESC`,
+			 FROM examination_assignment assignment INNER JOIN examination ON examination.id = assignment.examinationId INNER JOIN organization ON organization.id = examination.organizationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId LEFT JOIN examination_attempt attempt ON attempt.assignmentId = assignment.id
+			 WHERE assignment.userId = ? AND examination.status IN ('published', 'closed') AND COALESCE(platform_organization.status, 'active') = 'active' ORDER BY examination.endsAt IS NULL, examination.endsAt ASC, examination.createdAt DESC`,
 		)
 			.bind(session.user.id)
 			.all();
