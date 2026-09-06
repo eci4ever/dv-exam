@@ -16,6 +16,7 @@ import {
 	updateOrganizationLifecycle,
 	updatePlatformOrganization,
 } from "#/lib/super-admin.functions";
+import type { PlatformOrganizationPage } from "#/lib/platform-admin.types";
 
 export const Route = createFileRoute("/super-admin/organisations")({
 	beforeLoad: async () => {
@@ -29,10 +30,7 @@ export const Route = createFileRoute("/super-admin/organisations")({
 });
 function OrganisationsPage() {
 	const { user } = Route.useRouteContext();
-	const initial = Route.useLoaderData() as {
-		organizations: any[];
-		hasMore: boolean;
-	};
+	const initial = Route.useLoaderData() as PlatformOrganizationPage;
 	const router = useRouter();
 	const lifecycle = useServerFn(updateOrganizationLifecycle);
 	const update = useServerFn(updatePlatformOrganization);
@@ -48,7 +46,7 @@ function OrganisationsPage() {
 			setNotice("");
 			const result = (await getOrganizations({
 				data: { query: query || undefined, offset: nextOffset },
-			})) as { organizations: any[]; hasMore: boolean };
+			})) as PlatformOrganizationPage;
 			setOrganizations(result.organizations);
 			setHasMore(result.hasMore);
 			setOffset(nextOffset);
@@ -65,7 +63,7 @@ function OrganisationsPage() {
 		try {
 			const result = (await getOrganizations({
 				data: { offset: 0 },
-			})) as { organizations: any[]; hasMore: boolean };
+			})) as PlatformOrganizationPage;
 			setOrganizations(result.organizations);
 			setHasMore(result.hasMore);
 			setOffset(0);
