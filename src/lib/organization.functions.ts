@@ -7,6 +7,7 @@ import {
 	requireOrganizationPermission,
 	requireSession,
 } from "#/server/auth/authorization";
+import { canUpdateOrganizationMemberRole } from "#/server/auth/authorization-policy";
 import {
 	cancelOrganizationInvitationSchema,
 	inviteOrganizationMemberSchema,
@@ -16,6 +17,7 @@ import {
 	updateOrganizationMemberSchema,
 	updateOrganizationProfileSchema,
 } from "#/server/validation/organization";
+import { writeAuditEvent } from "#/server/audit/events.server";
 
 async function requireOrganizationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -132,7 +134,7 @@ export const setActiveOrganization = createServerFn({ method: "POST" })
 export const inviteOrganizationMember = createServerFn({ method: "POST" })
 	.validator((data: unknown) => inviteOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
+		const session = await requireOrganizationManager(data.organizationId);
 		await getAuth().api.createInvitation({
 			headers: getRequestHeaders(),
 			body: {
@@ -142,13 +144,35 @@ export const inviteOrganizationMember = createServerFn({ method: "POST" })
 				resend: true,
 			},
 		});
+		await writeAuditEvent({
+			action: "organization.invitation.create",
+			actorUserId: session.user.id,
+			targetType: "invitation",
+			targetId: null,
+			reason: "Organisation invitation created",
+			metadata: {
+				organizationId: data.organizationId,
+				email: data.email,
+				role: data.role,
+			},
+		});
 		return { success: true };
 	});
 
 export const updateOrganizationMember = createServerFn({ method: "POST" })
 	.validator((data: unknown) => updateOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
+		const session = await requireOrganizationManager(data.organizationId);
+		const target = await env.DB.prepare(
+			"SELECT role FROM member WHERE id = ? AND organizationId = ?",
+		)
+			.bind(data.memberId, data.organizationId)
+			.first<{ role: string }>();
+		if (!target) throw new Error("Organisation member not found.");
+		if (!canUpdateOrganizationMemberRole(target.role))
+			throw new Error(
+				"Transfer ownership before changing the organisation owner's role.",
+			);
 		await getAuth().api.updateMemberRole({
 			headers: getRequestHeaders(),
 			body: {
@@ -157,13 +181,21 @@ export const updateOrganizationMember = createServerFn({ method: "POST" })
 				role: data.role,
 			},
 		});
+		await writeAuditEvent({
+			action: "organization.member.role.update",
+			actorUserId: session.user.id,
+			targetType: "member",
+			targetId: data.memberId,
+			reason: "Organisation member role updated",
+			metadata: { organizationId: data.organizationId, role: data.role },
+		});
 		return { success: true };
 	});
 
 export const removeOrganizationMember = createServerFn({ method: "POST" })
 	.validator((data: unknown) => removeOrganizationMemberSchema.parse(data))
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
+		const session = await requireOrganizationManager(data.organizationId);
 		const target = await env.DB.prepare(
 			"SELECT role FROM member WHERE id = ? AND organizationId = ?",
 		)
@@ -177,6 +209,14 @@ export const removeOrganizationMember = createServerFn({ method: "POST" })
 			headers: getRequestHeaders(),
 			body: data,
 		});
+		await writeAuditEvent({
+			action: "organization.member.remove",
+			actorUserId: session.user.id,
+			targetType: "member",
+			targetId: data.memberIdOrEmail,
+			reason: "Organisation member removed",
+			metadata: { organizationId: data.organizationId },
+		});
 		return { success: true };
 	});
 
@@ -189,10 +229,18 @@ export const cancelOrganizationInvitation = createServerFn({ method: "POST" })
 			.bind(data.invitationId)
 			.first<{ organizationId: string }>();
 		if (!invitation) throw new Error("Invitation not found.");
-		await requireOrganizationManager(invitation.organizationId);
+		const session = await requireOrganizationManager(invitation.organizationId);
 		await getAuth().api.cancelInvitation({
 			headers: getRequestHeaders(),
 			body: { invitationId: data.invitationId },
+		});
+		await writeAuditEvent({
+			action: "organization.invitation.cancel",
+			actorUserId: session.user.id,
+			targetType: "invitation",
+			targetId: data.invitationId,
+			reason: "Organisation invitation cancelled",
+			metadata: { organizationId: invitation.organizationId },
 		});
 		return { success: true };
 	});
@@ -204,7 +252,12 @@ export const respondToOrganizationInvitation = createServerFn({
 		respondToOrganizationInvitationSchema.parse(data),
 	)
 	.handler(async ({ data }) => {
-		await requireSession();
+		const session = await requireSession();
+		const invitation = await env.DB.prepare(
+			"SELECT organizationId FROM invitation WHERE id = ?",
+		)
+			.bind(data.invitationId)
+			.first<{ organizationId: string }>();
 		const auth = getAuth();
 		const request = {
 			headers: getRequestHeaders(),
@@ -212,15 +265,31 @@ export const respondToOrganizationInvitation = createServerFn({
 		};
 		if (data.response === "accept") await auth.api.acceptInvitation(request);
 		else await auth.api.rejectInvitation(request);
+		await writeAuditEvent({
+			action: `organization.invitation.${data.response}`,
+			actorUserId: session.user.id,
+			targetType: "invitation",
+			targetId: data.invitationId,
+			reason: "Organisation invitation response",
+			metadata: { organizationId: invitation?.organizationId ?? null },
+		});
 		return { success: true };
 	});
 
 export const updateOrganizationProfile = createServerFn({ method: "POST" })
 	.validator((data: unknown) => updateOrganizationProfileSchema.parse(data))
 	.handler(async ({ data }) => {
-		await requireOrganizationManager(data.organizationId);
+		const session = await requireOrganizationManager(data.organizationId);
 		await env.DB.prepare("UPDATE organization SET name = ? WHERE id = ?")
 			.bind(data.name, data.organizationId)
 			.run();
+		await writeAuditEvent({
+			action: "organization.profile.update",
+			actorUserId: session.user.id,
+			targetType: "organization",
+			targetId: data.organizationId,
+			reason: "Organisation profile updated",
+			metadata: { name: data.name },
+		});
 		return { success: true };
 	});
