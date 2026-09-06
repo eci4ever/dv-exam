@@ -54,6 +54,7 @@ function OrganisationsPage() {
 			await action();
 			setNotice(success);
 			await router.invalidate({ sync: true });
+			await loadOrganizations(offset);
 		} catch (error) {
 			setNotice(error instanceof Error ? error.message : "Action failed.");
 		}
