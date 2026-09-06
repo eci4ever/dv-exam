@@ -28,14 +28,20 @@ function AuditPage() {
 	const [hasMore, setHasMore] = useState(initial.hasMore);
 	const [offset, setOffset] = useState(0);
 	const [action, setAction] = useState("");
+	const [actor, setActor] = useState("");
 	const [target, setTarget] = useState("");
+	const [from, setFrom] = useState("");
+	const [to, setTo] = useState("");
 	const [notice, setNotice] = useState("");
 	async function filter(nextOffset = 0) {
 		try {
 			const result = (await queryLog({
 				data: {
 					action: action || undefined,
+					actor: actor || undefined,
 					target: target || undefined,
+					from: from ? new Date(from).getTime() : undefined,
+					to: to ? new Date(to).getTime() : undefined,
 					offset: nextOffset,
 				},
 			})) as { records: any[]; hasMore: boolean };
@@ -66,6 +72,12 @@ function AuditPage() {
 					<CardContent className="flex flex-wrap gap-2 p-4">
 						<Input
 							className="max-w-xs"
+							onChange={(event) => setActor(event.target.value)}
+							placeholder="Actor user ID"
+							value={actor}
+						/>
+						<Input
+							className="max-w-xs"
 							onChange={(event) => setAction(event.target.value)}
 							placeholder="Exact action, e.g. user.ban"
 							value={action}
@@ -76,13 +88,26 @@ function AuditPage() {
 							placeholder="Target ID"
 							value={target}
 						/>
+						<Input
+							onChange={(event) => setFrom(event.target.value)}
+							type="date"
+							value={from}
+						/>
+						<Input
+							onChange={(event) => setTo(event.target.value)}
+							type="date"
+							value={to}
+						/>
 						<Button onClick={filter} type="button" variant="outline">
 							<Filter /> Filter
 						</Button>
 						<Button
 							onClick={() => {
 								setAction("");
+								setActor("");
 								setTarget("");
+								setFrom("");
+								setTo("");
 								setRecords(initial.records);
 								setHasMore(initial.hasMore);
 								setOffset(0);
