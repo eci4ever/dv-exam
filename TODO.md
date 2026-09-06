@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #29:** Improved Platform Admin list recovery: audit reset reloads current data, audit filtering is safely invoked, and users/organisations have clearable searches with safe loading errors.
 - [x] **2026-09-06 — PR #28:** Added an empty search state to Platform Admin organisations.
 - [x] **2026-09-06 — PR #27:** Added an empty search state to Platform Admin users.
 - [x] **2026-09-06 — PR #26:** Excluded suspended and archived organisations from manager dashboard metrics and activity.

@@ -43,12 +43,39 @@ function OrganisationsPage() {
 	const [query, setQuery] = useState("");
 	const [notice, setNotice] = useState("");
 	async function loadOrganizations(nextOffset: number) {
-		const result = (await getOrganizations({
-			data: { query: query || undefined, offset: nextOffset },
-		})) as { organizations: any[]; hasMore: boolean };
-		setOrganizations(result.organizations);
-		setHasMore(result.hasMore);
-		setOffset(nextOffset);
+		try {
+			setNotice("");
+			const result = (await getOrganizations({
+				data: { query: query || undefined, offset: nextOffset },
+			})) as { organizations: any[]; hasMore: boolean };
+			setOrganizations(result.organizations);
+			setHasMore(result.hasMore);
+			setOffset(nextOffset);
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Unable to load organisations.",
+			);
+		}
+	}
+	async function resetSearch() {
+		setQuery("");
+		try {
+			const result = (await getOrganizations({
+				data: { offset: 0 },
+			})) as { organizations: any[]; hasMore: boolean };
+			setOrganizations(result.organizations);
+			setHasMore(result.hasMore);
+			setOffset(0);
+			setNotice("");
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Unable to reload organisations.",
+			);
+		}
 	}
 	async function run(action: () => Promise<unknown>, success: string) {
 		try {
@@ -72,7 +99,7 @@ function OrganisationsPage() {
 				{notice ? (
 					<p className="rounded-md border p-3 text-sm">{notice}</p>
 				) : null}
-				<div className="flex max-w-md gap-2">
+				<div className="flex flex-wrap gap-2">
 					<Input
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder="Search organisation"
@@ -85,6 +112,15 @@ function OrganisationsPage() {
 					>
 						<Search /> Search
 					</Button>
+					{query ? (
+						<Button
+							onClick={() => void resetSearch()}
+							type="button"
+							variant="ghost"
+						>
+							Clear
+						</Button>
+					) : null}
 				</div>
 				<Card>
 					<CardContent className="divide-y p-0">
