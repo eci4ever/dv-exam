@@ -20,6 +20,7 @@ import {
 	canSaveCandidateAnswer,
 	canTransitionExamination,
 	canUseOrganizationOperationally,
+	canViewCandidateResult,
 } from "#/server/examinations/lifecycle";
 
 async function requireOrganisationManager(organizationId: string) {
@@ -92,7 +93,11 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 			: null;
 		return {
 			memberships: memberships.results,
-			assignments: assignments.results,
+			assignments: assignments.results.map((assignment) =>
+				canViewCandidateResult(assignment.resultsPublishedAt)
+					? assignment
+					: { ...assignment, score: null, maxScore: null },
+			),
 			managed: managed.results,
 			metrics: metrics ?? {
 				examinationCount: 0,
@@ -375,6 +380,12 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 		)
 			.bind(attemptId)
 			.all();
+		if (
+			!canViewCandidateResult(assignment.resultsPublishedAt as number | null)
+		) {
+			delete assignment.score;
+			delete assignment.maxScore;
+		}
 		return {
 			assignment,
 			questions: questions.results,
@@ -418,10 +429,14 @@ export const submitCandidateAttempt = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const attempt = await env.DB.prepare(
-			"SELECT attempt.id, examination.id AS examinationId FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND COALESCE(platform_organization.status, 'active') = 'active'",
+			"SELECT attempt.id, examination.id AS examinationId, examination.resultsPublishedAt FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND COALESCE(platform_organization.status, 'active') = 'active'",
 		)
 			.bind(data.attemptId, session.user.id)
-			.first<{ id: string; examinationId: string }>();
+			.first<{
+				id: string;
+				examinationId: string;
+				resultsPublishedAt: number | null;
+			}>();
 		if (!attempt) throw new Error("Attempt cannot be submitted.");
 		const score = await env.DB.prepare(
 			"SELECT COALESCE(SUM(CASE WHEN option.isCorrect = 1 THEN question.points ELSE 0 END), 0) AS score, COALESCE((SELECT SUM(points) FROM examination_question WHERE examinationId = ?), 0) AS maxScore FROM examination_answer answer INNER JOIN examination_question question ON question.id = answer.questionId LEFT JOIN examination_option option ON option.id = answer.optionId WHERE answer.attemptId = ?",
@@ -433,5 +448,7 @@ export const submitCandidateAttempt = createServerFn({ method: "POST" })
 		)
 			.bind(Date.now(), score?.score ?? 0, score?.maxScore ?? 0, attempt.id)
 			.run();
+		if (!canViewCandidateResult(attempt.resultsPublishedAt))
+			return { submitted: true };
 		return { score: score?.score ?? 0, maxScore: score?.maxScore ?? 0 };
 	});

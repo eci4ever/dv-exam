@@ -3,6 +3,7 @@ import {
 	canSaveCandidateAnswer,
 	canTransitionExamination,
 	canUseOrganizationOperationally,
+	canViewCandidateResult,
 } from "./lifecycle";
 
 describe("examination lifecycle", () => {
@@ -40,5 +41,10 @@ describe("examination lifecycle", () => {
 		expect(canUseOrganizationOperationally("active")).toBe(true);
 		expect(canUseOrganizationOperationally("suspended")).toBe(false);
 		expect(canUseOrganizationOperationally("archived")).toBe(false);
+	});
+
+	it("keeps candidate results private until they are published", () => {
+		expect(canViewCandidateResult(null)).toBe(false);
+		expect(canViewCandidateResult(1_000)).toBe(true);
 	});
 });

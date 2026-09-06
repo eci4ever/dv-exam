@@ -26,3 +26,7 @@ export function canSaveCandidateAnswer(endsAt: number | null, now: number) {
 export function canUseOrganizationOperationally(status: string | null) {
 	return status === null || status === "active";
 }
+
+export function canViewCandidateResult(resultsPublishedAt: number | null) {
+	return resultsPublishedAt !== null;
+}
