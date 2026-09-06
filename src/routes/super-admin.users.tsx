@@ -59,6 +59,7 @@ function UsersPage() {
 			await action();
 			setNotice(success);
 			await router.invalidate({ sync: true });
+			await loadUsers(offset);
 		} catch (error) {
 			setNotice(error instanceof Error ? error.message : "Action failed.");
 		}
