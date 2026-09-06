@@ -92,9 +92,7 @@ function NotFoundPage() {
 function RootPendingPage() {
 	return (
 		<main className="grid min-h-svh place-items-center bg-muted/30 px-6">
-			<p className="text-sm text-muted-foreground" role="status">
-				Loading…
-			</p>
+			<output className="text-sm text-muted-foreground">Loading…</output>
 		</main>
 	);
 }
