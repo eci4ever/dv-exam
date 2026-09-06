@@ -16,7 +16,11 @@ export const updateUserAccessSchema = z.object({
 });
 
 export const platformUsersQuerySchema = z
-	.object({ query: z.string().trim().max(200).optional() })
+	.object({
+		query: z.string().trim().max(200).optional(),
+		limit: z.number().int().min(1).max(100).default(50),
+		offset: z.number().int().nonnegative().default(0),
+	})
 	.default({});
 
 export const resendUserVerificationSchema = z.object({

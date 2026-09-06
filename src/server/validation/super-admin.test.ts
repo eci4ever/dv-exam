@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	platformAuditLogQuerySchema,
+	platformUsersQuerySchema,
 	updateOrganizationLifecycleSchema,
 	updateUserAccessSchema,
 } from "./super-admin";
@@ -45,5 +46,12 @@ describe("super admin input", () => {
 
 	it("rejects an oversized audit page", () => {
 		expect(() => platformAuditLogQuerySchema.parse({ limit: 101 })).toThrow();
+	});
+
+	it("applies safe defaults for user pagination", () => {
+		expect(platformUsersQuerySchema.parse({})).toMatchObject({
+			limit: 50,
+			offset: 0,
+		});
 	});
 });

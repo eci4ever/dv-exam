@@ -210,17 +210,21 @@ export const getPlatformUsers = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		await requireSuperAdmin();
 		const query = data.query?.trim() ?? "";
-		return (
-			await env.DB.prepare(
-				`SELECT id, name, email, role, banned, emailVerified, createdAt FROM user ${query ? "WHERE lower(name) LIKE ? OR lower(email) LIKE ?" : ""} ORDER BY createdAt DESC LIMIT 100`,
+		const users = await env.DB.prepare(
+			`SELECT id, name, email, role, banned, emailVerified, createdAt FROM user ${query ? "WHERE lower(name) LIKE ? OR lower(email) LIKE ?" : ""} ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
+		)
+			.bind(
+				...(query
+					? [`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`]
+					: []),
+				data.limit + 1,
+				data.offset,
 			)
-				.bind(
-					...(query
-						? [`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`]
-						: []),
-				)
-				.all()
-		).results;
+			.all();
+		return {
+			users: users.results.slice(0, data.limit),
+			hasMore: users.results.length > data.limit,
+		};
 	});
 
 export const resendUserVerification = createServerFn({ method: "POST" })

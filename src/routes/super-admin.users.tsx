@@ -29,16 +29,31 @@ export const Route = createFileRoute("/super-admin/users")({
 
 function UsersPage() {
 	const { user } = Route.useRouteContext();
-	const users = Route.useLoaderData() as any[];
+	const initial = Route.useLoaderData() as { users: any[]; hasMore: boolean };
 	const router = useRouter();
 	const access = useServerFn(updateUserAccess);
+	const getUsers = useServerFn(getPlatformUsers);
 	const revoke = useServerFn(revokeUserSessions);
 	const verify = useServerFn(resendUserVerification);
 	const [query, setQuery] = useState("");
+	const [users, setUsers] = useState(initial.users);
+	const [hasMore, setHasMore] = useState(initial.hasMore);
+	const [offset, setOffset] = useState(0);
 	const [notice, setNotice] = useState("");
-	const visible = users.filter((item) =>
-		`${item.name} ${item.email}`.toLowerCase().includes(query.toLowerCase()),
-	);
+	async function loadUsers(nextOffset = 0) {
+		try {
+			const result = (await getUsers({
+				data: { query: query || undefined, offset: nextOffset },
+			})) as { users: any[]; hasMore: boolean };
+			setUsers(result.users);
+			setHasMore(result.hasMore);
+			setOffset(nextOffset);
+		} catch (error) {
+			setNotice(
+				error instanceof Error ? error.message : "Unable to load users.",
+			);
+		}
+	}
 	async function run(action: () => Promise<unknown>, success: string) {
 		try {
 			await action();
@@ -69,9 +84,16 @@ function UsersPage() {
 						value={query}
 					/>
 				</div>
+				<Button
+					onClick={() => void loadUsers()}
+					type="button"
+					variant="outline"
+				>
+					<Search /> Search
+				</Button>
 				<Card>
 					<CardContent className="divide-y p-0">
-						{visible.map((item) => (
+						{users.map((item) => (
 							<div
 								className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center"
 								key={item.id}
@@ -193,6 +215,24 @@ function UsersPage() {
 						))}
 					</CardContent>
 				</Card>
+				<div className="flex items-center justify-between gap-3">
+					<Button
+						disabled={offset === 0}
+						onClick={() => void loadUsers(Math.max(0, offset - 50))}
+						type="button"
+						variant="outline"
+					>
+						Previous
+					</Button>
+					<Button
+						disabled={!hasMore}
+						onClick={() => void loadUsers(offset + 50)}
+						type="button"
+						variant="outline"
+					>
+						Next
+					</Button>
+				</div>
 			</div>
 		</DashboardShell>
 	);
