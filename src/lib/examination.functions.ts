@@ -22,6 +22,7 @@ import {
 	canUseOrganizationOperationally,
 	canViewCandidateResult,
 } from "#/server/examinations/lifecycle";
+import { writeAuditEvent } from "#/server/audit/events.server";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -145,6 +146,14 @@ export const createExamination = createServerFn({ method: "POST" })
 				now,
 			)
 			.run();
+		await writeAuditEvent({
+			action: "examination.create",
+			actorUserId: session.user.id,
+			targetType: "examination",
+			targetId: id,
+			reason: "Examination created",
+			metadata: { organizationId, title },
+		});
 		return { id };
 	});
 
@@ -190,7 +199,7 @@ export const getExaminationEditor = createServerFn({ method: "GET" })
 export const saveQuestion = createServerFn({ method: "POST" })
 	.validator((data: unknown) => saveQuestionSchema.parse(data))
 	.handler(async ({ data }) => {
-		const { exam } = await getManagedExam(data.examinationId);
+		const { exam, session } = await getManagedExam(data.examinationId);
 		if (exam.status !== "draft")
 			throw new Error("Only draft examinations can be edited.");
 		const prompt = data.prompt;
@@ -242,6 +251,14 @@ export const saveQuestion = createServerFn({ method: "POST" })
 		await env.DB.prepare("UPDATE examination SET updatedAt = ? WHERE id = ?")
 			.bind(Date.now(), exam.id)
 			.run();
+		await writeAuditEvent({
+			action: "examination.question.save",
+			actorUserId: session.user.id,
+			targetType: "examination_question",
+			targetId: questionId,
+			reason: "Question saved",
+			metadata: { examinationId: exam.id, organizationId: exam.organizationId },
+		});
 		return { id: questionId };
 	});
 
@@ -259,24 +276,31 @@ export const assignCandidate = createServerFn({ method: "POST" })
 			.bind(exam.organizationId, data.userId)
 			.first();
 		if (!member) throw new Error("Candidate must be an organisation member.");
+		const assignmentId = crypto.randomUUID();
 		await env.DB.prepare(
 			"INSERT OR IGNORE INTO examination_assignment (id, examinationId, userId, assignedByUserId, createdAt) VALUES (?, ?, ?, ?, ?)",
 		)
-			.bind(
-				crypto.randomUUID(),
-				exam.id,
-				data.userId,
-				session.user.id,
-				Date.now(),
-			)
+			.bind(assignmentId, exam.id, data.userId, session.user.id, Date.now())
 			.run();
+		await writeAuditEvent({
+			action: "examination.candidate.assign",
+			actorUserId: session.user.id,
+			targetType: "examination_assignment",
+			targetId: assignmentId,
+			reason: "Candidate assigned",
+			metadata: {
+				examinationId: exam.id,
+				organizationId: exam.organizationId,
+				userId: data.userId,
+			},
+		});
 		return { success: true };
 	});
 
 export const updateExaminationStatus = createServerFn({ method: "POST" })
 	.validator((data: unknown) => updateExaminationStatusSchema.parse(data))
 	.handler(async ({ data }) => {
-		const { exam } = await getManagedExam(data.examinationId);
+		const { exam, session } = await getManagedExam(data.examinationId);
 		if (!canTransitionExamination(exam.status, data.action))
 			throw new Error(
 				`The ${data.action} action is not available while this examination is ${exam.status}.`,
@@ -319,6 +343,14 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 				.bind(Date.now(), Date.now(), exam.id)
 				.run();
 		}
+		await writeAuditEvent({
+			action: `examination.${data.action}`,
+			actorUserId: session.user.id,
+			targetType: "examination",
+			targetId: exam.id,
+			reason: "Examination lifecycle action",
+			metadata: { organizationId: exam.organizationId },
+		});
 		return { success: true };
 	});
 
@@ -448,6 +480,14 @@ export const submitCandidateAttempt = createServerFn({ method: "POST" })
 		)
 			.bind(Date.now(), score?.score ?? 0, score?.maxScore ?? 0, attempt.id)
 			.run();
+		await writeAuditEvent({
+			action: "examination.attempt.submit",
+			actorUserId: session.user.id,
+			targetType: "examination_attempt",
+			targetId: attempt.id,
+			reason: "Candidate submitted examination attempt",
+			metadata: { examinationId: attempt.examinationId },
+		});
 		if (!canViewCandidateResult(attempt.resultsPublishedAt))
 			return { submitted: true };
 		return { score: score?.score ?? 0, maxScore: score?.maxScore ?? 0 };
