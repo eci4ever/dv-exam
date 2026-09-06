@@ -54,6 +54,39 @@ For production env vars, run `wrangler secret put MY_VAR` for each secret listed
 
 KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
 
+## D1 migrations
+
+Application migrations live in `migrations/`. Never edit a migration that has
+already been applied to a shared database; add a new, forward-only migration.
+
+For local development, apply all pending migrations before running the app:
+
+```bash
+npm run db:migrate:local
+```
+
+Before a production migration, review the pending SQL, make a remote backup,
+and confirm the configured `database_id` in `wrangler.jsonc` is the intended
+database:
+
+```bash
+npx wrangler d1 migrations list dv-exam-db --remote
+npx wrangler d1 export dv-exam-db --remote --output=./dv-exam-db-backup.sql
+npm run db:migrate:remote
+```
+
+The remote command changes the production database and should only run after
+the migration has succeeded locally and the deployment change has been
+reviewed. D1 migrations are forward-only: restore an accidental production
+change using the recorded backup or Cloudflare D1 Time Travel, then add a new
+corrective migration. Do not rely on a destructive down-migration.
+
+Regenerate Cloudflare binding types after changing `wrangler.jsonc`:
+
+```bash
+npm run db:types
+```
+
 
 ## Shadcn
 

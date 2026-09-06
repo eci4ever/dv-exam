@@ -43,19 +43,27 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 	}),
 	notFoundComponent: NotFoundPage,
 	errorComponent: RootErrorPage,
+	pendingComponent: RootPendingPage,
 	shellComponent: RootDocument,
 });
 
-function RootErrorPage({ error }: { error: Error }) {
+function RootErrorPage() {
 	return (
 		<main className="grid min-h-svh place-items-center bg-muted/30 px-6 text-center">
 			<section className="max-w-md space-y-4 rounded-xl border bg-background p-6 shadow-sm">
-				<p className="text-sm font-medium text-destructive">Something went wrong</p>
+				<p className="text-sm font-medium text-destructive">
+					Something went wrong
+				</p>
 				<h1 className="text-xl font-semibold">This page could not be loaded</h1>
 				<p className="text-sm text-muted-foreground">
-					{error.message || "Please try again or return to the dashboard."}
+					Please try again or return to the dashboard.
 				</p>
-				<Link className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" to="/dashboard">Return to dashboard</Link>
+				<Link
+					className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+					to="/dashboard"
+				>
+					Return to dashboard
+				</Link>
 			</section>
 		</main>
 	);
@@ -63,24 +71,30 @@ function RootErrorPage({ error }: { error: Error }) {
 
 function NotFoundPage() {
 	return (
-		<main className="grid min-h-svh place-items-center bg-slate-950 px-6 text-center text-slate-100">
-			<section className="max-w-md space-y-5">
-				<p className="text-sm font-medium tracking-[0.2em] text-cyan-300">
-					404
-				</p>
-				<h1 className="text-3xl font-semibold tracking-tight">
-					Page not found
-				</h1>
-				<p className="text-sm leading-6 text-slate-400">
+		<main className="grid min-h-svh place-items-center bg-muted/30 px-6 text-center">
+			<section className="max-w-md space-y-4 rounded-xl border bg-background p-6 shadow-sm">
+				<p className="text-sm font-medium text-muted-foreground">404</p>
+				<h1 className="text-xl font-semibold">Page not found</h1>
+				<p className="text-sm text-muted-foreground">
 					This link may have moved or is no longer available.
 				</p>
 				<Link
-					className="inline-flex h-10 items-center justify-center rounded-md bg-cyan-300 px-4 text-sm font-medium text-slate-950 transition-colors hover:bg-cyan-200"
+					className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
 					to="/"
 				>
 					Back to home
 				</Link>
 			</section>
+		</main>
+	);
+}
+
+function RootPendingPage() {
+	return (
+		<main className="grid min-h-svh place-items-center bg-muted/30 px-6">
+			<p className="text-sm text-muted-foreground" role="status">
+				Loading…
+			</p>
 		</main>
 	);
 }

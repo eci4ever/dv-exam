@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #30:** Added safe root loading/error/not-found states and documented local/remote D1 migration, backup, and recovery procedures.
 - [x] **2026-09-06 — PR #29:** Improved Platform Admin list recovery: audit reset reloads current data, audit filtering is safely invoked, and users/organisations have clearable searches with safe loading errors.
 - [x] **2026-09-06 — PR #28:** Added an empty search state to Platform Admin organisations.
 - [x] **2026-09-06 — PR #27:** Added an empty search state to Platform Admin users.
@@ -38,8 +39,8 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 - [ ] Inspect and document the current D1 schema, Better Auth tables, migration journal, server functions and route guards.
 - [ ] Add a working `typecheck` script if TypeScript supports it cleanly.
 - [ ] Resolve the repository-wide Biome schema/version mismatch and establish a passing formatting/lint baseline.
-- [ ] Add route-level error and pending states for protected areas without exposing internal database errors.
-- [ ] Document local and remote migration commands, including rollback/recovery expectations.
+- [x] Add route-level error and pending states for protected areas without exposing internal database errors.
+- [x] Document local and remote migration commands, including rollback/recovery expectations.
 
 **Done when:** `npm run build`, lint, typecheck and local migration checks are reliable and documented.
 
