@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canSaveCandidateAnswer, canTransitionExamination } from "./lifecycle";
+import {
+	canSaveCandidateAnswer,
+	canTransitionExamination,
+	canUseOrganizationOperationally,
+} from "./lifecycle";
 
 describe("examination lifecycle", () => {
 	it("allows a draft examination to be published", () => {
@@ -29,5 +33,12 @@ describe("examination lifecycle", () => {
 		expect(canSaveCandidateAnswer(null, 1_000)).toBe(true);
 		expect(canSaveCandidateAnswer(1_001, 1_000)).toBe(true);
 		expect(canSaveCandidateAnswer(1_000, 1_000)).toBe(false);
+	});
+
+	it("blocks candidate activity for inactive organisations", () => {
+		expect(canUseOrganizationOperationally(null)).toBe(true);
+		expect(canUseOrganizationOperationally("active")).toBe(true);
+		expect(canUseOrganizationOperationally("suspended")).toBe(false);
+		expect(canUseOrganizationOperationally("archived")).toBe(false);
 	});
 });

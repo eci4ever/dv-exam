@@ -22,3 +22,7 @@ export function canTransitionExamination(
 export function canSaveCandidateAnswer(endsAt: number | null, now: number) {
 	return endsAt === null || endsAt > now;
 }
+
+export function canUseOrganizationOperationally(status: string | null) {
+	return status === null || status === "active";
+}
