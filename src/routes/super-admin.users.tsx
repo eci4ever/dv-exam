@@ -94,126 +94,132 @@ function UsersPage() {
 				</Button>
 				<Card>
 					<CardContent className="divide-y p-0">
-						{users.map((item) => (
-							<div
-								className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center"
-								key={item.id}
-							>
-								<div className="min-w-0 flex-1">
-									<p className="font-medium">{item.name}</p>
-									<p className="truncate text-sm text-muted-foreground">
-										{item.email}
-									</p>
+						{users.length ? (
+							users.map((item) => (
+								<div
+									className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center"
+									key={item.id}
+								>
+									<div className="min-w-0 flex-1">
+										<p className="font-medium">{item.name}</p>
+										<p className="truncate text-sm text-muted-foreground">
+											{item.email}
+										</p>
+									</div>
+									<div className="flex flex-wrap items-center gap-2">
+										<Badge
+											variant={item.role === "admin" ? "default" : "secondary"}
+										>
+											{item.role === "admin" ? "Platform admin" : "User"}
+										</Badge>
+										<Badge variant={item.banned ? "destructive" : "outline"}>
+											{item.banned ? "Suspended" : "Active"}
+										</Badge>
+										{item.id !== user.id ? (
+											<ReasonDialog
+												confirmLabel={item.banned ? "Reactivate" : "Suspend"}
+												description="This changes the user's access to the platform."
+												onConfirm={(reason) =>
+													run(
+														() =>
+															access({
+																data: {
+																	userId: item.id,
+																	action: item.banned ? "unban" : "ban",
+																	reason,
+																},
+															}),
+														"User access updated. Audit record created.",
+													)
+												}
+												title={`${item.banned ? "Reactivate" : "Suspend"} ${item.name}`}
+												trigger={
+													<Button
+														size="sm"
+														variant={item.banned ? "outline" : "destructive"}
+													>
+														{item.banned ? "Reactivate" : "Suspend"}
+													</Button>
+												}
+											/>
+										) : null}
+										{item.id !== user.id ? (
+											<ReasonDialog
+												confirmLabel={
+													item.role === "admin" ? "Remove admin" : "Make admin"
+												}
+												description="Platform administrator access is global and audited."
+												onConfirm={(reason) =>
+													run(
+														() =>
+															access({
+																data: {
+																	userId: item.id,
+																	action:
+																		item.role === "admin"
+																			? "make-user"
+																			: "make-admin",
+																	reason,
+																},
+															}),
+														"Platform role updated. Audit record created.",
+													)
+												}
+												title="Change platform role"
+												trigger={
+													<Button size="sm" variant="outline">
+														<Shield />
+														{item.role === "admin"
+															? "Remove admin"
+															: "Make admin"}
+													</Button>
+												}
+											/>
+										) : null}
+										{item.id !== user.id ? (
+											<ReasonDialog
+												confirmLabel="Revoke sessions"
+												description="This signs the user out from all devices."
+												onConfirm={(reason) =>
+													run(
+														() => revoke({ data: { userId: item.id, reason } }),
+														"Sessions revoked. Audit record created.",
+													)
+												}
+												title="Revoke all sessions"
+												trigger={
+													<Button size="sm" variant="ghost">
+														<Trash2 /> Sessions
+													</Button>
+												}
+											/>
+										) : null}
+										{!item.emailVerified ? (
+											<ReasonDialog
+												confirmLabel="Send verification"
+												description="A new verification email will be sent to this user."
+												onConfirm={(reason) =>
+													run(
+														() => verify({ data: { userId: item.id, reason } }),
+														"Verification email sent. Audit record created.",
+													)
+												}
+												title="Resend verification"
+												trigger={
+													<Button size="sm" variant="ghost">
+														Verify
+													</Button>
+												}
+											/>
+										) : null}
+									</div>
 								</div>
-								<div className="flex flex-wrap items-center gap-2">
-									<Badge
-										variant={item.role === "admin" ? "default" : "secondary"}
-									>
-										{item.role === "admin" ? "Platform admin" : "User"}
-									</Badge>
-									<Badge variant={item.banned ? "destructive" : "outline"}>
-										{item.banned ? "Suspended" : "Active"}
-									</Badge>
-									{item.id !== user.id ? (
-										<ReasonDialog
-											confirmLabel={item.banned ? "Reactivate" : "Suspend"}
-											description="This changes the user's access to the platform."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														access({
-															data: {
-																userId: item.id,
-																action: item.banned ? "unban" : "ban",
-																reason,
-															},
-														}),
-													"User access updated. Audit record created.",
-												)
-											}
-											title={`${item.banned ? "Reactivate" : "Suspend"} ${item.name}`}
-											trigger={
-												<Button
-													size="sm"
-													variant={item.banned ? "outline" : "destructive"}
-												>
-													{item.banned ? "Reactivate" : "Suspend"}
-												</Button>
-											}
-										/>
-									) : null}
-									{item.id !== user.id ? (
-										<ReasonDialog
-											confirmLabel={
-												item.role === "admin" ? "Remove admin" : "Make admin"
-											}
-											description="Platform administrator access is global and audited."
-											onConfirm={(reason) =>
-												run(
-													() =>
-														access({
-															data: {
-																userId: item.id,
-																action:
-																	item.role === "admin"
-																		? "make-user"
-																		: "make-admin",
-																reason,
-															},
-														}),
-													"Platform role updated. Audit record created.",
-												)
-											}
-											title="Change platform role"
-											trigger={
-												<Button size="sm" variant="outline">
-													<Shield />
-													{item.role === "admin"
-														? "Remove admin"
-														: "Make admin"}
-												</Button>
-											}
-										/>
-									) : null}
-									{item.id !== user.id ? (
-										<ReasonDialog
-											confirmLabel="Revoke sessions"
-											description="This signs the user out from all devices."
-											onConfirm={(reason) =>
-												run(
-													() => revoke({ data: { userId: item.id, reason } }),
-													"Sessions revoked. Audit record created.",
-												)
-											}
-											title="Revoke all sessions"
-											trigger={
-												<Button size="sm" variant="ghost">
-													<Trash2 /> Sessions
-												</Button>
-											}
-										/>
-									) : null}
-									{!item.emailVerified ? (
-										<ReasonDialog
-											confirmLabel="Send verification"
-											description="A new verification email will be sent to this user."
-											onConfirm={(reason) =>
-												run(
-													() => verify({ data: { userId: item.id, reason } }),
-													"Verification email sent. Audit record created.",
-												)
-											}
-											title="Resend verification"
-											trigger={
-												<Button size="sm" variant="ghost">
-													Verify
-												</Button>
-											}
-										/>
-									) : null}
-								</div>
-							</div>
-						))}
+							))
+						) : (
+							<p className="p-8 text-center text-sm text-muted-foreground">
+								No platform users match this search.
+							</p>
+						)}
 					</CardContent>
 				</Card>
 				<div className="flex items-center justify-between gap-3">

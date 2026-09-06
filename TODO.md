@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #27:** Added an empty search state to Platform Admin users.
 - [x] **2026-09-06 — PR #26:** Excluded suspended and archived organisations from manager dashboard metrics and activity.
 - [x] **2026-09-06 — PR #25:** Added server-side search to Platform Admin organisations.
 - [x] **2026-09-06 — PR #24:** Hid examinations from candidate dashboards when their organisation is suspended or archived.
