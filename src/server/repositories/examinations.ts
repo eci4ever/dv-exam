@@ -20,3 +20,25 @@ export async function listExaminationsForOrganization(organizationId: string) {
 		.bind(organizationId)
 		.all();
 }
+
+export async function createExaminationForOrganization({
+	id,
+	organizationId,
+	title,
+	durationMinutes,
+	createdByUserId,
+	now,
+}: {
+	id: string;
+	organizationId: string;
+	title: string;
+	durationMinutes: number;
+	createdByUserId: string;
+	now: number;
+}) {
+	await env.DB.prepare(
+		"INSERT INTO examination (id, organizationId, title, durationMinutes, status, createdByUserId, createdAt, updatedAt) VALUES (?, ?, ?, ?, 'draft', ?, ?, ?)",
+	)
+		.bind(id, organizationId, title, durationMinutes, createdByUserId, now, now)
+		.run();
+}

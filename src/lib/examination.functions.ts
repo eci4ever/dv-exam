@@ -27,6 +27,7 @@ import { invalidInput, notFound } from "#/server/errors";
 import {
 	findExaminationById,
 	listExaminationsForOrganization,
+	createExaminationForOrganization,
 } from "#/server/repositories/examinations";
 
 async function requireOrganisationManager(organizationId: string) {
@@ -133,19 +134,14 @@ export const createExamination = createServerFn({ method: "POST" })
 		const title = clean(data.title, "Title");
 		const id = crypto.randomUUID();
 		const now = Date.now();
-		await env.DB.prepare(
-			"INSERT INTO examination (id, organizationId, title, durationMinutes, status, createdByUserId, createdAt, updatedAt) VALUES (?, ?, ?, ?, 'draft', ?, ?, ?)",
-		)
-			.bind(
-				id,
-				organizationId,
-				title,
-				data.durationMinutes,
-				session.user.id,
-				now,
-				now,
-			)
-			.run();
+		await createExaminationForOrganization({
+			id,
+			organizationId,
+			title,
+			durationMinutes: data.durationMinutes,
+			createdByUserId: session.user.id,
+			now,
+		});
 		await writeAuditEvent({
 			action: "examination.create",
 			actorUserId: session.user.id,
