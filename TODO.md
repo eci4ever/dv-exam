@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #10:** Prevented candidate scores from being returned by dashboard, attempt, and submission server functions before results are published. Added result-visibility coverage.
 - [x] **2026-09-06 — PR #9:** Blocked candidate examination activity for suspended or archived organisations, including direct server-function calls. Added lifecycle-policy coverage.
 - [x] **2026-09-05 — PR #8:** Added server-enforced examination deadlines for starting attempts and saving answers. Added deadline-boundary tests.
 - [x] **2026-09-05 — PR #7:** Added server-enforced examination lifecycle rules and tests for publish, close, archive, and result-release transitions.
@@ -69,6 +70,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 - [x] Added server-enforced lifecycle transition rules for publishing, closing, archiving, and releasing results.
 - [x] Prevented candidates from starting or autosaving an attempt after an examination deadline.
 - [x] Prevented candidate access, answer saving, and submission when an organisation is suspended or archived.
+- [x] Prevented candidate score exposure before an organisation manager publishes results.
 
 - [ ] Derive the active organisation server-side for examination creation/listing; validate any selected organisation against authenticated membership.
 - [ ] Add explicit permission checks for create, edit, publish, close, archive, assign candidates and release results.
