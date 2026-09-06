@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #34:** Expanded the Drizzle schema to cover application-owned platform governance and examination D1 tables and indexes.
 - [x] **2026-09-06 — PR #33:** Applied typed safe errors and target-existence checks across Platform Admin governance mutations.
 - [x] **2026-09-06 — PR #32:** Applied typed not-found and invalid-state errors to organisation member and invitation management.
 - [x] **2026-09-06 — PR #31:** Added typed safe domain errors for authorization and core examination lookup/input failures, with policy coverage.
@@ -77,7 +78,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Phase 3 — Drizzle, repositories and services
 
-- [ ] Expand `src/db/schema.ts` to cover application-owned D1 tables: platform governance, examinations, questions/options, assignments, attempts and answers.
+- [x] Expand `src/db/schema.ts` to cover application-owned D1 tables: platform governance, examinations, questions/options, assignments, attempts and answers.
 - [ ] Adopt one timestamp convention for application tables and migrate inconsistent application-owned timestamps safely.
 - [ ] Create repository modules that always accept trusted `organizationId` for tenant-owned reads/writes.
 - [ ] Move business workflows from `src/lib/*.functions.ts` into server-side services; keep server functions thin: validate → authorize → service → typed response.
