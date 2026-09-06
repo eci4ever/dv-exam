@@ -23,7 +23,12 @@ import {
 	canViewCandidateResult,
 } from "#/server/examinations/lifecycle";
 import { writeAuditEvent } from "#/server/audit/events.server";
-import { invalidInput, notFound } from "#/server/errors";
+import {
+	forbidden,
+	invalidInput,
+	invalidState,
+	notFound,
+} from "#/server/errors";
 import {
 	findExaminationById,
 	listExaminationsForOrganization,
@@ -119,7 +124,7 @@ export const getExaminations = createServerFn({ method: "GET" })
 			await requireActiveOrganizationPermission("examination:manage");
 		const organizationId = session.session.activeOrganizationId;
 		if (!organizationId)
-			throw new Error("Choose an active organisation first.");
+			throw invalidState("Choose an active organisation first.");
 		return (await listExaminationsForOrganization(organizationId)).results;
 	});
 
@@ -130,7 +135,7 @@ export const createExamination = createServerFn({ method: "POST" })
 			await requireActiveOrganizationPermission("examination:manage");
 		const organizationId = session.session.activeOrganizationId;
 		if (!organizationId)
-			throw new Error("Choose an active organisation first.");
+			throw invalidState("Choose an active organisation first.");
 		const title = clean(data.title, "Title");
 		const id = crypto.randomUUID();
 		const now = Date.now();
@@ -197,7 +202,7 @@ export const saveQuestion = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { exam, session } = await getManagedExam(data.examinationId);
 		if (exam.status !== "draft")
-			throw new Error("Only draft examinations can be edited.");
+			throw invalidState("Only draft examinations can be edited.");
 		const prompt = data.prompt;
 		const questionId = data.questionId ?? crypto.randomUUID();
 		const existing = data.questionId
@@ -263,7 +268,7 @@ export const assignCandidate = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { exam, session } = await getManagedExam(data.examinationId);
 		if (exam.status !== "draft")
-			throw new Error(
+			throw invalidState(
 				"Candidates can only be changed while the examination is a draft.",
 			);
 		const member = await env.DB.prepare(
@@ -271,7 +276,7 @@ export const assignCandidate = createServerFn({ method: "POST" })
 		)
 			.bind(exam.organizationId, data.userId)
 			.first();
-		if (!member) throw new Error("Candidate must be an organisation member.");
+		if (!member) throw forbidden("Candidate must be an organisation member.");
 		const assignmentId = crypto.randomUUID();
 		await env.DB.prepare(
 			"INSERT OR IGNORE INTO examination_assignment (id, examinationId, userId, assignedByUserId, createdAt) VALUES (?, ?, ?, ?, ?)",
@@ -298,11 +303,11 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { exam, session } = await getManagedExam(data.examinationId);
 		if (!canTransitionExamination(exam.status, data.action))
-			throw new Error(
+			throw invalidState(
 				`The ${data.action} action is not available while this examination is ${exam.status}.`,
 			);
 		if (data.action === "publish-results" && exam.resultsPublishedAt)
-			throw new Error("Results have already been published.");
+			throw invalidState("Results have already been published.");
 		if (data.action === "publish") {
 			const readiness = await env.DB.prepare(
 				"SELECT (SELECT COUNT(*) FROM examination_question WHERE examinationId = ?) AS questions, (SELECT COUNT(*) FROM examination_assignment WHERE examinationId = ?) AS candidates",
@@ -310,7 +315,7 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 				.bind(exam.id, exam.id)
 				.first<{ questions: number; candidates: number }>();
 			if (!readiness?.questions || !readiness.candidates)
-				throw new Error(
+				throw invalidState(
 					"Add at least one question and one candidate before publishing.",
 				);
 			await env.DB.prepare(
@@ -332,7 +337,7 @@ export const updateExaminationStatus = createServerFn({ method: "POST" })
 				.run();
 		else {
 			if (exam.status !== "closed")
-				throw new Error("Close the examination before publishing results.");
+				throw invalidState("Close the examination before publishing results.");
 			await env.DB.prepare(
 				"UPDATE examination SET resultsPublishedAt = ?, updatedAt = ? WHERE id = ?",
 			)
@@ -366,9 +371,9 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 				(assignment.organizationStatus as string | null) ?? null,
 			)
 		)
-			throw new Error("This examination is not available.");
+			throw invalidState("This examination is not available.");
 		if (!assignment.attemptId && assignment.status !== "published")
-			throw new Error("This examination is closed.");
+			throw invalidState("This examination is closed.");
 		if (
 			!assignment.attemptId &&
 			!canSaveCandidateAnswer(
@@ -376,7 +381,7 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 				Date.now(),
 			)
 		)
-			throw new Error("This examination has reached its deadline.");
+			throw invalidState("This examination has reached its deadline.");
 		let attemptId = assignment.attemptId as string | null;
 		if (!attemptId) {
 			attemptId = crypto.randomUUID();
@@ -437,7 +442,7 @@ export const saveCandidateAnswer = createServerFn({ method: "POST" })
 				Date.now(),
 			)
 			.first();
-		if (!valid) throw new Error("Answer cannot be saved.");
+		if (!valid) throw forbidden("Answer cannot be saved.");
 		await env.DB.prepare(
 			"INSERT INTO examination_answer (id, attemptId, questionId, optionId, updatedAt) VALUES (?, ?, ?, ?, ?) ON CONFLICT(attemptId, questionId) DO UPDATE SET optionId = excluded.optionId, updatedAt = excluded.updatedAt",
 		)
@@ -465,7 +470,7 @@ export const submitCandidateAttempt = createServerFn({ method: "POST" })
 				examinationId: string;
 				resultsPublishedAt: number | null;
 			}>();
-		if (!attempt) throw new Error("Attempt cannot be submitted.");
+		if (!attempt) throw forbidden("Attempt cannot be submitted.");
 		const score = await env.DB.prepare(
 			"SELECT COALESCE(SUM(CASE WHEN option.isCorrect = 1 THEN question.points ELSE 0 END), 0) AS score, COALESCE((SELECT SUM(points) FROM examination_question WHERE examinationId = ?), 0) AS maxScore FROM examination_answer answer INNER JOIN examination_question question ON question.id = answer.questionId LEFT JOIN examination_option option ON option.id = answer.optionId WHERE answer.attemptId = ?",
 		)

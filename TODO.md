@@ -4,6 +4,7 @@ This backlog translates `ARCHITECTURE_D1.md` into safe, incremental work. Do not
 
 ## Completed work log
 
+- [x] **2026-09-06 — PR #42:** Converted all examination workflow failures to typed safe domain errors.
 - [x] **2026-09-06 — PR #41:** Moved organisation-scoped examination creation into the examination repository.
 - [x] **2026-09-06 — PR #40:** Added the first tenant-aware examination repository and moved managed examination lookup and organisation listing into it.
 - [x] **2026-09-06 — PR #39:** Replaced Platform Admin list `any` casts with explicit client-safe list response types.
