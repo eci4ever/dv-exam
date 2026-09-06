@@ -24,6 +24,10 @@ import {
 } from "#/server/examinations/lifecycle";
 import { writeAuditEvent } from "#/server/audit/events.server";
 import { invalidInput, notFound } from "#/server/errors";
+import {
+	findExaminationById,
+	listExaminationsForOrganization,
+} from "#/server/repositories/examinations";
 
 async function requireOrganisationManager(organizationId: string) {
 	const { session } = await requireOrganizationPermission({
@@ -34,14 +38,7 @@ async function requireOrganisationManager(organizationId: string) {
 }
 
 async function getManagedExam(examinationId: string) {
-	const exam = await env.DB.prepare("SELECT * FROM examination WHERE id = ?")
-		.bind(examinationId)
-		.first<{
-			id: string;
-			organizationId: string;
-			status: string;
-			resultsPublishedAt: number | null;
-		}>();
+	const exam = await findExaminationById(examinationId);
 	if (!exam) throw notFound("Examination not found.");
 	const session = await requireOrganisationManager(exam.organizationId);
 	return { exam, session };
@@ -122,13 +119,7 @@ export const getExaminations = createServerFn({ method: "GET" })
 		const organizationId = session.session.activeOrganizationId;
 		if (!organizationId)
 			throw new Error("Choose an active organisation first.");
-		return (
-			await env.DB.prepare(
-				"SELECT examination.*, COUNT(DISTINCT examination_assignment.id) AS candidateCount FROM examination LEFT JOIN examination_assignment ON examination_assignment.examinationId = examination.id WHERE examination.organizationId = ? GROUP BY examination.id ORDER BY examination.updatedAt DESC",
-			)
-				.bind(organizationId)
-				.all()
-		).results;
+		return (await listExaminationsForOrganization(organizationId)).results;
 	});
 
 export const createExamination = createServerFn({ method: "POST" })
