@@ -19,6 +19,7 @@ import {
 import {
 	canSaveCandidateAnswer,
 	canTransitionExamination,
+	canUseOrganizationOperationally,
 } from "#/server/examinations/lifecycle";
 
 async function requireOrganisationManager(organizationId: string) {
@@ -321,13 +322,16 @@ export const getCandidateAttempt = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const assignment = await env.DB.prepare(
-			"SELECT assignment.id, examination.id AS examinationId, examination.title, examination.durationMinutes, examination.status, examination.endsAt, attempt.id AS attemptId, attempt.status AS attemptStatus, attempt.startedAt, attempt.score, attempt.maxScore, examination.resultsPublishedAt FROM examination_assignment assignment INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN examination_attempt attempt ON attempt.assignmentId = assignment.id WHERE assignment.id = ? AND assignment.userId = ?",
+			"SELECT assignment.id, examination.id AS examinationId, examination.title, examination.durationMinutes, examination.status, examination.endsAt, attempt.id AS attemptId, attempt.status AS attemptStatus, attempt.startedAt, attempt.score, attempt.maxScore, examination.resultsPublishedAt, platform_organization.status AS organizationStatus FROM examination_assignment assignment INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId LEFT JOIN examination_attempt attempt ON attempt.assignmentId = assignment.id WHERE assignment.id = ? AND assignment.userId = ?",
 		)
 			.bind(data.assignmentId, session.user.id)
 			.first<Record<string, unknown>>();
 		if (
 			!assignment ||
-			!["published", "closed"].includes(String(assignment.status))
+			!["published", "closed"].includes(String(assignment.status)) ||
+			!canUseOrganizationOperationally(
+				(assignment.organizationStatus as string | null) ?? null,
+			)
 		)
 			throw new Error("This examination is not available.");
 		if (!assignment.attemptId && assignment.status !== "published")
@@ -384,7 +388,7 @@ export const saveCandidateAnswer = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const valid = await env.DB.prepare(
-			"SELECT attempt.id FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId INNER JOIN examination_option option ON option.id = ? AND option.questionId = ? WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND examination.status = 'published' AND (examination.endsAt IS NULL OR examination.endsAt > ?)",
+			"SELECT attempt.id FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId INNER JOIN examination_option option ON option.id = ? AND option.questionId = ? WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND examination.status = 'published' AND COALESCE(platform_organization.status, 'active') = 'active' AND (examination.endsAt IS NULL OR examination.endsAt > ?)",
 		)
 			.bind(
 				data.optionId,
@@ -414,7 +418,7 @@ export const submitCandidateAttempt = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const session = await requireSession();
 		const attempt = await env.DB.prepare(
-			"SELECT attempt.id, examination.id AS examinationId FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress'",
+			"SELECT attempt.id, examination.id AS examinationId FROM examination_attempt attempt INNER JOIN examination_assignment assignment ON assignment.id = attempt.assignmentId INNER JOIN examination ON examination.id = assignment.examinationId LEFT JOIN platform_organization ON platform_organization.organizationId = examination.organizationId WHERE attempt.id = ? AND assignment.userId = ? AND attempt.status = 'in_progress' AND COALESCE(platform_organization.status, 'active') = 'active'",
 		)
 			.bind(data.attemptId, session.user.id)
 			.first<{ id: string; examinationId: string }>();
