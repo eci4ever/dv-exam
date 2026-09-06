@@ -42,6 +42,7 @@ function UsersPage() {
 	const [notice, setNotice] = useState("");
 	async function loadUsers(nextOffset = 0) {
 		try {
+			setNotice("");
 			const result = (await getUsers({
 				data: { query: query || undefined, offset: nextOffset },
 			})) as { users: any[]; hasMore: boolean };
@@ -51,6 +52,22 @@ function UsersPage() {
 		} catch (error) {
 			setNotice(
 				error instanceof Error ? error.message : "Unable to load users.",
+			);
+		}
+	}
+	async function resetSearch() {
+		setQuery("");
+		try {
+			const result = (await getUsers({
+				data: { offset: 0 },
+			})) as { users: any[]; hasMore: boolean };
+			setUsers(result.users);
+			setHasMore(result.hasMore);
+			setOffset(0);
+			setNotice("");
+		} catch (error) {
+			setNotice(
+				error instanceof Error ? error.message : "Unable to reload users.",
 			);
 		}
 	}
@@ -76,22 +93,33 @@ function UsersPage() {
 				{notice ? (
 					<p className="rounded-md border p-3 text-sm">{notice}</p>
 				) : null}
-				<div className="relative max-w-md">
-					<Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-					<Input
-						className="pl-9"
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Search name or email"
-						value={query}
-					/>
+				<div className="flex flex-wrap items-center gap-2">
+					<div className="relative max-w-md">
+						<Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+						<Input
+							className="pl-9"
+							onChange={(event) => setQuery(event.target.value)}
+							placeholder="Search name or email"
+							value={query}
+						/>
+					</div>
+					<Button
+						onClick={() => void loadUsers()}
+						type="button"
+						variant="outline"
+					>
+						<Search /> Search
+					</Button>
+					{query ? (
+						<Button
+							onClick={() => void resetSearch()}
+							type="button"
+							variant="ghost"
+						>
+							Clear
+						</Button>
+					) : null}
 				</div>
-				<Button
-					onClick={() => void loadUsers()}
-					type="button"
-					variant="outline"
-				>
-					<Search /> Search
-				</Button>
 				<Card>
 					<CardContent className="divide-y p-0">
 						{users.length ? (

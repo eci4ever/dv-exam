@@ -133,7 +133,11 @@ function AuditPage() {
 							type="date"
 							value={to}
 						/>
-						<Button onClick={filter} type="button" variant="outline">
+						<Button
+							onClick={() => void filter()}
+							type="button"
+							variant="outline"
+						>
 							<Filter /> Filter
 						</Button>
 						<Button
