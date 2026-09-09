@@ -3,5 +3,13 @@
   "name": "dv-exam",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dv-exam-db",
+      "database_id": "425e92b6-8847-4800-85be-cd654b47bae4",
+      "migrations_dir": "migrations"
+    }
+  ],
   "main": "@tanstack/react-start/server-entry"
 }
