@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, Menu, NotebookPen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,12 @@ function Home() {
           </a>
         </nav>
 
-        <div className="hidden md:block">
-          <Button className="h-10 rounded-lg px-5" size="lg">
-            Start for free
+        <div className="hidden items-center gap-2 md:flex">
+          <Link className="px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" to="/login">
+            Sign in
+          </Link>
+          <Button className="h-10 rounded-lg px-5" size="lg" render={<Link to="/signup" />}>
+            Sign up
           </Button>
         </div>
 
@@ -52,13 +55,13 @@ function Home() {
             DV-EXAM is a SaaS platform that gives students one simple place to manage exam schedules, preparation, and results.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
-            <Button className="h-12 rounded-lg px-6 text-base" size="lg">
+            <Button className="h-12 rounded-lg px-6 text-base" size="lg" render={<Link to="/signup" />}>
               Start for free
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
-            <a className="px-2 text-sm font-medium text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground" href="#platform">
+            <Link className="px-2 text-sm font-medium text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground" to="/login">
               Sign in to your account
-            </a>
+            </Link>
           </div>
         </div>
       </section>
