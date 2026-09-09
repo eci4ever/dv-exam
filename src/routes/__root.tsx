@@ -27,7 +27,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: "arc. — Studio digital",
+      },
+      {
+        name: "description",
+        content:
+          "Studio digital untuk pasukan yang mahu membina pengalaman bermakna.",
       },
     ],
     links: [
