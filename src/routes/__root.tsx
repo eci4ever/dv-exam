@@ -27,12 +27,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: "arc. — Studio digital",
+        title: "DV-EXAM — Exam management system",
       },
       {
         name: "description",
         content:
-          "Studio digital untuk pasukan yang mahu membina pengalaman bermakna.",
+          "A SaaS platform for students to manage exam schedules, preparation, and results.",
       },
     ],
     links: [
