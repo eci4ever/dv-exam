@@ -16,6 +16,8 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 			return null;
 		}
 
+		const organizations = await auth.api.listOrganizations({ headers });
+
 		const organization = session.session.activeOrganizationId
 			? await auth.api.getFullOrganization({
 					headers,
@@ -23,6 +25,6 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 				})
 			: null;
 
-		return { session, organization };
+		return { session, organization, organizations };
 	},
 );
