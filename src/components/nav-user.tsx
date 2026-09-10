@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react";
+import { ChevronsUpDownIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ function initials(name: string) {
 
 export function NavUser({
 	user,
+	isImpersonating,
 }: {
 	user: {
 		name: string;
@@ -39,6 +40,7 @@ export function NavUser({
 		image?: string | null;
 		role?: string | null;
 	};
+	isImpersonating: boolean;
 }) {
 	const { isMobile } = useSidebar();
 	const navigate = useNavigate();
@@ -49,6 +51,14 @@ export function NavUser({
 	async function signOut() {
 		await authClient.signOut();
 		await navigate({ to: "/" });
+	}
+
+	async function stopImpersonating() {
+		const result = await authClient.admin.stopImpersonating();
+
+		if (!result.error) {
+			window.location.assign("/dashboard");
+		}
 	}
 
 	return (
@@ -64,19 +74,26 @@ export function NavUser({
 							<AvatarImage src={user.image ?? undefined} alt={user.name} />
 							<AvatarFallback>{initials(user.name)}</AvatarFallback>
 						</Avatar>
-						<div className="grid flex-1 text-left text-sm leading-tight">
+						<div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
 							<span className="truncate font-medium">{user.name}</span>
-							<div className="flex items-center gap-1">
-								<span className="truncate text-xs">{user.email}</span>
+							<div className="flex min-w-0 items-center gap-1">
+								<span className="min-w-0 flex-1 truncate text-xs">
+									{user.email}
+								</span>
 								{roleLabel ? (
-									<Badge variant="secondary">{roleLabel}</Badge>
+									<Badge className="shrink-0" variant="secondary">
+										{roleLabel}
+									</Badge>
 								) : null}
 							</div>
 						</div>
-						<ChevronsUpDownIcon className="ml-auto size-4" />
+						<ChevronsUpDownIcon
+							className="ml-auto size-4 shrink-0 group-data-[collapsible=icon]:hidden"
+							aria-hidden="true"
+						/>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
-						className="w-fit"
+						className="min-w-56 max-w-72"
 						side={isMobile ? "bottom" : "right"}
 						align="end"
 						sideOffset={4}
@@ -91,12 +108,16 @@ export function NavUser({
 										/>
 										<AvatarFallback>{initials(user.name)}</AvatarFallback>
 									</Avatar>
-									<div className="grid flex-1 text-left text-sm leading-tight">
+									<div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
 										<span className="truncate font-medium">{user.name}</span>
-										<div className="flex items-center gap-1">
-											<span className="truncate text-xs">{user.email}</span>
+										<div className="flex min-w-0 items-center gap-1">
+											<span className="min-w-0 flex-1 truncate text-xs">
+												{user.email}
+											</span>
 											{roleLabel ? (
-												<Badge variant="secondary">{roleLabel}</Badge>
+												<Badge className="shrink-0" variant="secondary">
+													{roleLabel}
+												</Badge>
 											) : null}
 										</div>
 									</div>
@@ -104,6 +125,15 @@ export function NavUser({
 							</DropdownMenuLabel>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
+						{isImpersonating ? (
+							<>
+								<DropdownMenuItem onClick={stopImpersonating}>
+									<ShieldCheckIcon />
+									Return to admin
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+							</>
+						) : null}
 						<DropdownMenuItem onClick={signOut}>
 							<LogOutIcon />
 							Log out

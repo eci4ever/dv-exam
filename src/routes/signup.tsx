@@ -119,7 +119,7 @@ function Signup() {
 						autoComplete="name"
 						placeholder="Your full name"
 						value={name}
-						onChange={(event) => setName(event.target.value)}
+						onValueChange={setName}
 						required
 					/>
 				</div>
@@ -134,7 +134,7 @@ function Signup() {
 						autoComplete="email"
 						placeholder="you@example.com"
 						value={email}
-						onChange={(event) => setEmail(event.target.value)}
+						onValueChange={setEmail}
 						required
 					/>
 				</div>
@@ -149,7 +149,7 @@ function Signup() {
 						autoComplete="new-password"
 						placeholder="Create a password"
 						value={password}
-						onChange={(event) => setPassword(event.target.value)}
+						onValueChange={setPassword}
 						required
 					/>
 				</div>

@@ -40,6 +40,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	activeOrganizationId?: string | null;
 	isOrganizationOwner: boolean;
 	organizationRole?: string | null;
+	isImpersonating: boolean;
 }
 
 export function AppSidebar({
@@ -48,13 +49,14 @@ export function AppSidebar({
 	activeOrganizationId,
 	isOrganizationOwner,
 	organizationRole,
+	isImpersonating,
 	...props
 }: AppSidebarProps) {
 	const isAdmin = user.role?.split(",").includes("admin") ?? false;
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
-			<SidebarHeader>
+			<SidebarHeader className="h-16 shrink-0 justify-center">
 				<OrganizationSwitcher
 					organizations={organizations}
 					activeOrganizationId={activeOrganizationId}
@@ -67,10 +69,16 @@ export function AppSidebar({
 					<SidebarGroupContent>
 						<SidebarMenu>
 							<SidebarMenuItem>
-								<SidebarMenuButton isActive tooltip="Dashboard">
-									<LayoutDashboardIcon />
-									<span>Dashboard</span>
-								</SidebarMenuButton>
+								<SidebarMenuButton
+									render={
+										<a href="/dashboard">
+											<LayoutDashboardIcon />
+											<span>Dashboard</span>
+										</a>
+									}
+									isActive
+									tooltip="Dashboard"
+								/>
 							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroupContent>
@@ -108,10 +116,15 @@ export function AppSidebar({
 						<SidebarGroupContent>
 							<SidebarMenu>
 								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Users">
-										<UsersRoundIcon />
-										<span>Users</span>
-									</SidebarMenuButton>
+									<SidebarMenuButton
+										render={
+											<a href="/admin/users">
+												<UsersRoundIcon />
+												<span>Users</span>
+											</a>
+										}
+										tooltip="Users"
+									/>
 								</SidebarMenuItem>
 								<SidebarMenuItem>
 									<SidebarMenuButton tooltip="Organizations">
@@ -131,7 +144,7 @@ export function AppSidebar({
 				) : null}
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser user={user} />
+				<NavUser user={user} isImpersonating={isImpersonating} />
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>

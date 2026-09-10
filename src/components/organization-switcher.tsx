@@ -73,24 +73,31 @@ export function OrganizationSwitcher({
 							/>
 						}
 					>
-						<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+						<div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 							<Building2Icon className="size-4" aria-hidden="true" />
 						</div>
-						<div className="grid flex-1 text-left text-sm leading-tight">
+						<div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
 							<span className="truncate font-medium">
 								{activeOrganization.name}
 							</span>
-							<div className="flex items-center gap-1">
-								<span className="truncate text-xs">Organization</span>
+							<div className="flex min-w-0 items-center gap-1">
+								<span className="min-w-0 flex-1 truncate text-xs">
+									Organization
+								</span>
 								{roleLabel ? (
-									<Badge variant="secondary">{roleLabel}</Badge>
+									<Badge className="shrink-0" variant="secondary">
+										{roleLabel}
+									</Badge>
 								) : null}
 							</div>
 						</div>
-						<ChevronsUpDownIcon className="ml-auto size-4" />
+						<ChevronsUpDownIcon
+							className="ml-auto size-4 shrink-0 group-data-[collapsible=icon]:hidden"
+							aria-hidden="true"
+						/>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
-						className="w-fit"
+						className="min-w-56 max-w-72"
 						align="start"
 						side={isMobile ? "bottom" : "right"}
 						sideOffset={4}

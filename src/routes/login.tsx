@@ -75,7 +75,7 @@ function Login() {
 						autoComplete="email"
 						placeholder="you@example.com"
 						value={email}
-						onChange={(event) => setEmail(event.target.value)}
+						onValueChange={setEmail}
 						required
 					/>
 				</div>
@@ -90,7 +90,7 @@ function Login() {
 						autoComplete="current-password"
 						placeholder="Enter your password"
 						value={password}
-						onChange={(event) => setPassword(event.target.value)}
+						onValueChange={setPassword}
 						required
 					/>
 				</div>
