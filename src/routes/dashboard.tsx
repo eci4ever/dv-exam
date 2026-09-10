@@ -23,7 +23,14 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-	const { session, organization, organizations } = Route.useRouteContext();
+	const {
+		session,
+		organization,
+		organizations,
+		activeOrganizationId,
+		isOrganizationOwner,
+		organizationRole,
+	} = Route.useRouteContext();
 	const firstName = session.user.name.split(/\s+/)[0] || session.user.name;
 
 	return (
@@ -31,7 +38,9 @@ function Dashboard() {
 			<AppSidebar
 				user={session.user}
 				organizations={organizations}
-				activeOrganizationId={session.session.activeOrganizationId}
+				activeOrganizationId={activeOrganizationId}
+				isOrganizationOwner={isOrganizationOwner}
+				organizationRole={organizationRole}
 			/>
 			<SidebarInset>
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

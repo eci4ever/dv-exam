@@ -17,14 +17,32 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 		}
 
 		const organizations = await auth.api.listOrganizations({ headers });
+		const activeOrganizationId =
+			session.session.activeOrganizationId ?? organizations[0]?.id;
 
-		const organization = session.session.activeOrganizationId
+		const organization = activeOrganizationId
 			? await auth.api.getFullOrganization({
 					headers,
-					query: { organizationId: session.session.activeOrganizationId },
+					query: { organizationId: activeOrganizationId },
 				})
 			: null;
+		const isOrganizationOwner =
+			organization?.members.some(
+				(member) =>
+					member.userId === session.user.id &&
+					member.role.split(",").includes("owner"),
+			) ?? false;
+		const organizationRole = organization?.members.find(
+			(member) => member.userId === session.user.id,
+		)?.role;
 
-		return { session, organization, organizations };
+		return {
+			session,
+			organization,
+			organizations,
+			activeOrganizationId,
+			isOrganizationOwner,
+			organizationRole,
+		};
 	},
 );

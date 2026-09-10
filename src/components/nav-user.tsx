@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -36,10 +37,14 @@ export function NavUser({
 		name: string;
 		email: string;
 		image?: string | null;
+		role?: string | null;
 	};
 }) {
 	const { isMobile } = useSidebar();
 	const navigate = useNavigate();
+	const roleLabel = user.role
+		?.split(",")[0]
+		.replace(/^./, (character) => character.toUpperCase());
 
 	async function signOut() {
 		await authClient.signOut();
@@ -61,7 +66,12 @@ export function NavUser({
 						</Avatar>
 						<div className="grid flex-1 text-left text-sm leading-tight">
 							<span className="truncate font-medium">{user.name}</span>
-							<span className="truncate text-xs">{user.email}</span>
+							<div className="flex items-center gap-1">
+								<span className="truncate text-xs">{user.email}</span>
+								{roleLabel ? (
+									<Badge variant="secondary">{roleLabel}</Badge>
+								) : null}
+							</div>
 						</div>
 						<ChevronsUpDownIcon className="ml-auto size-4" />
 					</DropdownMenuTrigger>
@@ -83,7 +93,12 @@ export function NavUser({
 									</Avatar>
 									<div className="grid flex-1 text-left text-sm leading-tight">
 										<span className="truncate font-medium">{user.name}</span>
-										<span className="truncate text-xs">{user.email}</span>
+										<div className="flex items-center gap-1">
+											<span className="truncate text-xs">{user.email}</span>
+											{roleLabel ? (
+												<Badge variant="secondary">{roleLabel}</Badge>
+											) : null}
+										</div>
 									</div>
 								</div>
 							</DropdownMenuLabel>

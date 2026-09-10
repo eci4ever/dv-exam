@@ -2,7 +2,7 @@
 
 import { useRouter } from "@tanstack/react-router";
 import { Building2Icon, ChevronsUpDownIcon } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -29,9 +29,11 @@ interface Organization {
 export function OrganizationSwitcher({
 	organizations,
 	activeOrganizationId,
+	organizationRole,
 }: {
 	organizations: Organization[];
 	activeOrganizationId?: string | null;
+	organizationRole?: string | null;
 }) {
 	const { isMobile } = useSidebar();
 	const router = useRouter();
@@ -39,6 +41,9 @@ export function OrganizationSwitcher({
 		organizations.find(
 			(organization) => organization.id === activeOrganizationId,
 		) ?? organizations[0];
+	const roleLabel = organizationRole
+		?.split(",")[0]
+		.replace(/^./, (character) => character.toUpperCase());
 
 	if (!activeOrganization) {
 		return null;
@@ -75,7 +80,12 @@ export function OrganizationSwitcher({
 							<span className="truncate font-medium">
 								{activeOrganization.name}
 							</span>
-							<span className="truncate text-xs">Organization</span>
+							<div className="flex items-center gap-1">
+								<span className="truncate text-xs">Organization</span>
+								{roleLabel ? (
+									<Badge variant="secondary">{roleLabel}</Badge>
+								) : null}
+							</div>
 						</div>
 						<ChevronsUpDownIcon className="ml-auto size-4" />
 					</DropdownMenuTrigger>
