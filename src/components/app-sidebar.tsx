@@ -1,9 +1,11 @@
 import {
 	Building2Icon,
+	GraduationCapIcon,
 	LayoutDashboardIcon,
+	MailPlusIcon,
+	PanelsTopLeftIcon,
 	ScrollTextIcon,
 	Settings2Icon,
-	UserRoundCogIcon,
 	UsersRoundIcon,
 } from "lucide-react";
 import type * as React from "react";
@@ -41,6 +43,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	isOrganizationOwner: boolean;
 	organizationRole?: string | null;
 	isImpersonating: boolean;
+	activeItem?: "dashboard" | "settings" | "users";
 }
 
 export function AppSidebar({
@@ -50,6 +53,7 @@ export function AppSidebar({
 	isOrganizationOwner,
 	organizationRole,
 	isImpersonating,
+	activeItem = "dashboard",
 	...props
 }: AppSidebarProps) {
 	const isAdmin = user.role?.split(",").includes("admin") ?? false;
@@ -76,7 +80,7 @@ export function AppSidebar({
 											<span>Dashboard</span>
 										</a>
 									}
-									isActive
+									isActive={activeItem === "dashboard"}
 									tooltip="Dashboard"
 								/>
 							</SidebarMenuItem>
@@ -89,22 +93,40 @@ export function AppSidebar({
 						<SidebarGroupContent>
 							<SidebarMenu>
 								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Organization settings">
-										<Settings2Icon />
-										<span>Organization settings</span>
+									<SidebarMenuButton type="button" tooltip="Overview">
+										<PanelsTopLeftIcon />
+										<span>Overview</span>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Members">
+									<SidebarMenuButton type="button" tooltip="Members">
 										<UsersRoundIcon />
 										<span>Members</span>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Invitations">
-										<UserRoundCogIcon />
+									<SidebarMenuButton type="button" tooltip="Invitations">
+										<MailPlusIcon />
 										<span>Invitations</span>
 									</SidebarMenuButton>
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<SidebarMenuButton type="button" tooltip="Academic setup">
+										<GraduationCapIcon />
+										<span>Academic Setup</span>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/workspace/settings">
+												<Settings2Icon />
+												<span>Settings</span>
+											</a>
+										}
+										isActive={activeItem === "settings"}
+										tooltip="Settings"
+									/>
 								</SidebarMenuItem>
 							</SidebarMenu>
 						</SidebarGroupContent>
@@ -123,6 +145,7 @@ export function AppSidebar({
 												<span>Users</span>
 											</a>
 										}
+										isActive={activeItem === "users"}
 										tooltip="Users"
 									/>
 								</SidebarMenuItem>
