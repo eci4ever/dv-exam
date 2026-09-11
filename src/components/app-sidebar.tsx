@@ -52,7 +52,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	isOrganizationOwner: boolean;
 	organizationRole?: string | null;
 	isImpersonating: boolean;
-	activeItem?: "dashboard" | "settings" | "users";
+	activeItem?: "dashboard" | "organizations" | "settings" | "users";
 }
 
 interface MockSidebarItemProps {
@@ -188,7 +188,18 @@ export function AppSidebar({
 										tooltip="Users"
 									/>
 								</SidebarMenuItem>
-								<MockSidebarItem icon={Building2Icon} label="Organizations" />
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/admin/organizations">
+												<Building2Icon />
+												<span>Organizations</span>
+											</a>
+										}
+										isActive={activeItem === "organizations"}
+										tooltip="Organizations"
+									/>
+								</SidebarMenuItem>
 								<MockSidebarItem
 									icon={CreditCardIcon}
 									label="Plans & Billing"
