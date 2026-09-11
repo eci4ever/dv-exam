@@ -1,11 +1,20 @@
 import {
 	Building2Icon,
+	CalendarDaysIcon,
+	ChartNoAxesColumnIncreasingIcon,
+	CreditCardIcon,
+	FileTextIcon,
+	GaugeIcon,
 	GraduationCapIcon,
 	LayoutDashboardIcon,
+	LibraryIcon,
+	type LucideIcon,
 	MailPlusIcon,
+	MegaphoneIcon,
 	PanelsTopLeftIcon,
 	ScrollTextIcon,
 	Settings2Icon,
+	SlidersHorizontalIcon,
 	UsersRoundIcon,
 } from "lucide-react";
 import type * as React from "react";
@@ -46,6 +55,27 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	activeItem?: "dashboard" | "settings" | "users";
 }
 
+interface MockSidebarItemProps {
+	icon: LucideIcon;
+	label: string;
+	tooltip?: string;
+}
+
+function MockSidebarItem({
+	icon: Icon,
+	label,
+	tooltip = label,
+}: MockSidebarItemProps) {
+	return (
+		<SidebarMenuItem>
+			<SidebarMenuButton type="button" tooltip={tooltip}>
+				<Icon />
+				<span>{label}</span>
+			</SidebarMenuButton>
+		</SidebarMenuItem>
+	);
+}
+
 export function AppSidebar({
 	user,
 	organizations,
@@ -84,59 +114,57 @@ export function AppSidebar({
 									tooltip="Dashboard"
 								/>
 							</SidebarMenuItem>
+							<MockSidebarItem icon={FileTextIcon} label="My Exams" />
+							<MockSidebarItem icon={CalendarDaysIcon} label="Schedule" />
+							<MockSidebarItem
+								icon={ChartNoAxesColumnIncreasingIcon}
+								label="Results"
+							/>
+							<MockSidebarItem icon={LibraryIcon} label="Question Bank" />
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 				<SidebarGroup>
 					<SidebarGroupLabel>Workspace</SidebarGroupLabel>
-					{isOrganizationOwner ? (
-						<SidebarGroupContent>
-							<SidebarMenu>
-								<SidebarMenuItem>
-									<SidebarMenuButton type="button" tooltip="Overview">
-										<PanelsTopLeftIcon />
-										<span>Overview</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton type="button" tooltip="Members">
-										<UsersRoundIcon />
-										<span>Members</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton type="button" tooltip="Invitations">
-										<MailPlusIcon />
-										<span>Invitations</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton type="button" tooltip="Academic setup">
-										<GraduationCapIcon />
-										<span>Academic Setup</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton
-										render={
-											<a href="/workspace/settings">
-												<Settings2Icon />
-												<span>Settings</span>
-											</a>
-										}
-										isActive={activeItem === "settings"}
-										tooltip="Settings"
+					<SidebarGroupContent>
+						<SidebarMenu>
+							<MockSidebarItem icon={PanelsTopLeftIcon} label="Overview" />
+							<MockSidebarItem icon={UsersRoundIcon} label="Members" />
+							<MockSidebarItem icon={MegaphoneIcon} label="Announcements" />
+							{isOrganizationOwner ? (
+								<>
+									<MockSidebarItem icon={MailPlusIcon} label="Invitations" />
+									<MockSidebarItem
+										icon={GraduationCapIcon}
+										label="Academic Setup"
 									/>
-								</SidebarMenuItem>
-							</SidebarMenu>
-						</SidebarGroupContent>
-					) : null}
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											render={
+												<a href="/workspace/settings">
+													<Settings2Icon />
+													<span>Settings</span>
+												</a>
+											}
+											isActive={activeItem === "settings"}
+											tooltip="Settings"
+										/>
+									</SidebarMenuItem>
+								</>
+							) : null}
+						</SidebarMenu>
+					</SidebarGroupContent>
 				</SidebarGroup>
 				{isAdmin ? (
 					<SidebarGroup>
 						<SidebarGroupLabel>Platform Admin</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
+								<MockSidebarItem
+									icon={GaugeIcon}
+									label="Overview"
+									tooltip="Platform overview"
+								/>
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
@@ -149,18 +177,16 @@ export function AppSidebar({
 										tooltip="Users"
 									/>
 								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Organizations">
-										<Building2Icon />
-										<span>Organizations</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-								<SidebarMenuItem>
-									<SidebarMenuButton tooltip="Audit log">
-										<ScrollTextIcon />
-										<span>Audit log</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
+								<MockSidebarItem icon={Building2Icon} label="Organizations" />
+								<MockSidebarItem
+									icon={CreditCardIcon}
+									label="Plans & Billing"
+								/>
+								<MockSidebarItem icon={ScrollTextIcon} label="Audit Log" />
+								<MockSidebarItem
+									icon={SlidersHorizontalIcon}
+									label="System Settings"
+								/>
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>
