@@ -18,6 +18,7 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { formatOrganizationRole } from "@/lib/organization-permissions";
 
 interface Organization {
 	id: string;
@@ -42,8 +43,9 @@ export function OrganizationSwitcher({
 			(organization) => organization.id === activeOrganizationId,
 		) ?? organizations[0];
 	const roleLabel = organizationRole
-		?.split(",")[0]
-		.replace(/^./, (character) => character.toUpperCase());
+		?.split(",")
+		.map(formatOrganizationRole)
+		.join(", ");
 
 	if (!activeOrganization) {
 		return null;

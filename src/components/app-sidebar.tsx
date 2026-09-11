@@ -87,6 +87,13 @@ export function AppSidebar({
 	...props
 }: AppSidebarProps) {
 	const isAdmin = user.role?.split(",").includes("admin") ?? false;
+	const organizationRoles = organizationRole?.split(",") ?? [];
+	const canManageOrganization = organizationRoles.some((role) =>
+		["owner", "admin"].includes(role),
+	);
+	const canManageExams = organizationRoles.some((role) =>
+		["owner", "admin", "teacher"].includes(role),
+	);
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -120,7 +127,9 @@ export function AppSidebar({
 								icon={ChartNoAxesColumnIncreasingIcon}
 								label="Results"
 							/>
-							<MockSidebarItem icon={LibraryIcon} label="Question Bank" />
+							{canManageExams ? (
+								<MockSidebarItem icon={LibraryIcon} label="Question Bank" />
+							) : null}
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
@@ -131,25 +140,27 @@ export function AppSidebar({
 							<MockSidebarItem icon={PanelsTopLeftIcon} label="Overview" />
 							<MockSidebarItem icon={UsersRoundIcon} label="Members" />
 							<MockSidebarItem icon={MegaphoneIcon} label="Announcements" />
-							{isOrganizationOwner ? (
+							{canManageOrganization ? (
 								<>
 									<MockSidebarItem icon={MailPlusIcon} label="Invitations" />
 									<MockSidebarItem
 										icon={GraduationCapIcon}
 										label="Academic Setup"
 									/>
-									<SidebarMenuItem>
-										<SidebarMenuButton
-											render={
-												<a href="/workspace/settings">
-													<Settings2Icon />
-													<span>Settings</span>
-												</a>
-											}
-											isActive={activeItem === "settings"}
-											tooltip="Settings"
-										/>
-									</SidebarMenuItem>
+									{isOrganizationOwner ? (
+										<SidebarMenuItem>
+											<SidebarMenuButton
+												render={
+													<a href="/workspace/settings">
+														<Settings2Icon />
+														<span>Settings</span>
+													</a>
+												}
+												isActive={activeItem === "settings"}
+												tooltip="Settings"
+											/>
+										</SidebarMenuItem>
+									) : null}
 								</>
 							) : null}
 						</SidebarMenu>

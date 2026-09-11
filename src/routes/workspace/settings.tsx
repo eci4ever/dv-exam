@@ -50,17 +50,25 @@ export const Route = createFileRoute("/workspace/settings")({
 
 const roles = [
 	{
+		key: "owner",
 		name: "Owner",
 		description: "Full access, including billing and workspace deletion.",
-		badge: "Your role",
 	},
 	{
+		key: "admin",
 		name: "Admin",
-		description: "Manage members, invitations, and academic setup.",
+		description: "Manage members, exams, questions, attempts, and results.",
 	},
 	{
-		name: "Member",
-		description: "Access assigned workspace resources and activities.",
+		key: "teacher",
+		name: "Teacher",
+		description:
+			"Create and publish exams, manage questions, and grade attempts.",
+	},
+	{
+		key: "student",
+		name: "Student",
+		description: "Take assigned exams and view their own results.",
 	},
 ];
 
@@ -74,6 +82,7 @@ function WorkspaceSettings() {
 		organizationRole,
 	} = Route.useRouteContext();
 	const organizationName = organization?.name ?? "Your workspace";
+	const activeRoles = organizationRole?.split(",") ?? [];
 
 	return (
 		<SidebarProvider>
@@ -157,8 +166,8 @@ function WorkspaceSettings() {
 												<div className="space-y-1">
 													<div className="flex items-center gap-2">
 														<p className="font-medium">{role.name}</p>
-														{role.badge ? (
-															<Badge variant="secondary">{role.badge}</Badge>
+														{activeRoles.includes(role.key) ? (
+															<Badge variant="secondary">Your role</Badge>
 														) : null}
 													</div>
 													<p className="text-sm leading-6 text-muted-foreground">

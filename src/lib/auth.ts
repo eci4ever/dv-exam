@@ -7,6 +7,10 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import {
+	organizationAccessControl,
+	organizationRoles,
+} from "@/lib/organization-permissions";
 
 export const auth = betterAuth({
 	baseURL: env.BETTER_AUTH_URL,
@@ -45,7 +49,9 @@ export const auth = betterAuth({
 	plugins: [
 		admin(),
 		organization({
+			ac: organizationAccessControl,
 			organizationLimit: 1,
+			roles: organizationRoles,
 		}),
 		tanstackStartCookies(),
 	],
