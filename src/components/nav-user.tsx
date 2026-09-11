@@ -67,7 +67,14 @@ export function NavUser({
 				<DropdownMenu>
 					<DropdownMenuTrigger
 						render={
-							<SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />
+							<SidebarMenuButton
+								size="lg"
+								className={
+									isImpersonating
+										? "bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive aria-expanded:bg-destructive/15"
+										: "aria-expanded:bg-muted"
+								}
+							/>
 						}
 					>
 						<Avatar>
