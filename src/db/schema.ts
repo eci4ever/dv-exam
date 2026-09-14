@@ -145,6 +145,96 @@ export const invitation = sqliteTable(
 	],
 );
 
+export const platformPlan = sqliteTable(
+	"platformPlan",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		slug: text("slug").notNull().unique(),
+		description: text("description").notNull(),
+		memberLimit: integer("memberLimit").notNull(),
+		activeExamLimit: integer("activeExamLimit").notNull(),
+		monthlyAttemptLimit: integer("monthlyAttemptLimit").notNull(),
+		isActive: integer("isActive", { mode: "boolean" }).default(true).notNull(),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [index("platformPlan_active_idx").on(table.isActive)],
+);
+
+export const organizationEntitlement = sqliteTable(
+	"organizationEntitlement",
+	{
+		organizationId: text("organizationId")
+			.primaryKey()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		planId: text("planId")
+			.notNull()
+			.references(() => platformPlan.id, { onDelete: "restrict" }),
+		status: text("status")
+			.$type<"active" | "suspended">()
+			.default("active")
+			.notNull(),
+		suspensionReason: text("suspensionReason"),
+		suspendedAt: integer("suspendedAt", { mode: "timestamp_ms" }),
+		suspendedBy: text("suspendedBy"),
+		assignedAt: integer("assignedAt", { mode: "timestamp_ms" }).notNull(),
+		assignedBy: text("assignedBy"),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("organizationEntitlement_plan_idx").on(table.planId),
+		index("organizationEntitlement_status_idx").on(table.status),
+	],
+);
+
+export const platformSettings = sqliteTable("platformSettings", {
+	id: text("id").primaryKey(),
+	publicSignupEnabled: integer("publicSignupEnabled", { mode: "boolean" })
+		.default(true)
+		.notNull(),
+	defaultPlanId: text("defaultPlanId")
+		.notNull()
+		.references(() => platformPlan.id, { onDelete: "restrict" }),
+	maintenanceEnabled: integer("maintenanceEnabled", { mode: "boolean" })
+		.default(false)
+		.notNull(),
+	maintenanceMessage: text("maintenanceMessage"),
+	updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	updatedBy: text("updatedBy"),
+});
+
+export const auditEvent = sqliteTable(
+	"auditEvent",
+	{
+		id: text("id").primaryKey(),
+		category: text("category")
+			.$type<
+				"auth" | "user" | "organization" | "plan" | "system" | "security"
+			>()
+			.notNull(),
+		type: text("type").notNull(),
+		result: text("result").$type<"success" | "failure">().notNull(),
+		actorUserId: text("actorUserId"),
+		effectiveUserId: text("effectiveUserId"),
+		targetType: text("targetType"),
+		targetId: text("targetId"),
+		organizationId: text("organizationId"),
+		sessionId: text("sessionId"),
+		userAgent: text("userAgent"),
+		metadata: text("metadata", { mode: "json" }).$type<
+			Record<string, string | number | boolean | null>
+		>(),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("auditEvent_createdAt_idx").on(table.createdAt),
+		index("auditEvent_type_idx").on(table.type),
+		index("auditEvent_actor_idx").on(table.actorUserId),
+		index("auditEvent_organization_idx").on(table.organizationId),
+	],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
@@ -169,7 +259,26 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const organizationRelations = relations(organization, ({ many }) => ({
 	members: many(member),
 	invitations: many(invitation),
+	entitlements: many(organizationEntitlement),
 }));
+
+export const platformPlanRelations = relations(platformPlan, ({ many }) => ({
+	entitlements: many(organizationEntitlement),
+}));
+
+export const organizationEntitlementRelations = relations(
+	organizationEntitlement,
+	({ one }) => ({
+		organization: one(organization, {
+			fields: [organizationEntitlement.organizationId],
+			references: [organization.id],
+		}),
+		plan: one(platformPlan, {
+			fields: [organizationEntitlement.planId],
+			references: [platformPlan.id],
+		}),
+	}),
+);
 
 export const memberRelations = relations(member, ({ one }) => ({
 	organization: one(organization, {

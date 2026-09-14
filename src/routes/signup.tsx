@@ -10,6 +10,7 @@ import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getRegistrationStatus } from "@/lib/platform-admin";
 import { getSession } from "@/lib/session";
 
 export const Route = createFileRoute("/signup")({
@@ -20,10 +21,12 @@ export const Route = createFileRoute("/signup")({
 			throw redirect({ to: "/dashboard" });
 		}
 	},
+	loader: () => getRegistrationStatus(),
 	component: Signup,
 });
 
 function Signup() {
+	const registration = Route.useLoaderData();
 	const navigate = useNavigate();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -93,8 +96,16 @@ function Signup() {
 
 	return (
 		<AuthLayout
-			title="Create your account"
-			description="Start organising your exams in one simple workspace."
+			title={
+				registration.enabled
+					? "Create your account"
+					: "Sign-ups are currently closed"
+			}
+			description={
+				registration.enabled
+					? "Start organising your exams in one simple workspace."
+					: "An administrator has temporarily disabled new registrations."
+			}
 			footer={
 				<>
 					Already have an account?{" "}
@@ -161,14 +172,16 @@ function Signup() {
 				<Button
 					className="mt-1 h-10 w-full"
 					type={createdUser ? "button" : "submit"}
-					disabled={isPending}
+					disabled={isPending || !registration.enabled}
 					onClick={createdUser ? retryWorkspace : undefined}
 				>
-					{isPending
-						? "Creating account…"
-						: createdUser
-							? "Set up workspace"
-							: "Create account"}
+					{!registration.enabled
+						? "Registration closed"
+						: isPending
+							? "Creating account…"
+							: createdUser
+								? "Set up workspace"
+								: "Create account"}
 				</Button>
 			</form>
 		</AuthLayout>

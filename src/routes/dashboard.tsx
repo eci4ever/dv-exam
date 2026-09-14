@@ -30,6 +30,8 @@ function Dashboard() {
 		activeOrganizationId,
 		isOrganizationOwner,
 		organizationRole,
+		entitlement,
+		maintenanceNotice,
 	} = Route.useRouteContext();
 	const firstName = session.user.name.split(/\s+/)[0] || session.user.name;
 
@@ -52,6 +54,20 @@ function Dashboard() {
 					/>
 					<p className="text-sm font-medium">Dashboard</p>
 				</header>
+				{maintenanceNotice ? (
+					<output className="border-b bg-muted px-4 py-2 text-center text-sm">
+						{maintenanceNotice}
+					</output>
+				) : null}
+				{entitlement?.status === "suspended" ? (
+					<div
+						className="border-b bg-destructive/10 px-4 py-3 text-center text-sm text-destructive"
+						role="alert"
+					>
+						This workspace is suspended.{" "}
+						{entitlement.suspensionReason ?? "Contact platform support."}
+					</div>
+				) : null}
 				<main className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
 					<div className="space-y-2">
 						<p className="text-sm text-muted-foreground">
@@ -65,11 +81,20 @@ function Dashboard() {
 							preparation.
 						</p>
 					</div>
-					<section className="rounded-xl border bg-card p-6">
+					<section
+						className="rounded-xl border bg-card p-6"
+						aria-disabled={entitlement?.status === "suspended"}
+					>
 						<p className="text-sm font-medium">Your account</p>
 						<p className="mt-1 text-sm text-muted-foreground">
 							{session.user.email}
 						</p>
+						{entitlement ? (
+							<p className="mt-3 text-xs text-muted-foreground">
+								{entitlement.planName} plan · {entitlement.memberLimit} member
+								limit
+							</p>
+						) : null}
 					</section>
 				</main>
 			</SidebarInset>
