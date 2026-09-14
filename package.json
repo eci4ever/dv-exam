@@ -11,6 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+	"test:worker": "vitest run --config vitest.worker.config.ts",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@cloudflare/vite-plugin": "^1.26.0",
+    "@cloudflare/vitest-plugin": "^1.1.9",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",
     "@types/node": "^22.10.2",
