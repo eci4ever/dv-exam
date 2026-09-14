@@ -15,12 +15,15 @@ async function fingerprint(value: string) {
 
 async function handleAuth(request: Request) {
 	const path = new URL(request.url).pathname.replace(/^\/api\/auth/, "");
-	const beforeSession =
-		path === "/sign-out" || path === "/admin/stop-impersonating"
-			? await auth.api.getSession({ headers: request.headers })
-			: null;
+	const auditedSessionPaths = new Set([
+		"/sign-out",
+		"/admin/stop-impersonating",
+	]);
+	const beforeSession = auditedSessionPaths.has(path)
+		? await auth.api.getSession({ headers: request.headers })
+		: null;
 	let signInEmail: string | null = null;
-	if (path === "/sign-in/email") {
+	if (path === "/sign-in/email" || path === "/request-password-reset") {
 		try {
 			const body = await request.clone().json<{ email?: unknown }>();
 			signInEmail = typeof body.email === "string" ? body.email : null;
@@ -39,6 +42,25 @@ async function handleAuth(request: Request) {
 				metadata: signInEmail
 					? { emailFingerprint: await fingerprint(signInEmail) }
 					: {},
+			});
+		}
+		if (path === "/request-password-reset") {
+			await writeAuditEvent({
+				category: "auth",
+				type: "auth.password-reset-requested",
+				result: response.ok ? "success" : "failure",
+				userAgent: request.headers.get("user-agent"),
+				metadata: signInEmail
+					? { emailFingerprint: await fingerprint(signInEmail) }
+					: {},
+			});
+		}
+		if (path === "/reset-password") {
+			await writeAuditEvent({
+				category: "auth",
+				type: "auth.password-reset",
+				result: response.ok ? "success" : "failure",
+				userAgent: request.headers.get("user-agent"),
 			});
 		}
 		if (response.ok && beforeSession && path === "/sign-out") {

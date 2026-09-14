@@ -8,6 +8,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { queuePasswordResetEmail } from "@/lib/email";
 import {
 	organizationAccessControl,
 	organizationRoles,
@@ -70,6 +71,28 @@ export const auth = betterAuth({
 	secret: env.BETTER_AUTH_SECRET,
 	emailAndPassword: {
 		enabled: true,
+		resetPasswordTokenExpiresIn: 60 * 60,
+		revokeSessionsOnPasswordReset: true,
+		sendResetPassword: async ({ user, url, token }) => {
+			queuePasswordResetEmail({
+				email: user.email,
+				name: user.name,
+				url,
+				token,
+				userId: user.id,
+			});
+		},
+	},
+	user: {
+		deleteUser: { enabled: true },
+	},
+	rateLimit: {
+		enabled: true,
+		storage: "database",
+		modelName: "rateLimit",
+		customRules: {
+			"/request-password-reset": { window: 15 * 60, max: 3 },
+		},
 	},
 	hooks: {
 		before: createAuthMiddleware(async (ctx) => {

@@ -1,0 +1,4 @@
+BETTER_AUTH_SECRET=replace-with-a-local-development-secret
+BETTER_AUTH_URL=http://localhost:3003
+RESEND_API_KEY=re_replace_with_your_resend_key
+RESEND_FROM_EMAIL=DV-EXAM <noreply@your-verified-domain.example>

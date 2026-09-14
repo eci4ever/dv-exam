@@ -31,6 +31,14 @@ export async function requirePlatformAdmin(options?: { writable?: boolean }) {
 	return { headers, session };
 }
 
+export async function requireAccountSession(options?: { writable?: boolean }) {
+	const headers = getRequestHeaders();
+	const session = await auth.api.getSession({ headers });
+	if (!session) throw new Error("Please sign in to continue.");
+	if (options?.writable) assertWritableSession(session.session.impersonatedBy);
+	return { headers, session };
+}
+
 export async function auditForSession(
 	session: Awaited<ReturnType<typeof auth.api.getSession>>,
 	input: Omit<

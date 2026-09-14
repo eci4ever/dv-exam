@@ -1,5 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	sqliteTable,
+	text,
+	uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
@@ -91,6 +97,17 @@ export const verification = sqliteTable(
 			.notNull(),
 	},
 	(table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const rateLimit = sqliteTable(
+	"rateLimit",
+	{
+		id: text("id").primaryKey(),
+		key: text("key").notNull(),
+		count: integer("count").notNull(),
+		lastRequest: integer("lastRequest").notNull(),
+	},
+	(table) => [uniqueIndex("rateLimit_key_idx").on(table.key)],
 );
 
 export const organization = sqliteTable("organization", {
