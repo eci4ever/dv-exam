@@ -1,5 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronsUpDownIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react";
+import {
+	ChevronsUpDownIcon,
+	LogOutIcon,
+	SettingsIcon,
+	ShieldCheckIcon,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -141,6 +146,11 @@ export function NavUser({
 								<DropdownMenuSeparator />
 							</>
 						) : null}
+						<DropdownMenuItem onClick={() => navigate({ to: "/account" })}>
+							<SettingsIcon />
+							Account settings
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={signOut}>
 							<LogOutIcon />
 							Log out

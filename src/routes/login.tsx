@@ -3,6 +3,7 @@ import {
 	Link,
 	redirect,
 	useNavigate,
+	useSearch,
 } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
+	const search = useSearch({ strict: false }) as { reset?: string };
 	const navigate = useNavigate();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -64,6 +66,11 @@ function Login() {
 			}
 		>
 			<form className="space-y-5" onSubmit={handleSubmit}>
+				{search.reset === "success" ? (
+					<output className="block rounded-lg border bg-muted p-3 text-sm">
+						Your password has been reset. You can sign in now.
+					</output>
+				) : null}
 				<div className="space-y-2">
 					<label className="text-sm font-medium" htmlFor="email">
 						Email address
@@ -80,9 +87,17 @@ function Login() {
 					/>
 				</div>
 				<div className="space-y-2">
-					<label className="text-sm font-medium" htmlFor="password">
-						Password
-					</label>
+					<div className="flex items-center justify-between gap-4">
+						<label className="text-sm font-medium" htmlFor="password">
+							Password
+						</label>
+						<Link
+							className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+							to="/forgot-password"
+						>
+							Forgot password?
+						</Link>
+					</div>
 					<Input
 						id="password"
 						name="password"
