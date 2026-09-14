@@ -52,7 +52,15 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	isOrganizationOwner: boolean;
 	organizationRole?: string | null;
 	isImpersonating: boolean;
-	activeItem?: "dashboard" | "organizations" | "settings" | "users";
+	activeItem?:
+		| "dashboard"
+		| "organizations"
+		| "settings"
+		| "users"
+		| "admin-overview"
+		| "plans"
+		| "audit"
+		| "admin-settings";
 }
 
 interface MockSidebarItemProps {
@@ -171,11 +179,18 @@ export function AppSidebar({
 						<SidebarGroupLabel>Platform Admin</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								<MockSidebarItem
-									icon={GaugeIcon}
-									label="Overview"
-									tooltip="Platform overview"
-								/>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/admin">
+												<GaugeIcon />
+												<span>Overview</span>
+											</a>
+										}
+										isActive={activeItem === "admin-overview"}
+										tooltip="Platform overview"
+									/>
+								</SidebarMenuItem>
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
@@ -200,15 +215,42 @@ export function AppSidebar({
 										tooltip="Organizations"
 									/>
 								</SidebarMenuItem>
-								<MockSidebarItem
-									icon={CreditCardIcon}
-									label="Plans & Billing"
-								/>
-								<MockSidebarItem icon={ScrollTextIcon} label="Audit Log" />
-								<MockSidebarItem
-									icon={SlidersHorizontalIcon}
-									label="System Settings"
-								/>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/admin/plans">
+												<CreditCardIcon />
+												<span>Plans & Usage</span>
+											</a>
+										}
+										isActive={activeItem === "plans"}
+										tooltip="Plans & Usage"
+									/>
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/admin/audit">
+												<ScrollTextIcon />
+												<span>Audit Log</span>
+											</a>
+										}
+										isActive={activeItem === "audit"}
+										tooltip="Audit Log"
+									/>
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/admin/settings">
+												<SlidersHorizontalIcon />
+												<span>System Settings</span>
+											</a>
+										}
+										isActive={activeItem === "admin-settings"}
+										tooltip="System Settings"
+									/>
+								</SidebarMenuItem>
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>
