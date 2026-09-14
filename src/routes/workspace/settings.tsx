@@ -43,6 +43,10 @@ export const Route = createFileRoute("/workspace/settings")({
 			throw redirect({ to: "/dashboard" });
 		}
 
+		if (dashboard.entitlement?.status === "suspended") {
+			throw redirect({ to: "/dashboard" });
+		}
+
 		return dashboard;
 	},
 	component: WorkspaceSettings,

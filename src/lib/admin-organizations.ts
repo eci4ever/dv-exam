@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
 import {
 	and,
 	asc,
@@ -17,6 +16,11 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
+import {
+	auditForSession,
+	ensurePlatformData,
+	requirePlatformAdmin,
+} from "@/lib/platform-core";
 
 const organizationSortFields = [
 	"name",
@@ -31,6 +35,8 @@ export type OrganizationMemberRole = (typeof memberRoles)[number];
 
 export interface AdminOrganizationListInput {
 	search?: string;
+	planId?: string;
+	status?: "all" | "active" | "suspended";
 	page?: number;
 	pageSize?: number;
 	sortBy?: OrganizationSortField;
@@ -122,8 +128,13 @@ function validateListInput(
 		? (input.sortBy as OrganizationSortField)
 		: "createdAt";
 	const sortDirection = input.sortDirection === "asc" ? "asc" : "desc";
+	const planId = typeof input.planId === "string" ? input.planId : "all";
+	const status =
+		input.status === "active" || input.status === "suspended"
+			? input.status
+			: "all";
 
-	return { search, page, pageSize, sortBy, sortDirection };
+	return { search, planId, status, page, pageSize, sortBy, sortDirection };
 }
 
 function validateUpdateInput(value: unknown): UpdateAdminOrganizationInput {
@@ -209,17 +220,6 @@ function validateDeleteInput(value: unknown): DeleteAdminOrganizationInput {
 	};
 }
 
-async function requirePlatformAdmin() {
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-
-	if (!session?.user.role?.split(",").includes("admin")) {
-		throw new Error("Administrator access is required.");
-	}
-
-	return session;
-}
-
 async function organizationExists(organizationId: string) {
 	const [organization] = await db
 		.select({ id: schema.organization.id })
@@ -231,6 +231,7 @@ async function organizationExists(organizationId: string) {
 }
 
 async function getOrganizationDetails(organizationId: string) {
+	await ensurePlatformData();
 	const [organization] = await db
 		.select({
 			id: schema.organization.id,
@@ -238,8 +239,21 @@ async function getOrganizationDetails(organizationId: string) {
 			slug: schema.organization.slug,
 			logo: schema.organization.logo,
 			createdAt: schema.organization.createdAt,
+			planId: schema.organizationEntitlement.planId,
+			planName: schema.platformPlan.name,
+			status: schema.organizationEntitlement.status,
+			suspensionReason: schema.organizationEntitlement.suspensionReason,
+			memberLimit: schema.platformPlan.memberLimit,
 		})
 		.from(schema.organization)
+		.innerJoin(
+			schema.organizationEntitlement,
+			eq(schema.organizationEntitlement.organizationId, schema.organization.id),
+		)
+		.innerJoin(
+			schema.platformPlan,
+			eq(schema.platformPlan.id, schema.organizationEntitlement.planId),
+		)
 		.where(eq(schema.organization.id, organizationId))
 		.limit(1);
 
@@ -280,20 +294,29 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 	.validator(validateListInput)
 	.handler(async ({ data }) => {
 		await requirePlatformAdmin();
+		await ensurePlatformData();
 
 		const ownerMember = alias(schema.member, "ownerMember");
 		const ownerUser = alias(schema.user, "ownerUser");
 		const organizationMember = alias(schema.member, "organizationMember");
 		const memberCount = count(organizationMember.id);
 		const searchPattern = `%${data.search}%`;
-		const searchCondition = data.search
-			? or(
-					like(schema.organization.name, searchPattern),
-					like(schema.organization.slug, searchPattern),
-					like(ownerUser.name, searchPattern),
-					like(ownerUser.email, searchPattern),
-				)
-			: undefined;
+		const searchCondition = and(
+			data.search
+				? or(
+						like(schema.organization.name, searchPattern),
+						like(schema.organization.slug, searchPattern),
+						like(ownerUser.name, searchPattern),
+						like(ownerUser.email, searchPattern),
+					)
+				: undefined,
+			data.planId !== "all"
+				? eq(schema.organizationEntitlement.planId, data.planId)
+				: undefined,
+			data.status !== "all"
+				? eq(schema.organizationEntitlement.status, data.status)
+				: undefined,
+		);
 
 		const orderColumn =
 			data.sortBy === "name"
@@ -316,8 +339,23 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 				ownerName: ownerUser.name,
 				ownerEmail: ownerUser.email,
 				memberCount,
+				planId: schema.platformPlan.id,
+				planName: schema.platformPlan.name,
+				status: schema.organizationEntitlement.status,
+				memberLimit: schema.platformPlan.memberLimit,
 			})
 			.from(schema.organization)
+			.innerJoin(
+				schema.organizationEntitlement,
+				eq(
+					schema.organizationEntitlement.organizationId,
+					schema.organization.id,
+				),
+			)
+			.innerJoin(
+				schema.platformPlan,
+				eq(schema.platformPlan.id, schema.organizationEntitlement.planId),
+			)
 			.leftJoin(
 				ownerMember,
 				and(
@@ -377,7 +415,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 export const updateAdminOrganization = createServerFn({ method: "POST" })
 	.validator(validateUpdateInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 		await organizationExists(data.organizationId);
 
 		const duplicate = await db
@@ -399,6 +437,14 @@ export const updateAdminOrganization = createServerFn({ method: "POST" })
 			.update(schema.organization)
 			.set({ name: data.name, slug: data.slug })
 			.where(eq(schema.organization.id, data.organizationId));
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.updated",
+			targetType: "organization",
+			targetId: data.organizationId,
+			organizationId: data.organizationId,
+			metadata: { name: data.name, slug: data.slug },
+		});
 
 		return getOrganizationDetails(data.organizationId);
 	});
@@ -446,7 +492,7 @@ export const searchAvailableOrganizationUsers = createServerFn({
 export const addAdminOrganizationMember = createServerFn({ method: "POST" })
 	.validator(validateAddMemberInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 		await organizationExists(data.organizationId);
 
 		const [existingUser] = await db
@@ -473,6 +519,30 @@ export const addAdminOrganizationMember = createServerFn({ method: "POST" })
 		if (existingMember) {
 			throw new Error("This user is already an organization member.");
 		}
+		const [capacity] = await db
+			.select({
+				usage: count(schema.member.id),
+				limit: schema.platformPlan.memberLimit,
+			})
+			.from(schema.organizationEntitlement)
+			.innerJoin(
+				schema.platformPlan,
+				eq(schema.platformPlan.id, schema.organizationEntitlement.planId),
+			)
+			.leftJoin(
+				schema.member,
+				eq(
+					schema.member.organizationId,
+					schema.organizationEntitlement.organizationId,
+				),
+			)
+			.where(
+				eq(schema.organizationEntitlement.organizationId, data.organizationId),
+			)
+			.groupBy(schema.organizationEntitlement.organizationId)
+			.limit(1);
+		if (capacity && capacity.usage >= capacity.limit)
+			throw new Error("This workspace has reached its member limit.");
 
 		await auth.api.addMember({
 			body: {
@@ -480,6 +550,14 @@ export const addAdminOrganizationMember = createServerFn({ method: "POST" })
 				role: data.role,
 				userId: data.userId,
 			},
+		});
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.member-added",
+			targetType: "user",
+			targetId: data.userId,
+			organizationId: data.organizationId,
+			metadata: { role: data.role },
 		});
 
 		return getOrganizationDetails(data.organizationId);
@@ -490,7 +568,7 @@ export const updateAdminOrganizationMemberRole = createServerFn({
 })
 	.validator(validateUpdateMemberRoleInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 		await organizationExists(data.organizationId);
 
 		const [existingMember] = await db
@@ -513,6 +591,14 @@ export const updateAdminOrganizationMemberRole = createServerFn({
 			.update(schema.member)
 			.set({ role: data.role })
 			.where(eq(schema.member.id, data.memberId));
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.member-role-updated",
+			targetType: "member",
+			targetId: data.memberId,
+			organizationId: data.organizationId,
+			metadata: { role: data.role },
+		});
 
 		return getOrganizationDetails(data.organizationId);
 	});
@@ -522,7 +608,7 @@ export const transferAdminOrganizationOwnership = createServerFn({
 })
 	.validator(validateMemberInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 		await organizationExists(data.organizationId);
 
 		const [targetMember] = await db
@@ -561,6 +647,13 @@ export const transferAdminOrganizationOwnership = createServerFn({
 					),
 				),
 		]);
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.ownership-transferred",
+			targetType: "member",
+			targetId: data.memberId,
+			organizationId: data.organizationId,
+		});
 
 		return getOrganizationDetails(data.organizationId);
 	});
@@ -568,7 +661,7 @@ export const transferAdminOrganizationOwnership = createServerFn({
 export const removeAdminOrganizationMember = createServerFn({ method: "POST" })
 	.validator(validateMemberInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 		await organizationExists(data.organizationId);
 
 		const [existingMember] = await db
@@ -595,6 +688,13 @@ export const removeAdminOrganizationMember = createServerFn({ method: "POST" })
 					eq(schema.member.organizationId, data.organizationId),
 				),
 			);
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.member-removed",
+			targetType: "member",
+			targetId: data.memberId,
+			organizationId: data.organizationId,
+		});
 
 		return getOrganizationDetails(data.organizationId);
 	});
@@ -602,7 +702,7 @@ export const removeAdminOrganizationMember = createServerFn({ method: "POST" })
 export const deleteAdminOrganization = createServerFn({ method: "POST" })
 	.validator(validateDeleteInput)
 	.handler(async ({ data }) => {
-		await requirePlatformAdmin();
+		const { session } = await requirePlatformAdmin({ writable: true });
 
 		const [organization] = await db
 			.select({ id: schema.organization.id, name: schema.organization.name })
@@ -632,6 +732,14 @@ export const deleteAdminOrganization = createServerFn({ method: "POST" })
 				.delete(schema.organization)
 				.where(eq(schema.organization.id, data.organizationId)),
 		]);
+		await auditForSession(session, {
+			category: "organization",
+			type: "organization.deleted",
+			targetType: "organization",
+			targetId: data.organizationId,
+			organizationId: data.organizationId,
+			metadata: { name: organization.name },
+		});
 
 		return { organizationId: data.organizationId };
 	});

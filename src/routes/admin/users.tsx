@@ -3,7 +3,6 @@ import {
 	type ColumnDef,
 	flexRender,
 	getCoreRowModel,
-	getSortedRowModel,
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
@@ -50,8 +49,20 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getAdminUsers } from "@/lib/admin";
-import { authClient } from "@/lib/auth-client";
+import {
+	createPlatformUser,
+	deletePlatformUser,
+	impersonatePlatformUser,
+	listPlatformUserSessions,
+	listPlatformUsers,
+	listUserProvisioningOrganizations,
+	revokePlatformUserSession,
+	revokePlatformUserSessions,
+	setPlatformUserBan,
+	setPlatformUserPassword,
+	setPlatformUserRole,
+	updatePlatformUser,
+} from "@/lib/admin";
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/users")({
@@ -66,8 +77,11 @@ export const Route = createFileRoute("/admin/users")({
 			throw redirect({ to: "/dashboard" });
 		}
 
-		const users = await getAdminUsers();
-		return { ...dashboard, initialUsers: users };
+		const [users, provisioningOrganizations] = await Promise.all([
+			listPlatformUsers({ data: {} }),
+			listUserProvisioningOrganizations(),
+		]);
+		return { ...dashboard, initialUsers: users, provisioningOrganizations };
 	},
 	component: UserManagement,
 });
@@ -95,6 +109,9 @@ type ManagedUser = {
 	email: string;
 	role?: string | null;
 	banned?: boolean | null;
+	banReason?: string | null;
+	banExpires?: Date | string | null;
+	createdAt?: Date | string;
 };
 
 type ManagedSession = {
@@ -118,6 +135,7 @@ function UserManagement() {
 		isOrganizationOwner,
 		organizationRole,
 		initialUsers,
+		provisioningOrganizations,
 	} = Route.useRouteContext();
 	const [users, setUsers] = useState(initialUsers.users);
 	const [search, setSearch] = useState("");
@@ -127,6 +145,10 @@ function UserManagement() {
 	const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [sorting, setSorting] = useState<SortingState>([]);
+	const [roleFilter, setRoleFilter] = useState("all");
+	const [statusFilter, setStatusFilter] = useState("all");
+	const [page, setPage] = useState(1);
+	const [pageCount, setPageCount] = useState(initialUsers.pageCount);
 	const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
 	const [selectedName, setSelectedName] = useState("");
 	const [password, setPassword] = useState("");
@@ -138,8 +160,15 @@ function UserManagement() {
 		name: "",
 		email: "",
 		password: "",
+		mode: "workspace" as "workspace" | "organization",
+		organizationId: provisioningOrganizations[0]?.id ?? "",
+		organizationRole: "student" as "admin" | "teacher" | "student",
 	});
 	const [riskAction, setRiskAction] = useState<RiskAction | null>(null);
+	const [banReason, setBanReason] = useState("");
+	const [banDuration, setBanDuration] = useState<
+		"24h" | "7d" | "30d" | "permanent"
+	>("7d");
 
 	const selectUser = useCallback((user: ManagedUser) => {
 		setSelectedUser(user);
@@ -150,92 +179,71 @@ function UserManagement() {
 		setError(null);
 	}, []);
 
-	const refreshUsers = useCallback(async () => {
-		const result = await authClient.admin.listUsers({
-			query: {
-				limit: 50,
-				sortBy: "createdAt",
-				sortDirection: "desc",
-			},
-		});
+	const refreshUsers = useCallback(
+		async (nextPage = page) => {
+			const requestId = ++searchRequest.current;
+			try {
+				const primarySort = sorting[0];
+				const result = await listPlatformUsers({
+					data: {
+						search,
+						role: roleFilter,
+						status: statusFilter,
+						page: nextPage,
+						sortBy: primarySort?.id ?? "createdAt",
+						sortDirection: primarySort?.desc
+							? "desc"
+							: primarySort
+								? "asc"
+								: "desc",
+					},
+				});
+				if (requestId === searchRequest.current) {
+					setUsers(result.users);
+					setResultTotal(result.total);
+					setPageCount(result.pageCount);
+				}
+			} catch (cause) {
+				setError(
+					cause instanceof Error ? cause.message : "Unable to load users.",
+				);
+			}
+		},
+		[page, roleFilter, search, sorting, statusFilter],
+	);
 
-		if (result.error) {
-			setError(result.error.message ?? "Unable to load users.");
-		} else if (result.data) {
-			setUsers(result.data.users);
-			setResultTotal(result.data.total);
-		}
-	}, []);
-
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refreshUsers captures the debounced server filters
 	useEffect(() => {
-		const query = search.trim();
-		const requestId = ++searchRequest.current;
-
 		const timeout = window.setTimeout(async () => {
 			setIsSearching(true);
 			setError(null);
 
-			if (!query) {
-				await refreshUsers();
-				if (requestId === searchRequest.current) setIsSearching(false);
-				return;
-			}
-
-			const searchUsers = (searchField: "name" | "email") =>
-				authClient.admin.listUsers({
-					query: {
-						limit: 50,
-						searchField,
-						searchValue: query || undefined,
-						searchOperator: "contains",
-						sortBy: "createdAt",
-						sortDirection: "desc",
-					},
-				});
-
-			const results = await Promise.all([
-				searchUsers("name"),
-				searchUsers("email"),
-			]);
-
-			if (requestId !== searchRequest.current) return;
-
-			const failedResult = results.find((result) => result.error);
-			if (failedResult?.error) {
-				setError(failedResult.error.message ?? "Unable to search users.");
-			} else {
-				const matchedUsers = Array.from(
-					new Map(
-						results
-							.flatMap((result) => result.data?.users ?? [])
-							.map((user) => [user.id, user]),
-					).values(),
-				);
-				setUsers(matchedUsers);
-				setResultTotal(matchedUsers.length);
-			}
-
+			setPage(1);
+			await refreshUsers(1);
 			setIsSearching(false);
 		}, 300);
 
 		return () => window.clearTimeout(timeout);
-	}, [search, refreshUsers]);
+	}, [search, roleFilter, statusFilter, sorting, refreshUsers]);
 
 	async function updateRole(userId: string, role: "admin" | "user") {
 		setUpdatingUserId(userId);
 		setError(null);
 
-		const result = await authClient.admin.setRole({ userId, role });
-
-		if (result.error) {
-			setError(result.error.message ?? "Unable to update this user's role.");
-		} else {
+		try {
+			await setPlatformUserRole({ data: { userId, role } });
 			setUsers((currentUsers) =>
 				currentUsers.map((user) =>
 					user.id === userId ? { ...user, role } : user,
 				),
 			);
 			setSelectedUser((user) => (user ? { ...user, role } : null));
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to update this user's role.",
+			);
 		}
 
 		setUpdatingUserId(null);
@@ -246,14 +254,10 @@ function UserManagement() {
 		if (!selectedUser) return;
 		setIsSaving(true);
 		setError(null);
-		const result = await authClient.admin.updateUser({
-			userId: selectedUser.id,
-			data: { name: selectedName },
-		});
-
-		if (result.error) {
-			setError(result.error.message ?? "Unable to update this user.");
-		} else {
+		try {
+			await updatePlatformUser({
+				data: { userId: selectedUser.id, name: selectedName },
+			});
 			setUsers((currentUsers) =>
 				currentUsers.map((user) =>
 					user.id === selectedUser.id ? { ...user, name: selectedName } : user,
@@ -261,6 +265,10 @@ function UserManagement() {
 			);
 			setSelectedUser((user) =>
 				user ? { ...user, name: selectedName } : null,
+			);
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Unable to update this user.",
 			);
 		}
 		setIsSaving(false);
@@ -271,14 +279,17 @@ function UserManagement() {
 		if (!selectedUser || !password) return;
 		setIsSaving(true);
 		setError(null);
-		const result = await authClient.admin.setUserPassword({
-			userId: selectedUser.id,
-			newPassword: password,
-		});
-		if (result.error) {
-			setError(result.error.message ?? "Unable to reset the password.");
-		} else {
+		try {
+			await setPlatformUserPassword({
+				data: { userId: selectedUser.id, newPassword: password },
+			});
 			setPassword("");
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to reset the password.",
+			);
 		}
 		setIsSaving(false);
 	}
@@ -287,12 +298,15 @@ function UserManagement() {
 		if (!selectedUser) return;
 		setIsSaving(true);
 		setError(null);
-		const result = selectedUser.banned
-			? await authClient.admin.unbanUser({ userId: selectedUser.id })
-			: await authClient.admin.banUser({ userId: selectedUser.id });
-		if (result.error) {
-			setError(result.error.message ?? "Unable to update ban status.");
-		} else {
+		try {
+			await setPlatformUserBan({
+				data: {
+					userId: selectedUser.id,
+					banned: !selectedUser.banned,
+					reason: banReason,
+					duration: banDuration,
+				},
+			});
 			const banned = !selectedUser.banned;
 			setUsers((currentUsers) =>
 				currentUsers.map((user) =>
@@ -300,6 +314,11 @@ function UserManagement() {
 				),
 			);
 			setSelectedUser((user) => (user ? { ...user, banned } : null));
+			setBanReason("");
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Unable to update ban status.",
+			);
 		}
 		setIsSaving(false);
 	}
@@ -308,14 +327,16 @@ function UserManagement() {
 		if (!selectedUser) return;
 		setIsSaving(true);
 		setError(null);
-		const result = await authClient.admin.listUserSessions({
-			userId: selectedUser.id,
-		});
-		if (result.error) {
-			setError(result.error.message ?? "Unable to load sessions.");
-		} else if (result.data) {
-			setSessions(result.data.sessions);
+		try {
+			const result = await listPlatformUserSessions({
+				data: { userId: selectedUser.id },
+			});
+			setSessions(result.sessions);
 			setSessionsLoaded(true);
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Unable to load sessions.",
+			);
 		}
 		setIsSaving(false);
 	}
@@ -323,24 +344,31 @@ function UserManagement() {
 	async function revokeAllSessions() {
 		if (!selectedUser) return;
 		setIsSaving(true);
-		const result = await authClient.admin.revokeUserSessions({
-			userId: selectedUser.id,
-		});
-		if (result.error)
-			setError(result.error.message ?? "Unable to revoke sessions.");
-		else setSessions([]);
+		try {
+			await revokePlatformUserSessions({ data: { userId: selectedUser.id } });
+			setSessions([]);
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Unable to revoke sessions.",
+			);
+		}
 		setIsSaving(false);
 	}
 
 	async function revokeSession(sessionToken: string) {
 		setIsSaving(true);
-		const result = await authClient.admin.revokeUserSession({ sessionToken });
-		if (result.error)
-			setError(result.error.message ?? "Unable to revoke this session.");
-		else
+		try {
+			await revokePlatformUserSession({ data: { sessionToken } });
 			setSessions((currentSessions) =>
 				currentSessions.filter((session) => session.token !== sessionToken),
 			);
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to revoke this session.",
+			);
+		}
 		setIsSaving(false);
 	}
 
@@ -348,17 +376,23 @@ function UserManagement() {
 		event.preventDefault();
 		setIsSaving(true);
 		setError(null);
-		const result = await authClient.admin.createUser({
-			...newUser,
-			role: "user",
-		});
-		if (result.error) {
-			setError(result.error.message ?? "Unable to create the user.");
-		} else {
-			setNewUser({ name: "", email: "", password: "" });
+		try {
+			await createPlatformUser({ data: newUser });
+			setNewUser({
+				name: "",
+				email: "",
+				password: "",
+				mode: "workspace",
+				organizationId: provisioningOrganizations[0]?.id ?? "",
+				organizationRole: "student",
+			});
 			setShowCreateUser(false);
 			setSearch("");
 			await refreshUsers();
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Unable to create the user.",
+			);
 		}
 		setIsSaving(false);
 	}
@@ -371,23 +405,29 @@ function UserManagement() {
 		} else if (riskAction === "revoke-sessions") {
 			await revokeAllSessions();
 		} else if (riskAction === "impersonate") {
-			const result = await authClient.admin.impersonateUser({
-				userId: selectedUser.id,
-			});
-			if (result.error)
-				setError(result.error.message ?? "Unable to impersonate this user.");
-			else window.location.assign("/dashboard");
+			try {
+				await impersonatePlatformUser({ data: { userId: selectedUser.id } });
+				window.location.assign("/dashboard");
+			} catch (cause) {
+				setError(
+					cause instanceof Error
+						? cause.message
+						: "Unable to impersonate this user.",
+				);
+			}
 		} else if (riskAction === "delete") {
-			const result = await authClient.admin.removeUser({
-				userId: selectedUser.id,
-			});
-			if (result.error) {
-				setError(result.error.message ?? "Unable to remove this user.");
-			} else {
+			try {
+				await deletePlatformUser({ data: { userId: selectedUser.id } });
 				setUsers((currentUsers) =>
 					currentUsers.filter((user) => user.id !== selectedUser.id),
 				);
 				setSelectedUser(null);
+			} catch (cause) {
+				setError(
+					cause instanceof Error
+						? cause.message
+						: "Unable to remove this user.",
+				);
 			}
 		}
 
@@ -521,8 +561,8 @@ function UserManagement() {
 		columns,
 		state: { sorting },
 		onSortingChange: setSorting,
+		manualSorting: true,
 		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
 	});
 
 	return (
@@ -571,28 +611,48 @@ function UserManagement() {
 						</div>
 
 						<section className="overflow-hidden rounded-xl border bg-card">
-							<div className="flex flex-col gap-3 border-b p-3 sm:flex-row sm:items-center sm:justify-between">
-								<div className="relative w-full sm:max-w-sm">
-									<SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-									<Input
-										value={search}
-										onInput={(event) => setSearch(event.currentTarget.value)}
-										placeholder="Search by name or email"
-										aria-label="Search users by name or email"
-										className="pr-8 pl-8"
-									/>
-									{search ? (
-										<Button
-											type="button"
-											variant="ghost"
-											size="icon-xs"
-											className="absolute top-1/2 right-1 -translate-y-1/2"
-											onClick={() => setSearch("")}
-											aria-label="Clear search"
-										>
-											<XIcon />
-										</Button>
-									) : null}
+							<div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
+								<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+									<div className="relative w-full sm:w-80">
+										<SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={search}
+											onInput={(event) => setSearch(event.currentTarget.value)}
+											placeholder="Search by name or email"
+											aria-label="Search users by name or email"
+											className="pr-8 pl-8"
+										/>
+										{search ? (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon-xs"
+												className="absolute top-1/2 right-1 -translate-y-1/2"
+												onClick={() => setSearch("")}
+												aria-label="Clear search"
+											>
+												<XIcon />
+											</Button>
+										) : null}
+									</div>
+									<select
+										value={roleFilter}
+										onChange={(event) => setRoleFilter(event.target.value)}
+										className="h-9 rounded-md border bg-transparent px-3 text-sm"
+									>
+										<option value="all">All roles</option>
+										<option value="admin">Admin</option>
+										<option value="user">User</option>
+									</select>
+									<select
+										value={statusFilter}
+										onChange={(event) => setStatusFilter(event.target.value)}
+										className="h-9 rounded-md border bg-transparent px-3 text-sm"
+									>
+										<option value="all">All statuses</option>
+										<option value="active">Active</option>
+										<option value="banned">Banned</option>
+									</select>
 								</div>
 								<div className="flex items-center justify-between gap-2 sm:justify-end">
 									<Badge variant="secondary">
@@ -691,6 +751,37 @@ function UserManagement() {
 									</tbody>
 								</table>
 							</div>
+							<div className="flex items-center justify-between border-t p-4">
+								<p className="text-sm text-muted-foreground">
+									Page {page} of {pageCount}
+								</p>
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={page <= 1 || isSearching}
+										onClick={() => {
+											const next = page - 1;
+											setPage(next);
+											void refreshUsers(next);
+										}}
+									>
+										Previous
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={page >= pageCount || isSearching}
+										onClick={() => {
+											const next = page + 1;
+											setPage(next);
+											void refreshUsers(next);
+										}}
+									>
+										Next
+									</Button>
+								</div>
+							</div>
 						</section>
 
 						<Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
@@ -753,6 +844,97 @@ function UserManagement() {
 												required
 											/>
 										</label>
+										<fieldset className="grid gap-3">
+											<legend className="text-sm font-medium">
+												Provision access
+											</legend>
+											<div className="grid grid-cols-2 gap-2">
+												<Button
+													type="button"
+													variant={
+														newUser.mode === "workspace" ? "default" : "outline"
+													}
+													onClick={() =>
+														setNewUser((user) => ({
+															...user,
+															mode: "workspace",
+														}))
+													}
+												>
+													Personal workspace
+												</Button>
+												<Button
+													type="button"
+													variant={
+														newUser.mode === "organization"
+															? "default"
+															: "outline"
+													}
+													onClick={() =>
+														setNewUser((user) => ({
+															...user,
+															mode: "organization",
+														}))
+													}
+												>
+													Existing organization
+												</Button>
+											</div>
+										</fieldset>
+										{newUser.mode === "organization" ? (
+											<div className="grid gap-3 sm:grid-cols-2">
+												<label
+													htmlFor="ban-reason"
+													className="grid gap-2 text-sm font-medium"
+												>
+													Organization
+													<select
+														value={newUser.organizationId}
+														onChange={(event) =>
+															setNewUser((user) => ({
+																...user,
+																organizationId: event.target.value,
+															}))
+														}
+														className="h-9 rounded-md border bg-transparent px-3 text-sm"
+													>
+														{provisioningOrganizations.map((organization) => (
+															<option
+																key={organization.id}
+																value={organization.id}
+															>
+																{organization.name}
+															</option>
+														))}
+													</select>
+												</label>
+												<label className="grid gap-2 text-sm font-medium">
+													Role
+													<select
+														value={newUser.organizationRole}
+														onChange={(event) =>
+															setNewUser((user) => ({
+																...user,
+																organizationRole: event.target.value as
+																	| "admin"
+																	| "teacher"
+																	| "student",
+															}))
+														}
+														className="h-9 rounded-md border bg-transparent px-3 text-sm"
+													>
+														<option value="admin">Admin</option>
+														<option value="teacher">Teacher</option>
+														<option value="student">Student</option>
+													</select>
+												</label>
+											</div>
+										) : (
+											<p className="text-sm text-muted-foreground">
+												A personal workspace will be created with this user as
+												owner and the default plan.
+											</p>
+										)}
 									</div>
 									<DialogFooter showCloseButton>
 										<Button type="submit" disabled={isSaving}>
@@ -914,9 +1096,11 @@ function UserManagement() {
 																</p>
 																<p className="truncate text-xs text-muted-foreground">
 																	Expires{" "}
-																	{new Date(
-																		userSession.expiresAt,
-																	).toLocaleString()}
+																	{new Intl.DateTimeFormat("en-MY", {
+																		dateStyle: "medium",
+																		timeStyle: "short",
+																		timeZone: "Asia/Kuala_Lumpur",
+																	}).format(new Date(userSession.expiresAt))}
 																</p>
 															</div>
 															<Button
@@ -1022,11 +1206,51 @@ function UserManagement() {
 												{riskCopy[riskAction].description}
 											</AlertDialogDescription>
 										</AlertDialogHeader>
+										{riskAction === "ban" ? (
+											<div className="grid gap-4">
+												<label
+													htmlFor="ban-reason"
+													className="grid gap-2 text-sm font-medium"
+												>
+													Reason
+													<Input
+														id="ban-reason"
+														value={banReason}
+														onValueChange={setBanReason}
+														placeholder="Reason for banning this user"
+													/>
+												</label>
+												<label
+													htmlFor="ban-expiry"
+													className="grid gap-2 text-sm font-medium"
+												>
+													Expiry
+													<select
+														id="ban-expiry"
+														value={banDuration}
+														onChange={(event) =>
+															setBanDuration(
+																event.target.value as typeof banDuration,
+															)
+														}
+														className="h-9 rounded-md border bg-transparent px-3 text-sm"
+													>
+														<option value="24h">24 hours</option>
+														<option value="7d">7 days</option>
+														<option value="30d">30 days</option>
+														<option value="permanent">Permanent</option>
+													</select>
+												</label>
+											</div>
+										) : null}
 										<AlertDialogFooter>
 											<AlertDialogCancel>Cancel</AlertDialogCancel>
 											<AlertDialogAction
 												variant={
 													riskAction === "delete" ? "destructive" : "default"
+												}
+												disabled={
+													riskAction === "ban" && banReason.trim().length < 3
 												}
 												onClick={confirmRiskAction}
 											>

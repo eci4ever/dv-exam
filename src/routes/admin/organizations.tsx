@@ -74,6 +74,12 @@ import {
 	updateAdminOrganizationMemberRole,
 } from "@/lib/admin-organizations";
 import { formatOrganizationRole } from "@/lib/organization-permissions";
+import {
+	assignOrganizationPlan,
+	listPlans,
+	reactivateOrganization,
+	suspendOrganization,
+} from "@/lib/platform-admin";
 import { getDashboardSession } from "@/lib/session";
 
 const PAGE_SIZE = 25;
@@ -87,16 +93,19 @@ export const Route = createFileRoute("/admin/organizations")({
 			throw redirect({ to: "/dashboard" });
 		}
 
-		const initialOrganizations = await listAdminOrganizations({
-			data: {
-				page: 1,
-				pageSize: PAGE_SIZE,
-				sortBy: "createdAt",
-				sortDirection: "desc",
-			},
-		});
+		const [initialOrganizations, initialPlans] = await Promise.all([
+			listAdminOrganizations({
+				data: {
+					page: 1,
+					pageSize: PAGE_SIZE,
+					sortBy: "createdAt",
+					sortDirection: "desc",
+				},
+			}),
+			listPlans(),
+		]);
 
-		return { ...dashboard, initialOrganizations };
+		return { ...dashboard, initialOrganizations, initialPlans };
 	},
 	component: OrganizationManagement,
 });
@@ -127,9 +136,10 @@ function initials(name: string) {
 }
 
 function formatDate(value: Date | string) {
-	return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-		new Date(value),
-	);
+	return new Intl.DateTimeFormat("en-MY", {
+		dateStyle: "medium",
+		timeZone: "Asia/Kuala_Lumpur",
+	}).format(new Date(value));
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -178,6 +188,7 @@ function OrganizationManagement() {
 		isOrganizationOwner,
 		organizationRole,
 		initialOrganizations,
+		initialPlans,
 	} = Route.useRouteContext();
 	const [organizations, setOrganizations] = useState(
 		initialOrganizations.organizations,
@@ -188,6 +199,10 @@ function OrganizationManagement() {
 	const [page, setPage] = useState(1);
 	const [sortBy, setSortBy] = useState<OrganizationSortField>("createdAt");
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+	const [planFilter, setPlanFilter] = useState("all");
+	const [statusFilter, setStatusFilter] = useState<
+		"all" | "active" | "suspended"
+	>("all");
 	const [isLoading, setIsLoading] = useState(false);
 	const [pageError, setPageError] = useState<string | null>(null);
 	const listRequest = useRef(0);
@@ -214,6 +229,11 @@ function OrganizationManagement() {
 		useState<MemberRiskAction | null>(null);
 	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 	const [deleteConfirmation, setDeleteConfirmation] = useState("");
+	const [plans, setPlans] = useState<
+		Awaited<ReturnType<typeof listPlans>>["plans"]
+	>(initialPlans.plans);
+	const [suspendOpen, setSuspendOpen] = useState(false);
+	const [suspensionReason, setSuspensionReason] = useState("");
 
 	const loadOrganizations = useCallback(async () => {
 		const requestId = ++listRequest.current;
@@ -228,6 +248,8 @@ function OrganizationManagement() {
 					pageSize: PAGE_SIZE,
 					sortBy,
 					sortDirection,
+					planId: planFilter,
+					status: statusFilter,
 				},
 			});
 
@@ -247,7 +269,7 @@ function OrganizationManagement() {
 		} finally {
 			if (requestId === listRequest.current) setIsLoading(false);
 		}
-	}, [page, search, sortBy, sortDirection]);
+	}, [page, planFilter, search, sortBy, sortDirection, statusFilter]);
 
 	useEffect(() => {
 		const timeout = window.setTimeout(() => void loadOrganizations(), 300);
@@ -302,6 +324,85 @@ function OrganizationManagement() {
 		},
 		[applyDetails],
 	);
+
+	useEffect(() => {
+		if (isManageOpen && plans.length === 0) {
+			void listPlans()
+				.then((result) => setPlans(result.plans))
+				.catch(() => setDialogError("Unable to load plans."));
+		}
+	}, [isManageOpen, plans.length]);
+
+	async function changePlan(planId: string) {
+		if (!selectedOrganization) return;
+		setIsSaving(true);
+		setDialogError(null);
+		try {
+			await assignOrganizationPlan({
+				data: { organizationId: selectedOrganization.id, planId },
+			});
+			applyDetails(
+				await getAdminOrganization({
+					data: { organizationId: selectedOrganization.id },
+				}),
+			);
+			await loadOrganizations();
+		} catch (error) {
+			setDialogError(getErrorMessage(error, "Unable to assign plan."));
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
+	async function reactivate() {
+		if (!selectedOrganization) return;
+		setIsSaving(true);
+		setDialogError(null);
+		try {
+			await reactivateOrganization({
+				data: { organizationId: selectedOrganization.id },
+			});
+			applyDetails(
+				await getAdminOrganization({
+					data: { organizationId: selectedOrganization.id },
+				}),
+			);
+			await loadOrganizations();
+		} catch (error) {
+			setDialogError(
+				getErrorMessage(error, "Unable to reactivate organization."),
+			);
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
+	async function confirmSuspend() {
+		if (!selectedOrganization) return;
+		setIsSaving(true);
+		setDialogError(null);
+		try {
+			await suspendOrganization({
+				data: {
+					organizationId: selectedOrganization.id,
+					reason: suspensionReason,
+				},
+			});
+			applyDetails(
+				await getAdminOrganization({
+					data: { organizationId: selectedOrganization.id },
+				}),
+			);
+			await loadOrganizations();
+			setSuspendOpen(false);
+			setSuspensionReason("");
+		} catch (error) {
+			setDialogError(getErrorMessage(error, "Unable to suspend organization."));
+			setSuspendOpen(false);
+		} finally {
+			setIsSaving(false);
+		}
+	}
 
 	useEffect(() => {
 		const query = memberSearch.trim();
@@ -546,6 +647,26 @@ function OrganizationManagement() {
 				cell: ({ row }) => row.original.memberCount,
 			},
 			{
+				accessorKey: "planName",
+				header: "Plan",
+				cell: ({ row }) => (
+					<Badge variant="outline">{row.original.planName}</Badge>
+				),
+			},
+			{
+				accessorKey: "status",
+				header: "Status",
+				cell: ({ row }) => (
+					<Badge
+						variant={
+							row.original.status === "active" ? "secondary" : "destructive"
+						}
+					>
+						{row.original.status}
+					</Badge>
+				),
+			},
+			{
 				accessorKey: "createdAt",
 				header: ({ column }) => (
 					<Button
@@ -636,34 +757,65 @@ function OrganizationManagement() {
 						</div>
 
 						<section className="overflow-hidden rounded-xl border bg-card">
-							<div className="flex flex-col gap-3 border-b p-3 sm:flex-row sm:items-center sm:justify-between">
-								<div className="relative w-full sm:max-w-sm">
-									<SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-									<Input
-										value={search}
-										onValueChange={(value) => {
-											setSearch(value);
-											setPage(1);
-										}}
-										placeholder="Search organizations or owners"
-										aria-label="Search organizations by name, slug, or owner"
-										className="pr-8 pl-8"
-									/>
-									{search ? (
-										<Button
-											type="button"
-											variant="ghost"
-											size="icon-xs"
-											className="absolute top-1/2 right-1 -translate-y-1/2"
-											onClick={() => {
-												setSearch("");
+							<div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
+								<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+									<div className="relative w-full sm:w-80">
+										<SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={search}
+											onValueChange={(value) => {
+												setSearch(value);
 												setPage(1);
 											}}
-											aria-label="Clear organization search"
-										>
-											<XIcon />
-										</Button>
-									) : null}
+											placeholder="Search organizations or owners"
+											aria-label="Search organizations by name, slug, or owner"
+											className="pr-8 pl-8"
+										/>
+										{search ? (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon-xs"
+												className="absolute top-1/2 right-1 -translate-y-1/2"
+												onClick={() => {
+													setSearch("");
+													setPage(1);
+												}}
+												aria-label="Clear organization search"
+											>
+												<XIcon />
+											</Button>
+										) : null}
+									</div>
+									<select
+										value={planFilter}
+										onChange={(event) => {
+											setPlanFilter(event.target.value);
+											setPage(1);
+										}}
+										className="h-9 rounded-md border bg-transparent px-3 text-sm"
+									>
+										<option value="all">All plans</option>
+										{plans.map((plan) => (
+											<option key={plan.id} value={plan.id}>
+												{plan.name}
+											</option>
+										))}
+									</select>
+									<select
+										value={statusFilter}
+										onChange={(event) => {
+											setStatusFilter(
+												event.target.value as typeof statusFilter,
+											);
+											setPage(1);
+										}}
+										className="h-9 rounded-md border bg-transparent px-3 text-sm"
+									>
+										<option value="all">All statuses</option>
+										<option value="active">Active</option>
+										<option value="suspended">Suspended</option>
+									</select>
 								</div>
 								<div className="flex items-center justify-between gap-2 sm:justify-end">
 									<Badge variant="secondary">
@@ -850,6 +1002,7 @@ function OrganizationManagement() {
 									Members
 									<Badge variant="secondary">{details.members.length}</Badge>
 								</TabsTrigger>
+								<TabsTrigger value="access">Plan & Access</TabsTrigger>
 							</TabsList>
 
 							<TabsContent value="general" className="grid gap-4">
@@ -1092,6 +1245,64 @@ function OrganizationManagement() {
 									</div>
 								</section>
 							</TabsContent>
+
+							<TabsContent value="access" className="grid gap-4">
+								<section className="rounded-xl border p-4 sm:p-5">
+									<h3 className="font-medium">Plan assignment</h3>
+									<p className="mt-1 text-sm text-muted-foreground">
+										Member usage: {details.members.length} /{" "}
+										{details.organization.memberLimit}. Exam and attempt usage
+										are not tracked yet.
+									</p>
+									<label className="mt-4 grid gap-2 text-sm font-medium">
+										Plan
+										<select
+											value={details.organization.planId}
+											disabled={isSaving}
+											onChange={(event) => void changePlan(event.target.value)}
+											className="h-9 rounded-md border bg-transparent px-3 text-sm"
+										>
+											{plans
+												.filter(
+													(plan) =>
+														plan.isActive ||
+														plan.id === details.organization.planId,
+												)
+												.map((plan) => (
+													<option key={plan.id} value={plan.id}>
+														{plan.name}
+														{plan.isActive ? "" : " (inactive)"}
+													</option>
+												))}
+										</select>
+									</label>
+								</section>
+								<section className="rounded-xl border p-4 sm:p-5">
+									<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+										<div>
+											<h3 className="font-medium">Workspace access</h3>
+											<p className="mt-1 text-sm text-muted-foreground">
+												{details.organization.status === "active"
+													? "Members can use this workspace."
+													: (details.organization.suspensionReason ??
+														"This workspace is suspended.")}
+											</p>
+										</div>
+										{details.organization.status === "active" ? (
+											<Button
+												variant="destructive"
+												onClick={() => setSuspendOpen(true)}
+											>
+												Suspend
+											</Button>
+										) : (
+											<Button onClick={() => void reactivate()}>
+												Reactivate
+											</Button>
+										)}
+									</div>
+								</section>
+							</TabsContent>
 						</Tabs>
 					)}
 				</DialogContent>
@@ -1129,6 +1340,40 @@ function OrganizationManagement() {
 								: memberRiskAction?.type === "transfer"
 									? "Transfer ownership"
 									: "Remove member"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog open={suspendOpen} onOpenChange={setSuspendOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Suspend organization?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Members can still sign in, but this workspace will be unavailable
+							until reactivated.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<label
+						htmlFor="suspension-reason"
+						className="grid gap-2 text-sm font-medium"
+					>
+						Reason
+						<Input
+							id="suspension-reason"
+							value={suspensionReason}
+							onValueChange={setSuspensionReason}
+							placeholder="Reason for suspension"
+						/>
+					</label>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							disabled={isSaving || suspensionReason.trim().length < 3}
+							onClick={() => void confirmSuspend()}
+						>
+							{isSaving ? "Suspending..." : "Suspend organization"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
