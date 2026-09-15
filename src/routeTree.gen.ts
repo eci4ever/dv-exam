@@ -22,11 +22,15 @@ import { Route as AdminOrganizationsRouteImport } from './routes/admin/organizat
 import { Route as AdminPlansRouteImport } from './routes/admin/plans'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as ExamsIndexRouteImport } from './routes/exams/index'
+import { Route as ExamsExamIdRouteImport } from './routes/exams/$examId'
+import { Route as ExamsNewRouteImport } from './routes/exams/new'
 import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId.preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +97,21 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExamsIndexRoute = ExamsIndexRouteImport.update({
+  id: '/exams/',
+  path: '/exams/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamsExamIdRoute = ExamsExamIdRouteImport.update({
+  id: '/exams/$examId',
+  path: '/exams/$examId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamsNewRoute = ExamsNewRouteImport.update({
+  id: '/exams/new',
+  path: '/exams/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuestionsIndexRoute = QuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
@@ -118,6 +137,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExamsExamIdPreviewRoute = ExamsExamIdPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => ExamsExamIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,12 +156,16 @@ export interface FileRoutesByFullPath {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -152,12 +180,16 @@ export interface FileRoutesByTo {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
+  '/exams': typeof ExamsIndexRoute
   '/questions': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,12 +205,16 @@ export interface FileRoutesById {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -195,12 +231,16 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/exams/$examId'
+    | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
     | '/workspace/settings'
     | '/admin/'
+    | '/exams/'
     | '/questions/'
     | '/api/auth/$'
+    | '/exams/$examId/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -215,12 +255,16 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/exams/$examId'
+    | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
     | '/workspace/settings'
     | '/admin'
+    | '/exams'
     | '/questions'
     | '/api/auth/$'
+    | '/exams/$examId/preview'
   id:
     | '__root__'
     | '/'
@@ -235,12 +279,16 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/exams/$examId'
+    | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
     | '/workspace/settings'
     | '/admin/'
+    | '/exams/'
     | '/questions/'
     | '/api/auth/$'
+    | '/exams/$examId/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -256,10 +304,13 @@ export interface RootRouteChildren {
   AdminPlansRoute: typeof AdminPlansRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  ExamsExamIdRoute: typeof ExamsExamIdRouteWithChildren
+  ExamsNewRoute: typeof ExamsNewRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ExamsIndexRoute: typeof ExamsIndexRoute
   QuestionsIndexRoute: typeof QuestionsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -357,6 +408,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/exams/': {
+      id: '/exams/'
+      path: '/exams'
+      fullPath: '/exams/'
+      preLoaderRoute: typeof ExamsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exams/$examId': {
+      id: '/exams/$examId'
+      path: '/exams/$examId'
+      fullPath: '/exams/$examId'
+      preLoaderRoute: typeof ExamsExamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exams/new': {
+      id: '/exams/new'
+      path: '/exams/new'
+      fullPath: '/exams/new'
+      preLoaderRoute: typeof ExamsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/questions/': {
       id: '/questions/'
       path: '/questions'
@@ -392,8 +464,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/exams/$examId/preview': {
+      id: '/exams/$examId/preview'
+      path: '/preview'
+      fullPath: '/exams/$examId/preview'
+      preLoaderRoute: typeof ExamsExamIdPreviewRouteImport
+      parentRoute: typeof ExamsExamIdRoute
+    }
   }
 }
+
+interface ExamsExamIdRouteChildren {
+  ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
+}
+
+const ExamsExamIdRouteChildren: ExamsExamIdRouteChildren = {
+  ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
+}
+
+const ExamsExamIdRouteWithChildren = ExamsExamIdRoute._addFileChildren(
+  ExamsExamIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -408,10 +499,13 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPlansRoute: AdminPlansRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
+  ExamsExamIdRoute: ExamsExamIdRouteWithChildren,
+  ExamsNewRoute: ExamsNewRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ExamsIndexRoute: ExamsIndexRoute,
   QuestionsIndexRoute: QuestionsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
