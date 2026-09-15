@@ -81,7 +81,9 @@ function NewExam() {
 						</div>
 						{error ? <p className="text-sm text-destructive">{error}</p> : null}
 						<div className="flex gap-3">
-							<Button disabled={pending}>Continue to composer</Button>
+							<Button type="submit" disabled={pending}>
+								Continue to composer
+							</Button>
 							<Button
 								type="button"
 								variant="outline"

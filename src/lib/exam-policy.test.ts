@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	assertActiveExamCapacity,
 	normalizeExamSettings,
 	normalizeQuestionInput,
 	validatePublishableExam,
@@ -66,5 +67,22 @@ describe("exam authoring policy", () => {
 		expect(() => validatePublishableExam([])).toThrow(
 			"Add at least one question",
 		);
+	});
+
+	it("enforces active exam capacity without blocking version replacement", () => {
+		expect(() =>
+			assertActiveExamCapacity({
+				activeCount: 5,
+				limit: 5,
+				replacesPublishedVersion: false,
+			}),
+		).toThrow("active exam limit");
+		expect(() =>
+			assertActiveExamCapacity({
+				activeCount: 5,
+				limit: 5,
+				replacesPublishedVersion: true,
+			}),
+		).not.toThrow();
 	});
 });

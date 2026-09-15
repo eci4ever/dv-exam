@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -34,6 +34,7 @@ export function ExamEditor({
 	choices: Choice[];
 }) {
 	const navigate = useNavigate();
+	const router = useRouter();
 	const [title, setTitle] = useState(initial.title);
 	const [description, setDescription] = useState(initial.description ?? "");
 	const [duration, setDuration] = useState(initial.durationMinutes);
@@ -100,6 +101,7 @@ export function ExamEditor({
 					items,
 				},
 			});
+			await router.invalidate();
 			await navigate({ to: "/exams" });
 		});
 	}
@@ -328,6 +330,7 @@ export function ExamEditor({
 														},
 													});
 													await publishExam({ data: { examId: initial.id } });
+													await router.invalidate();
 													await navigate({ to: "/exams" });
 												})
 											}
@@ -338,7 +341,7 @@ export function ExamEditor({
 								</AlertDialogContent>
 							</AlertDialog>
 						</>
-					) : (
+					) : initial.status === "published" ? (
 						<>
 							<Button
 								onClick={() =>
@@ -346,6 +349,7 @@ export function ExamEditor({
 										const result = await createExamVersion({
 											data: { examId: initial.id },
 										});
+										await router.invalidate();
 										await navigate({
 											to: "/exams/$examId",
 											params: { examId: result.id },
@@ -367,6 +371,18 @@ export function ExamEditor({
 								Preview
 							</Button>
 						</>
+					) : (
+						<Button
+							variant="outline"
+							onClick={() =>
+								navigate({
+									to: "/exams/$examId/preview",
+									params: { examId: initial.id },
+								})
+							}
+						>
+							Preview
+						</Button>
 					)}
 					<AlertDialog>
 						<AlertDialogTrigger

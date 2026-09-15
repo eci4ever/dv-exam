@@ -5,7 +5,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getExam } from "@/lib/exams";
 import { getDashboardSession } from "@/lib/session";
 
-export const Route = createFileRoute("/exams/$examId/preview")({
+export const Route = createFileRoute("/exams/$examId_/preview")({
 	beforeLoad: async () => {
 		const data = await getDashboardSession();
 		if (!data) throw redirect({ to: "/login" });

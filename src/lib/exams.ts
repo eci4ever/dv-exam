@@ -1,9 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, count, desc, eq, inArray, like } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	inArray,
+	like,
+	max,
+	ne,
+	sql,
+} from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import {
+	assertActiveExamCapacity,
 	normalizeExamSettings,
 	validatePublishableExam,
 } from "@/lib/exam-policy";
@@ -352,10 +364,24 @@ export const publishExam = createServerFn({ method: "POST" })
 				),
 			)
 			.limit(1);
-		if (!existing.length && (usage?.total ?? 0) >= entitlement.limit)
-			throw new Error("Your workspace has reached its active exam limit.");
+		assertActiveExamCapacity({
+			activeCount: usage?.total ?? 0,
+			limit: entitlement.limit,
+			replacesPublishedVersion: existing.length > 0,
+		});
 		const now = new Date();
-		const [, changed] = await db.batch([
+		const [changed] = await db.batch([
+			db
+				.update(schema.exam)
+				.set({ status: "published", publishedAt: now, updatedAt: now })
+				.where(
+					and(
+						eq(schema.exam.id, draft.id),
+						eq(schema.exam.status, "draft"),
+						sql`(exists (select 1 from ${schema.exam} current where current.seriesId = ${draft.seriesId} and current.status = 'published') or (select count(*) from ${schema.exam} active where active.organizationId = ${organizationId} and active.status = 'published') < ${entitlement.limit})`,
+					),
+				)
+				.returning({ id: schema.exam.id }),
 			db
 				.update(schema.exam)
 				.set({ status: "archived", updatedAt: now })
@@ -363,15 +389,10 @@ export const publishExam = createServerFn({ method: "POST" })
 					and(
 						eq(schema.exam.seriesId, draft.seriesId),
 						eq(schema.exam.status, "published"),
+						ne(schema.exam.id, draft.id),
+						sql`exists (select 1 from ${schema.exam} replacement where replacement.id = ${draft.id} and replacement.status = 'published')`,
 					),
 				),
-			db
-				.update(schema.exam)
-				.set({ status: "published", publishedAt: now, updatedAt: now })
-				.where(
-					and(eq(schema.exam.id, draft.id), eq(schema.exam.status, "draft")),
-				)
-				.returning({ id: schema.exam.id }),
 		]);
 		if (!changed.length)
 			throw new Error("Exam was changed. Refresh and try again.");
@@ -398,13 +419,17 @@ export const createExamVersion = createServerFn({ method: "POST" })
 		const source = await getExam({ data: { examId: data.examId } });
 		if (source.status !== "published")
 			throw new Error("Only a published exam can start a new version.");
+		const [versionResult] = await db
+			.select({ version: max(schema.exam.version) })
+			.from(schema.exam)
+			.where(eq(schema.exam.seriesId, source.seriesId));
 		const id = crypto.randomUUID();
 		const now = new Date();
 		await db.insert(schema.exam).values({
 			id,
 			organizationId,
 			seriesId: source.seriesId,
-			version: source.version + 1,
+			version: (versionResult?.version ?? source.version) + 1,
 			title: source.title,
 			description: source.description,
 			durationMinutes: source.durationMinutes,

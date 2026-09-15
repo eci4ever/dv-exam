@@ -11,6 +11,7 @@ import {
 	like,
 	lte,
 	or,
+	sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
@@ -394,6 +395,8 @@ export const listPlanOrganizations = createServerFn({ method: "GET" })
 					status: schema.organizationEntitlement.status,
 					memberLimit: schema.platformPlan.memberLimit,
 					memberCount,
+					activeExamLimit: schema.platformPlan.activeExamLimit,
+					activeExamCount: sql<number>`(select count(*) from ${schema.exam} where ${schema.exam.organizationId} = ${schema.organization.id} and ${schema.exam.status} = 'published')`,
 				})
 				.from(schema.organization)
 				.innerJoin(

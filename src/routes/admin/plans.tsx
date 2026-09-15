@@ -314,7 +314,8 @@ function PlansAndUsage() {
 												<th className="p-4">Plan</th>
 												<th className="p-4">Status</th>
 												<th className="p-4">Member usage</th>
-												<th className="p-4">Exams / attempts</th>
+												<th className="p-4">Active exams</th>
+												<th className="p-4">Monthly attempts</th>
 											</tr>
 										</thead>
 										<tbody className="divide-y">
@@ -386,6 +387,9 @@ function PlansAndUsage() {
 														>
 															{org.memberCount} / {org.memberLimit}
 														</span>
+													</td>
+													<td className="p-4">
+														{org.activeExamCount} / {org.activeExamLimit}
 													</td>
 													<td className="p-4 text-muted-foreground">
 														Not tracked yet

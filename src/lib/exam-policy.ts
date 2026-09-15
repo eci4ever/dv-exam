@@ -125,3 +125,13 @@ export function validatePublishableExam(items: Array<{ marks?: number }>) {
 	for (const item of items) positiveInteger(item.marks ?? 0, "Marks", 1, 100);
 	return true;
 }
+
+export function assertActiveExamCapacity(input: {
+	activeCount: number;
+	limit: number;
+	replacesPublishedVersion: boolean;
+}) {
+	if (!input.replacesPublishedVersion && input.activeCount >= input.limit) {
+		throw new Error("Your workspace has reached its active exam limit.");
+	}
+}

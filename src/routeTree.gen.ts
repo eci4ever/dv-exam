@@ -30,7 +30,7 @@ import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$que
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId.preview'
+import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId_.preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -138,9 +138,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExamsExamIdPreviewRoute = ExamsExamIdPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => ExamsExamIdRoute,
+  id: '/exams/$examId_/preview',
+  path: '/exams/$examId/preview',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -156,7 +156,7 @@ export interface FileRoutesByFullPath {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
@@ -180,7 +180,7 @@ export interface FileRoutesByTo {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
@@ -205,7 +205,7 @@ export interface FileRoutesById {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/exams/$examId': typeof ExamsExamIdRouteWithChildren
+  '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
@@ -214,7 +214,7 @@ export interface FileRoutesById {
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
+  '/exams/$examId_/preview': typeof ExamsExamIdPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -288,7 +288,7 @@ export interface FileRouteTypes {
     | '/exams/'
     | '/questions/'
     | '/api/auth/$'
-    | '/exams/$examId/preview'
+    | '/exams/$examId_/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -304,7 +304,7 @@ export interface RootRouteChildren {
   AdminPlansRoute: typeof AdminPlansRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
-  ExamsExamIdRoute: typeof ExamsExamIdRouteWithChildren
+  ExamsExamIdRoute: typeof ExamsExamIdRoute
   ExamsNewRoute: typeof ExamsNewRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
@@ -313,6 +313,7 @@ export interface RootRouteChildren {
   ExamsIndexRoute: typeof ExamsIndexRoute
   QuestionsIndexRoute: typeof QuestionsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -464,27 +465,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/exams/$examId/preview': {
-      id: '/exams/$examId/preview'
-      path: '/preview'
+    '/exams/$examId_/preview': {
+      id: '/exams/$examId_/preview'
+      path: '/exams/$examId/preview'
       fullPath: '/exams/$examId/preview'
       preLoaderRoute: typeof ExamsExamIdPreviewRouteImport
-      parentRoute: typeof ExamsExamIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface ExamsExamIdRouteChildren {
-  ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
-}
-
-const ExamsExamIdRouteChildren: ExamsExamIdRouteChildren = {
-  ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
-}
-
-const ExamsExamIdRouteWithChildren = ExamsExamIdRoute._addFileChildren(
-  ExamsExamIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -499,7 +488,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPlansRoute: AdminPlansRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
-  ExamsExamIdRoute: ExamsExamIdRouteWithChildren,
+  ExamsExamIdRoute: ExamsExamIdRoute,
   ExamsNewRoute: ExamsNewRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
@@ -508,7 +497,17 @@ const rootRouteChildren: RootRouteChildren = {
   ExamsIndexRoute: ExamsIndexRoute,
   QuestionsIndexRoute: QuestionsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
