@@ -60,7 +60,9 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "admin-overview"
 		| "plans"
 		| "audit"
-		| "admin-settings";
+		| "admin-settings"
+		| "exams"
+		| "questions";
 }
 
 interface MockSidebarItemProps {
@@ -129,14 +131,40 @@ export function AppSidebar({
 									tooltip="Dashboard"
 								/>
 							</SidebarMenuItem>
-							<MockSidebarItem icon={FileTextIcon} label="My Exams" />
+							{canManageExams ? (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/exams">
+												<FileTextIcon />
+												<span>Exams</span>
+											</a>
+										}
+										isActive={activeItem === "exams"}
+										tooltip="Exams"
+									/>
+								</SidebarMenuItem>
+							) : (
+								<MockSidebarItem icon={FileTextIcon} label="My Exams" />
+							)}
 							<MockSidebarItem icon={CalendarDaysIcon} label="Schedule" />
 							<MockSidebarItem
 								icon={ChartNoAxesColumnIncreasingIcon}
 								label="Results"
 							/>
 							{canManageExams ? (
-								<MockSidebarItem icon={LibraryIcon} label="Question Bank" />
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/questions">
+												<LibraryIcon />
+												<span>Question Bank</span>
+											</a>
+										}
+										isActive={activeItem === "questions"}
+										tooltip="Question Bank"
+									/>
+								</SidebarMenuItem>
 							) : null}
 						</SidebarMenu>
 					</SidebarGroupContent>

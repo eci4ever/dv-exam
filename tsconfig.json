@@ -1,5 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["src/**/*.worker.test.ts", "test/worker-setup.ts", "vitest.worker.config.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

@@ -252,6 +252,156 @@ export const auditEvent = sqliteTable(
 	],
 );
 
+export const question = sqliteTable(
+	"question",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		authorId: text("authorId")
+			.notNull()
+			.references(() => user.id, { onDelete: "restrict" }),
+		type: text("type").$type<"single_choice" | "true_false">().notNull(),
+		prompt: text("prompt").notNull(),
+		explanation: text("explanation"),
+		difficulty: text("difficulty")
+			.$type<"easy" | "medium" | "hard">()
+			.notNull(),
+		defaultMarks: integer("defaultMarks").default(1).notNull(),
+		status: text("status")
+			.$type<"active" | "archived">()
+			.default("active")
+			.notNull(),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("question_organization_status_idx").on(
+			table.organizationId,
+			table.status,
+		),
+		index("question_author_idx").on(table.authorId),
+	],
+);
+
+export const questionOption = sqliteTable(
+	"questionOption",
+	{
+		id: text("id").primaryKey(),
+		questionId: text("questionId")
+			.notNull()
+			.references(() => question.id, { onDelete: "cascade" }),
+		text: text("text").notNull(),
+		isCorrect: integer("isCorrect", { mode: "boolean" }).notNull(),
+		position: integer("position").notNull(),
+	},
+	(table) => [
+		uniqueIndex("questionOption_question_position_idx").on(
+			table.questionId,
+			table.position,
+		),
+	],
+);
+
+export const questionTag = sqliteTable(
+	"questionTag",
+	{
+		id: text("id").primaryKey(),
+		questionId: text("questionId")
+			.notNull()
+			.references(() => question.id, { onDelete: "cascade" }),
+		tag: text("tag").notNull(),
+	},
+	(table) => [
+		uniqueIndex("questionTag_question_tag_idx").on(table.questionId, table.tag),
+		index("questionTag_tag_idx").on(table.tag),
+	],
+);
+
+export const exam = sqliteTable(
+	"exam",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		seriesId: text("seriesId").notNull(),
+		version: integer("version").default(1).notNull(),
+		title: text("title").notNull(),
+		description: text("description"),
+		durationMinutes: integer("durationMinutes").notNull(),
+		passingPercentage: integer("passingPercentage").notNull(),
+		shuffleQuestions: integer("shuffleQuestions", { mode: "boolean" })
+			.default(false)
+			.notNull(),
+		status: text("status")
+			.$type<"draft" | "published" | "archived">()
+			.default("draft")
+			.notNull(),
+		createdBy: text("createdBy")
+			.notNull()
+			.references(() => user.id, { onDelete: "restrict" }),
+		publishedAt: integer("publishedAt", { mode: "timestamp_ms" }),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("exam_series_version_idx").on(table.seriesId, table.version),
+		uniqueIndex("exam_series_open_draft_idx")
+			.on(table.seriesId)
+			.where(sql`${table.status} = 'draft'`),
+		index("exam_organization_status_idx").on(
+			table.organizationId,
+			table.status,
+		),
+	],
+);
+
+export const examItem = sqliteTable(
+	"examItem",
+	{
+		id: text("id").primaryKey(),
+		examId: text("examId")
+			.notNull()
+			.references(() => exam.id, { onDelete: "cascade" }),
+		sourceQuestionId: text("sourceQuestionId").references(() => question.id, {
+			onDelete: "set null",
+		}),
+		type: text("type").$type<"single_choice" | "true_false">().notNull(),
+		prompt: text("prompt").notNull(),
+		explanation: text("explanation"),
+		difficulty: text("difficulty")
+			.$type<"easy" | "medium" | "hard">()
+			.notNull(),
+		marks: integer("marks").notNull(),
+		position: integer("position").notNull(),
+	},
+	(table) => [
+		uniqueIndex("examItem_exam_position_idx").on(table.examId, table.position),
+		index("examItem_sourceQuestion_idx").on(table.sourceQuestionId),
+	],
+);
+
+export const examItemOption = sqliteTable(
+	"examItemOption",
+	{
+		id: text("id").primaryKey(),
+		examItemId: text("examItemId")
+			.notNull()
+			.references(() => examItem.id, { onDelete: "cascade" }),
+		text: text("text").notNull(),
+		isCorrect: integer("isCorrect", { mode: "boolean" }).notNull(),
+		position: integer("position").notNull(),
+	},
+	(table) => [
+		uniqueIndex("examItemOption_item_position_idx").on(
+			table.examItemId,
+			table.position,
+		),
+	],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
@@ -277,6 +427,58 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 	members: many(member),
 	invitations: many(invitation),
 	entitlements: many(organizationEntitlement),
+	questions: many(question),
+	exams: many(exam),
+}));
+
+export const questionRelations = relations(question, ({ one, many }) => ({
+	organization: one(organization, {
+		fields: [question.organizationId],
+		references: [organization.id],
+	}),
+	author: one(user, { fields: [question.authorId], references: [user.id] }),
+	options: many(questionOption),
+	tags: many(questionTag),
+	examItems: many(examItem),
+}));
+
+export const questionOptionRelations = relations(questionOption, ({ one }) => ({
+	question: one(question, {
+		fields: [questionOption.questionId],
+		references: [question.id],
+	}),
+}));
+
+export const questionTagRelations = relations(questionTag, ({ one }) => ({
+	question: one(question, {
+		fields: [questionTag.questionId],
+		references: [question.id],
+	}),
+}));
+
+export const examRelations = relations(exam, ({ one, many }) => ({
+	organization: one(organization, {
+		fields: [exam.organizationId],
+		references: [organization.id],
+	}),
+	creator: one(user, { fields: [exam.createdBy], references: [user.id] }),
+	items: many(examItem),
+}));
+
+export const examItemRelations = relations(examItem, ({ one, many }) => ({
+	exam: one(exam, { fields: [examItem.examId], references: [exam.id] }),
+	sourceQuestion: one(question, {
+		fields: [examItem.sourceQuestionId],
+		references: [question.id],
+	}),
+	options: many(examItemOption),
+}));
+
+export const examItemOptionRelations = relations(examItemOption, ({ one }) => ({
+	examItem: one(examItem, {
+		fields: [examItemOption.examItemId],
+		references: [examItem.id],
+	}),
 }));
 
 export const platformPlanRelations = relations(platformPlan, ({ many }) => ({

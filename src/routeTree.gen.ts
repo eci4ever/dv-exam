@@ -22,6 +22,9 @@ import { Route as AdminOrganizationsRouteImport } from './routes/admin/organizat
 import { Route as AdminPlansRouteImport } from './routes/admin/plans'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
+import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
+import { Route as QuestionsNewRouteImport } from './routes/questions/new'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -90,6 +93,21 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionsIndexRoute = QuestionsIndexRouteImport.update({
+  id: '/questions/',
+  path: '/questions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionsQuestionIdRoute = QuestionsQuestionIdRouteImport.update({
+  id: '/questions/$questionId',
+  path: '/questions/$questionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionsNewRoute = QuestionsNewRouteImport.update({
+  id: '/questions/new',
+  path: '/questions/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
   id: '/workspace/settings',
   path: '/workspace/settings',
@@ -114,8 +132,11 @@ export interface FileRoutesByFullPath {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/questions/$questionId': typeof QuestionsQuestionIdRoute
+  '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/questions/': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -131,8 +152,11 @@ export interface FileRoutesByTo {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/questions/$questionId': typeof QuestionsQuestionIdRoute
+  '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
+  '/questions': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -149,8 +173,11 @@ export interface FileRoutesById {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/questions/$questionId': typeof QuestionsQuestionIdRoute
+  '/questions/new': typeof QuestionsNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/questions/': typeof QuestionsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -168,8 +195,11 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/questions/$questionId'
+    | '/questions/new'
     | '/workspace/settings'
     | '/admin/'
+    | '/questions/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,8 +215,11 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/questions/$questionId'
+    | '/questions/new'
     | '/workspace/settings'
     | '/admin'
+    | '/questions'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -202,8 +235,11 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/questions/$questionId'
+    | '/questions/new'
     | '/workspace/settings'
     | '/admin/'
+    | '/questions/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -220,8 +256,11 @@ export interface RootRouteChildren {
   AdminPlansRoute: typeof AdminPlansRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
+  QuestionsNewRoute: typeof QuestionsNewRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  QuestionsIndexRoute: typeof QuestionsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -318,6 +357,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/questions/': {
+      id: '/questions/'
+      path: '/questions'
+      fullPath: '/questions/'
+      preLoaderRoute: typeof QuestionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questions/$questionId': {
+      id: '/questions/$questionId'
+      path: '/questions/$questionId'
+      fullPath: '/questions/$questionId'
+      preLoaderRoute: typeof QuestionsQuestionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questions/new': {
+      id: '/questions/new'
+      path: '/questions/new'
+      fullPath: '/questions/new'
+      preLoaderRoute: typeof QuestionsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/settings': {
       id: '/workspace/settings'
       path: '/workspace/settings'
@@ -348,19 +408,13 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPlansRoute: AdminPlansRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
+  QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
+  QuestionsNewRoute: QuestionsNewRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
+  QuestionsIndexRoute: QuestionsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
