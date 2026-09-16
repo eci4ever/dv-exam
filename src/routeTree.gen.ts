@@ -14,6 +14,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MyExamsRouteImport } from './routes/my-exams'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -22,12 +23,15 @@ import { Route as AdminOrganizationsRouteImport } from './routes/admin/organizat
 import { Route as AdminPlansRouteImport } from './routes/admin/plans'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AttemptsAttemptIdRouteImport } from './routes/attempts/$attemptId'
 import { Route as ExamsIndexRouteImport } from './routes/exams/index'
 import { Route as ExamsExamIdRouteImport } from './routes/exams/$examId'
 import { Route as ExamsNewRouteImport } from './routes/exams/new'
 import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
+import { Route as ResultsIndexRouteImport } from './routes/results/index'
+import { Route as ResultsAttemptIdRouteImport } from './routes/results/$attemptId'
 import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
 import { Route as ScheduleScheduleIdRouteImport } from './routes/schedule/$scheduleId'
 import { Route as ScheduleNewRouteImport } from './routes/schedule/new'
@@ -58,6 +62,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyExamsRoute = MyExamsRouteImport.update({
+  id: '/my-exams',
+  path: '/my-exams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -100,6 +109,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AttemptsAttemptIdRoute = AttemptsAttemptIdRouteImport.update({
+  id: '/attempts/$attemptId',
+  path: '/attempts/$attemptId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExamsIndexRoute = ExamsIndexRouteImport.update({
   id: '/exams/',
   path: '/exams/',
@@ -128,6 +142,16 @@ const QuestionsQuestionIdRoute = QuestionsQuestionIdRouteImport.update({
 const QuestionsNewRoute = QuestionsNewRouteImport.update({
   id: '/questions/new',
   path: '/questions/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsIndexRoute = ResultsIndexRouteImport.update({
+  id: '/results/',
+  path: '/results/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsAttemptIdRoute = ResultsAttemptIdRouteImport.update({
+  id: '/results/$attemptId',
+  path: '/results/$attemptId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScheduleIndexRoute = ScheduleIndexRouteImport.update({
@@ -167,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/my-exams': typeof MyExamsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -174,16 +199,19 @@ export interface FileRoutesByFullPath {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
@@ -194,6 +222,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/my-exams': typeof MyExamsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -201,16 +230,19 @@ export interface FileRoutesByTo {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
   '/exams': typeof ExamsIndexRoute
   '/questions': typeof QuestionsIndexRoute
+  '/results': typeof ResultsIndexRoute
   '/schedule': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
@@ -222,6 +254,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/my-exams': typeof MyExamsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -229,16 +262,19 @@ export interface FileRoutesById {
   '/admin/plans': typeof AdminPlansRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId_/preview': typeof ExamsExamIdPreviewRoute
@@ -251,6 +287,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/login'
+    | '/my-exams'
     | '/reset-password'
     | '/signup'
     | '/admin/audit'
@@ -258,16 +295,19 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/results/'
     | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId/preview'
@@ -278,6 +318,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/login'
+    | '/my-exams'
     | '/reset-password'
     | '/signup'
     | '/admin/audit'
@@ -285,16 +326,19 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
     | '/workspace/settings'
     | '/admin'
     | '/exams'
     | '/questions'
+    | '/results'
     | '/schedule'
     | '/api/auth/$'
     | '/exams/$examId/preview'
@@ -305,6 +349,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/login'
+    | '/my-exams'
     | '/reset-password'
     | '/signup'
     | '/admin/audit'
@@ -312,16 +357,19 @@ export interface FileRouteTypes {
     | '/admin/plans'
     | '/admin/settings'
     | '/admin/users'
+    | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/results/'
     | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId_/preview'
@@ -333,6 +381,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  MyExamsRoute: typeof MyExamsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AdminAuditRoute: typeof AdminAuditRoute
@@ -340,16 +389,19 @@ export interface RootRouteChildren {
   AdminPlansRoute: typeof AdminPlansRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AttemptsAttemptIdRoute: typeof AttemptsAttemptIdRoute
   ExamsExamIdRoute: typeof ExamsExamIdRoute
   ExamsNewRoute: typeof ExamsNewRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
+  ResultsAttemptIdRoute: typeof ResultsAttemptIdRoute
   ScheduleScheduleIdRoute: typeof ScheduleScheduleIdRoute
   ScheduleNewRoute: typeof ScheduleNewRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
   QuestionsIndexRoute: typeof QuestionsIndexRoute
+  ResultsIndexRoute: typeof ResultsIndexRoute
   ScheduleIndexRoute: typeof ScheduleIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
@@ -390,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-exams': {
+      id: '/my-exams'
+      path: '/my-exams'
+      fullPath: '/my-exams'
+      preLoaderRoute: typeof MyExamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -448,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/attempts/$attemptId': {
+      id: '/attempts/$attemptId'
+      path: '/attempts/$attemptId'
+      fullPath: '/attempts/$attemptId'
+      preLoaderRoute: typeof AttemptsAttemptIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exams/': {
       id: '/exams/'
       path: '/exams'
@@ -488,6 +554,20 @@ declare module '@tanstack/react-router' {
       path: '/questions/new'
       fullPath: '/questions/new'
       preLoaderRoute: typeof QuestionsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results/': {
+      id: '/results/'
+      path: '/results'
+      fullPath: '/results/'
+      preLoaderRoute: typeof ResultsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results/$attemptId': {
+      id: '/results/$attemptId'
+      path: '/results/$attemptId'
+      fullPath: '/results/$attemptId'
+      preLoaderRoute: typeof ResultsAttemptIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/schedule/': {
@@ -541,6 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  MyExamsRoute: MyExamsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AdminAuditRoute: AdminAuditRoute,
@@ -548,16 +629,19 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPlansRoute: AdminPlansRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AttemptsAttemptIdRoute: AttemptsAttemptIdRoute,
   ExamsExamIdRoute: ExamsExamIdRoute,
   ExamsNewRoute: ExamsNewRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
+  ResultsAttemptIdRoute: ResultsAttemptIdRoute,
   ScheduleScheduleIdRoute: ScheduleScheduleIdRoute,
   ScheduleNewRoute: ScheduleNewRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   ExamsIndexRoute: ExamsIndexRoute,
   QuestionsIndexRoute: QuestionsIndexRoute,
+  ResultsIndexRoute: ResultsIndexRoute,
   ScheduleIndexRoute: ScheduleIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,

@@ -634,9 +634,7 @@ export const getLearnerAttempt = createServerFn({ method: "GET" })
 	}))
 	.handler(async ({ data }) => {
 		const context = await ownedAttempt(data.attemptId);
-		let attempt = context.attempt;
-		if (attempt.status === "in_progress" && new Date() >= attempt.deadlineAt)
-			attempt = (await finalizeAttempt(attempt.id, "timeout")) ?? attempt;
+		const attempt = context.attempt;
 		const items = await db
 			.select({
 				id: schema.examItem.id,
@@ -700,8 +698,7 @@ export const saveAttemptResponse = createServerFn({ method: "POST" })
 		if (context.attempt.status !== "in_progress")
 			throw new Error("This attempt has already been submitted.");
 		if (new Date() >= context.attempt.deadlineAt) {
-			await finalizeAttempt(context.attempt.id, "timeout");
-			throw new Error("Time is up. Your saved answers were submitted.");
+			throw new Error("Time is up. Submit your saved answers to continue.");
 		}
 		const [valid] = await db
 			.select({ id: schema.examItemOption.id })
@@ -744,16 +741,18 @@ export const submitExamAttempt = createServerFn({ method: "POST" })
 		const reason =
 			new Date() >= context.attempt.deadlineAt ? "timeout" : "manual";
 		const attempt = await finalizeAttempt(context.attempt.id, reason);
-		await auditForSession(context.session, {
-			category: "organization",
-			type:
-				reason === "timeout"
-					? "exam_attempt.timed_out"
-					: "exam_attempt.submitted",
-			organizationId: context.organizationId,
-			targetType: "examAttempt",
-			targetId: context.attempt.id,
-		});
+		if (context.attempt.status === "in_progress") {
+			await auditForSession(context.session, {
+				category: "organization",
+				type:
+					reason === "timeout"
+						? "exam_attempt.timed_out"
+						: "exam_attempt.submitted",
+				organizationId: context.organizationId,
+				targetType: "examAttempt",
+				targetId: context.attempt.id,
+			});
+		}
 		return { id: context.attempt.id, status: attempt?.status };
 	});
 
@@ -763,9 +762,7 @@ export const getMyExamResult = createServerFn({ method: "GET" })
 	}))
 	.handler(async ({ data }) => {
 		const context = await ownedAttempt(data.attemptId);
-		let attempt = context.attempt;
-		if (attempt.status === "in_progress" && new Date() >= attempt.deadlineAt)
-			attempt = (await finalizeAttempt(attempt.id, "timeout")) ?? attempt;
+		const attempt = context.attempt;
 		if (attempt.status === "in_progress")
 			throw new Error("Submit the exam before viewing results.");
 		const reviewAvailable = new Date() >= context.schedule.closesAt;
