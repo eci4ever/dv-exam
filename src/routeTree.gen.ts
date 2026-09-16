@@ -28,6 +28,9 @@ import { Route as ExamsNewRouteImport } from './routes/exams/new'
 import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
+import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
+import { Route as ScheduleScheduleIdRouteImport } from './routes/schedule/$scheduleId'
+import { Route as ScheduleNewRouteImport } from './routes/schedule/new'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId_.preview'
@@ -127,6 +130,21 @@ const QuestionsNewRoute = QuestionsNewRouteImport.update({
   path: '/questions/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScheduleIndexRoute = ScheduleIndexRouteImport.update({
+  id: '/schedule/',
+  path: '/schedule/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleScheduleIdRoute = ScheduleScheduleIdRouteImport.update({
+  id: '/schedule/$scheduleId',
+  path: '/schedule/$scheduleId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleNewRoute = ScheduleNewRouteImport.update({
+  id: '/schedule/new',
+  path: '/schedule/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
   id: '/workspace/settings',
   path: '/workspace/settings',
@@ -160,10 +178,13 @@ export interface FileRoutesByFullPath {
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
+  '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
 }
@@ -184,10 +205,13 @@ export interface FileRoutesByTo {
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
+  '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
   '/exams': typeof ExamsIndexRoute
   '/questions': typeof QuestionsIndexRoute
+  '/schedule': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
 }
@@ -209,10 +233,13 @@ export interface FileRoutesById {
   '/exams/new': typeof ExamsNewRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
+  '/schedule/new': typeof ScheduleNewRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId_/preview': typeof ExamsExamIdPreviewRoute
 }
@@ -235,10 +262,13 @@ export interface FileRouteTypes {
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/schedule/$scheduleId'
+    | '/schedule/new'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId/preview'
   fileRoutesByTo: FileRoutesByTo
@@ -259,10 +289,13 @@ export interface FileRouteTypes {
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/schedule/$scheduleId'
+    | '/schedule/new'
     | '/workspace/settings'
     | '/admin'
     | '/exams'
     | '/questions'
+    | '/schedule'
     | '/api/auth/$'
     | '/exams/$examId/preview'
   id:
@@ -283,10 +316,13 @@ export interface FileRouteTypes {
     | '/exams/new'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/schedule/$scheduleId'
+    | '/schedule/new'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId_/preview'
   fileRoutesById: FileRoutesById
@@ -308,10 +344,13 @@ export interface RootRouteChildren {
   ExamsNewRoute: typeof ExamsNewRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
+  ScheduleScheduleIdRoute: typeof ScheduleScheduleIdRoute
+  ScheduleNewRoute: typeof ScheduleNewRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
   QuestionsIndexRoute: typeof QuestionsIndexRoute
+  ScheduleIndexRoute: typeof ScheduleIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
 }
@@ -451,6 +490,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuestionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/schedule/': {
+      id: '/schedule/'
+      path: '/schedule'
+      fullPath: '/schedule/'
+      preLoaderRoute: typeof ScheduleIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule/$scheduleId': {
+      id: '/schedule/$scheduleId'
+      path: '/schedule/$scheduleId'
+      fullPath: '/schedule/$scheduleId'
+      preLoaderRoute: typeof ScheduleScheduleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule/new': {
+      id: '/schedule/new'
+      path: '/schedule/new'
+      fullPath: '/schedule/new'
+      preLoaderRoute: typeof ScheduleNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/settings': {
       id: '/workspace/settings'
       path: '/workspace/settings'
@@ -492,10 +552,13 @@ const rootRouteChildren: RootRouteChildren = {
   ExamsNewRoute: ExamsNewRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
+  ScheduleScheduleIdRoute: ScheduleScheduleIdRoute,
+  ScheduleNewRoute: ScheduleNewRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   ExamsIndexRoute: ExamsIndexRoute,
   QuestionsIndexRoute: QuestionsIndexRoute,
+  ScheduleIndexRoute: ScheduleIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
 }

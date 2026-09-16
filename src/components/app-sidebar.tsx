@@ -62,7 +62,10 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "audit"
 		| "admin-settings"
 		| "exams"
-		| "questions";
+		| "questions"
+		| "schedule"
+		| "my-exams"
+		| "results";
 }
 
 interface MockSidebarItemProps {
@@ -145,13 +148,46 @@ export function AppSidebar({
 									/>
 								</SidebarMenuItem>
 							) : (
-								<MockSidebarItem icon={FileTextIcon} label="My Exams" />
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/my-exams">
+												<FileTextIcon />
+												<span>My Exams</span>
+											</a>
+										}
+										isActive={activeItem === "my-exams"}
+										tooltip="My Exams"
+									/>
+								</SidebarMenuItem>
 							)}
-							<MockSidebarItem icon={CalendarDaysIcon} label="Schedule" />
-							<MockSidebarItem
-								icon={ChartNoAxesColumnIncreasingIcon}
-								label="Results"
-							/>
+							{canManageExams ? (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/schedule">
+												<CalendarDaysIcon />
+												<span>Schedule</span>
+											</a>
+										}
+										isActive={activeItem === "schedule"}
+										tooltip="Schedule"
+									/>
+								</SidebarMenuItem>
+							) : (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/results">
+												<ChartNoAxesColumnIncreasingIcon />
+												<span>Results</span>
+											</a>
+										}
+										isActive={activeItem === "results"}
+										tooltip="Results"
+									/>
+								</SidebarMenuItem>
+							)}
 							{canManageExams ? (
 								<SidebarMenuItem>
 									<SidebarMenuButton
