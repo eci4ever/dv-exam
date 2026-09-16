@@ -402,6 +402,122 @@ export const examItemOption = sqliteTable(
 	],
 );
 
+export const examSchedule = sqliteTable(
+	"examSchedule",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		examId: text("examId")
+			.notNull()
+			.references(() => exam.id, { onDelete: "restrict" }),
+		opensAt: integer("opensAt", { mode: "timestamp_ms" }).notNull(),
+		closesAt: integer("closesAt", { mode: "timestamp_ms" }).notNull(),
+		cancelledAt: integer("cancelledAt", { mode: "timestamp_ms" }),
+		cancelledBy: text("cancelledBy").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdBy: text("createdBy")
+			.notNull()
+			.references(() => user.id, { onDelete: "restrict" }),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("examSchedule_organization_window_idx").on(
+			table.organizationId,
+			table.opensAt,
+			table.closesAt,
+		),
+		index("examSchedule_exam_idx").on(table.examId),
+	],
+);
+
+export const examScheduleRecipient = sqliteTable(
+	"examScheduleRecipient",
+	{
+		id: text("id").primaryKey(),
+		scheduleId: text("scheduleId")
+			.notNull()
+			.references(() => examSchedule.id, { onDelete: "cascade" }),
+		userId: text("userId")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		assignedAt: integer("assignedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("examScheduleRecipient_schedule_user_idx").on(
+			table.scheduleId,
+			table.userId,
+		),
+		index("examScheduleRecipient_user_idx").on(table.userId),
+	],
+);
+
+export const examAttempt = sqliteTable(
+	"examAttempt",
+	{
+		id: text("id").primaryKey(),
+		scheduleId: text("scheduleId")
+			.notNull()
+			.references(() => examSchedule.id, { onDelete: "cascade" }),
+		examId: text("examId")
+			.notNull()
+			.references(() => exam.id, { onDelete: "restrict" }),
+		userId: text("userId")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		status: text("status")
+			.$type<"in_progress" | "submitted" | "timed_out">()
+			.default("in_progress")
+			.notNull(),
+		submissionReason: text("submissionReason").$type<"manual" | "timeout">(),
+		startedAt: integer("startedAt", { mode: "timestamp_ms" }).notNull(),
+		deadlineAt: integer("deadlineAt", { mode: "timestamp_ms" }).notNull(),
+		submittedAt: integer("submittedAt", { mode: "timestamp_ms" }),
+		score: integer("score"),
+		maxScore: integer("maxScore"),
+		percentage: integer("percentage"),
+		passed: integer("passed", { mode: "boolean" }),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("examAttempt_schedule_user_idx").on(
+			table.scheduleId,
+			table.userId,
+		),
+		index("examAttempt_user_status_idx").on(table.userId, table.status),
+		index("examAttempt_schedule_status_idx").on(table.scheduleId, table.status),
+		index("examAttempt_organization_usage_idx").on(table.startedAt),
+	],
+);
+
+export const examResponse = sqliteTable(
+	"examResponse",
+	{
+		id: text("id").primaryKey(),
+		attemptId: text("attemptId")
+			.notNull()
+			.references(() => examAttempt.id, { onDelete: "cascade" }),
+		examItemId: text("examItemId")
+			.notNull()
+			.references(() => examItem.id, { onDelete: "restrict" }),
+		selectedOptionId: text("selectedOptionId").references(
+			() => examItemOption.id,
+			{ onDelete: "restrict" },
+		),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("examResponse_attempt_item_idx").on(
+			table.attemptId,
+			table.examItemId,
+		),
+	],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
@@ -429,6 +545,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 	entitlements: many(organizationEntitlement),
 	questions: many(question),
 	exams: many(exam),
+	examSchedules: many(examSchedule),
 }));
 
 export const questionRelations = relations(question, ({ one, many }) => ({
@@ -463,6 +580,8 @@ export const examRelations = relations(exam, ({ one, many }) => ({
 	}),
 	creator: one(user, { fields: [exam.createdBy], references: [user.id] }),
 	items: many(examItem),
+	schedules: many(examSchedule),
+	attempts: many(examAttempt),
 }));
 
 export const examItemRelations = relations(examItem, ({ one, many }) => ({
@@ -472,12 +591,68 @@ export const examItemRelations = relations(examItem, ({ one, many }) => ({
 		references: [question.id],
 	}),
 	options: many(examItemOption),
+	responses: many(examResponse),
 }));
 
 export const examItemOptionRelations = relations(examItemOption, ({ one }) => ({
 	examItem: one(examItem, {
 		fields: [examItemOption.examItemId],
 		references: [examItem.id],
+	}),
+}));
+
+export const examScheduleRelations = relations(
+	examSchedule,
+	({ one, many }) => ({
+		organization: one(organization, {
+			fields: [examSchedule.organizationId],
+			references: [organization.id],
+		}),
+		exam: one(exam, {
+			fields: [examSchedule.examId],
+			references: [exam.id],
+		}),
+		recipients: many(examScheduleRecipient),
+		attempts: many(examAttempt),
+	}),
+);
+
+export const examScheduleRecipientRelations = relations(
+	examScheduleRecipient,
+	({ one }) => ({
+		schedule: one(examSchedule, {
+			fields: [examScheduleRecipient.scheduleId],
+			references: [examSchedule.id],
+		}),
+		user: one(user, {
+			fields: [examScheduleRecipient.userId],
+			references: [user.id],
+		}),
+	}),
+);
+
+export const examAttemptRelations = relations(examAttempt, ({ one, many }) => ({
+	schedule: one(examSchedule, {
+		fields: [examAttempt.scheduleId],
+		references: [examSchedule.id],
+	}),
+	exam: one(exam, { fields: [examAttempt.examId], references: [exam.id] }),
+	user: one(user, { fields: [examAttempt.userId], references: [user.id] }),
+	responses: many(examResponse),
+}));
+
+export const examResponseRelations = relations(examResponse, ({ one }) => ({
+	attempt: one(examAttempt, {
+		fields: [examResponse.attemptId],
+		references: [examAttempt.id],
+	}),
+	item: one(examItem, {
+		fields: [examResponse.examItemId],
+		references: [examItem.id],
+	}),
+	selectedOption: one(examItemOption, {
+		fields: [examResponse.selectedOptionId],
+		references: [examItemOption.id],
 	}),
 }));
 
