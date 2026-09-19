@@ -41,6 +41,8 @@ import { Route as WorkspaceMembersRouteImport } from './routes/workspace/members
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId_.preview'
+import { Route as WorkspaceClassesIndexRouteImport } from './routes/workspace/classes/index'
+import { Route as WorkspaceClassesClassIdRouteImport } from './routes/workspace/classes/$classId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -202,6 +204,16 @@ const ExamsExamIdPreviewRoute = ExamsExamIdPreviewRouteImport.update({
   path: '/exams/$examId/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceClassesIndexRoute = WorkspaceClassesIndexRouteImport.update({
+  id: '/workspace/classes/',
+  path: '/workspace/classes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceClassesClassIdRoute = WorkspaceClassesClassIdRouteImport.update({
+  id: '/workspace/classes/$classId',
+  path: '/workspace/classes/$classId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -236,6 +248,8 @@ export interface FileRoutesByFullPath {
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
+  '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
+  '/workspace/classes/': typeof WorkspaceClassesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -270,6 +284,8 @@ export interface FileRoutesByTo {
   '/schedule': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
+  '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
+  '/workspace/classes': typeof WorkspaceClassesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -305,6 +321,8 @@ export interface FileRoutesById {
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId_/preview': typeof ExamsExamIdPreviewRoute
+  '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
+  '/workspace/classes/': typeof WorkspaceClassesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -341,6 +359,8 @@ export interface FileRouteTypes {
     | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId/preview'
+    | '/workspace/classes/$classId'
+    | '/workspace/classes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -375,6 +395,8 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/api/auth/$'
     | '/exams/$examId/preview'
+    | '/workspace/classes/$classId'
+    | '/workspace/classes'
   id:
     | '__root__'
     | '/'
@@ -409,6 +431,8 @@ export interface FileRouteTypes {
     | '/schedule/'
     | '/api/auth/$'
     | '/exams/$examId_/preview'
+    | '/workspace/classes/$classId'
+    | '/workspace/classes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -444,6 +468,8 @@ export interface RootRouteChildren {
   ScheduleIndexRoute: typeof ScheduleIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
+  WorkspaceClassesClassIdRoute: typeof WorkspaceClassesClassIdRoute
+  WorkspaceClassesIndexRoute: typeof WorkspaceClassesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -672,6 +698,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamsExamIdPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/classes/': {
+      id: '/workspace/classes/'
+      path: '/workspace/classes'
+      fullPath: '/workspace/classes/'
+      preLoaderRoute: typeof WorkspaceClassesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace/classes/$classId': {
+      id: '/workspace/classes/$classId'
+      path: '/workspace/classes/$classId'
+      fullPath: '/workspace/classes/$classId'
+      preLoaderRoute: typeof WorkspaceClassesClassIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -708,6 +748,8 @@ const rootRouteChildren: RootRouteChildren = {
   ScheduleIndexRoute: ScheduleIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
+  WorkspaceClassesClassIdRoute: WorkspaceClassesClassIdRoute,
+  WorkspaceClassesIndexRoute: WorkspaceClassesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -67,7 +67,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "my-exams"
 		| "results"
 		| "workspace-members"
-		| "workspace-invitations";
+		| "workspace-invitations"
+		| "workspace-classes";
 }
 
 interface MockSidebarItemProps {
@@ -241,10 +242,18 @@ export function AppSidebar({
 											tooltip="Invitations"
 										/>
 									</SidebarMenuItem>
-									<MockSidebarItem
-										icon={GraduationCapIcon}
-										label="Academic Setup"
-									/>
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											render={
+												<a href="/workspace/classes">
+													<GraduationCapIcon />
+													<span>Classes</span>
+												</a>
+											}
+											isActive={activeItem === "workspace-classes"}
+											tooltip="Classes"
+										/>
+									</SidebarMenuItem>
 									{isOrganizationOwner ? (
 										<SidebarMenuItem>
 											<SidebarMenuButton

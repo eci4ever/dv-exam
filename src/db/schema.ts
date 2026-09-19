@@ -162,6 +162,61 @@ export const invitation = sqliteTable(
 	],
 );
 
+export const academicClass = sqliteTable(
+	"academicClass",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		code: text("code").notNull(),
+		name: text("name").notNull(),
+		description: text("description"),
+		status: text("status")
+			.$type<"active" | "archived">()
+			.default("active")
+			.notNull(),
+		createdBy: text("createdBy")
+			.notNull()
+			.references(() => user.id, { onDelete: "restrict" }),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("academicClass_organization_code_idx").on(
+			table.organizationId,
+			table.code,
+		),
+		index("academicClass_organization_status_idx").on(
+			table.organizationId,
+			table.status,
+		),
+	],
+);
+
+export const academicClassMember = sqliteTable(
+	"academicClassMember",
+	{
+		id: text("id").primaryKey(),
+		classId: text("classId")
+			.notNull()
+			.references(() => academicClass.id, { onDelete: "cascade" }),
+		memberId: text("memberId")
+			.notNull()
+			.references(() => member.id, { onDelete: "cascade" }),
+		role: text("role").$type<"teacher" | "student">().notNull(),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("academicClassMember_class_member_idx").on(
+			table.classId,
+			table.memberId,
+		),
+		index("academicClassMember_class_role_idx").on(table.classId, table.role),
+		index("academicClassMember_member_idx").on(table.memberId),
+	],
+);
+
 export const platformPlan = sqliteTable(
 	"platformPlan",
 	{
@@ -546,7 +601,33 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 	questions: many(question),
 	exams: many(exam),
 	examSchedules: many(examSchedule),
+	academicClasses: many(academicClass),
 }));
+
+export const academicClassRelations = relations(
+	academicClass,
+	({ one, many }) => ({
+		organization: one(organization, {
+			fields: [academicClass.organizationId],
+			references: [organization.id],
+		}),
+		members: many(academicClassMember),
+	}),
+);
+
+export const academicClassMemberRelations = relations(
+	academicClassMember,
+	({ one }) => ({
+		academicClass: one(academicClass, {
+			fields: [academicClassMember.classId],
+			references: [academicClass.id],
+		}),
+		member: one(member, {
+			fields: [academicClassMember.memberId],
+			references: [member.id],
+		}),
+	}),
+);
 
 export const questionRelations = relations(question, ({ one, many }) => ({
 	organization: one(organization, {

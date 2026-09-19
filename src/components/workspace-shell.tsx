@@ -37,7 +37,8 @@ interface WorkspaceShellProps {
 		| "my-exams"
 		| "results"
 		| "workspace-members"
-		| "workspace-invitations";
+		| "workspace-invitations"
+		| "workspace-classes";
 	title: string;
 	children: ReactNode;
 }
