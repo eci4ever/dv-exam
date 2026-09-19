@@ -28,6 +28,7 @@ import {
 	assertUserHasNoOwnedOrganizations,
 	assertWritableSession,
 } from "@/lib/platform-policy";
+import { isInvitationUsableForSignup } from "@/lib/workspace-member-policy";
 
 async function assertMemberCapacity(organizationId: string) {
 	await ensurePlatformData();
@@ -114,6 +115,30 @@ async function assertInvitationCapacity(
 		});
 }
 
+async function isValidInvitationSignup(
+	invitationId: string | null,
+	email: unknown,
+) {
+	if (!invitationId || typeof email !== "string") return false;
+	const [pending] = await db
+		.select({
+			email: schema.invitation.email,
+			status: schema.invitation.status,
+			expiresAt: schema.invitation.expiresAt,
+		})
+		.from(schema.invitation)
+		.where(eq(schema.invitation.id, invitationId))
+		.limit(1);
+	return pending
+		? isInvitationUsableForSignup({
+				status: pending.status,
+				expiresAt: pending.expiresAt,
+				invitedEmail: pending.email,
+				signupEmail: email,
+			})
+		: false;
+}
+
 export const auth = betterAuth({
 	baseURL: env.BETTER_AUTH_URL,
 	database: drizzleAdapter(db, {
@@ -151,8 +176,15 @@ export const auth = betterAuth({
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path === "/sign-up/email") {
 				const settings = await getPlatformSettingsRecord();
+				const invitationSignup = await isValidInvitationSignup(
+					ctx.headers?.get("x-dv-exam-invitation") ?? null,
+					ctx.body?.email,
+				);
 				try {
-					assertPublicSignupEnabled(settings.publicSignupEnabled, false);
+					assertPublicSignupEnabled(
+						settings.publicSignupEnabled,
+						invitationSignup,
+					);
 				} catch (error) {
 					throw new APIError("FORBIDDEN", {
 						message:

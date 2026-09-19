@@ -3,7 +3,6 @@ import {
 	Link,
 	redirect,
 	useNavigate,
-	useSearch,
 } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -14,18 +13,32 @@ import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/session";
 
 export const Route = createFileRoute("/login")({
-	beforeLoad: async () => {
+	validateSearch: (search: Record<string, unknown>) => {
+		const result: { reset?: string; invitationId?: string } = {};
+		if (typeof search.reset === "string") result.reset = search.reset;
+		if (typeof search.invitationId === "string")
+			result.invitationId = search.invitationId;
+		return result;
+	},
+	beforeLoad: async ({ search }) => {
 		const session = await getSession();
 
 		if (session) {
-			throw redirect({ to: "/dashboard" });
+			throw redirect(
+				search.invitationId
+					? {
+							to: "/invitations/$invitationId",
+							params: { invitationId: search.invitationId },
+						}
+					: { to: "/dashboard" },
+			);
 		}
 	},
 	component: Login,
 });
 
 function Login() {
-	const search = useSearch({ strict: false }) as { reset?: string };
+	const search = Route.useSearch();
 	const navigate = useNavigate();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -46,7 +59,14 @@ function Login() {
 			return;
 		}
 
-		await navigate({ to: "/dashboard" });
+		await navigate(
+			search.invitationId
+				? {
+						to: "/invitations/$invitationId",
+						params: { invitationId: search.invitationId },
+					}
+				: { to: "/dashboard" },
+		);
 	}
 
 	return (
@@ -59,6 +79,7 @@ function Login() {
 					<Link
 						className="font-medium text-foreground underline underline-offset-4"
 						to="/signup"
+						search={{ invitationId: search.invitationId }}
 					>
 						Create an account
 					</Link>

@@ -4,8 +4,11 @@ import { and, asc, count, eq, gt, like, lt } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { auditForSession } from "@/lib/platform-core";
-import { assertMemberRole } from "@/lib/workspace-member-policy";
+import { auditForSession, requireAccountSession } from "@/lib/platform-core";
+import {
+	assertMemberRole,
+	invitationState,
+} from "@/lib/workspace-member-policy";
 import { requireWorkspaceManager } from "@/lib/workspace-members";
 
 function objectInput(value: unknown) {
@@ -236,6 +239,74 @@ export const cancelWorkspaceInvitation = createServerFn({ method: "POST" })
 		await auth.api.cancelInvitation({
 			headers,
 			body: { invitationId: invitation.id },
+		});
+		return { success: true };
+	});
+
+function maskEmail(email: string) {
+	const [local, domain] = email.split("@");
+	if (!domain) return "Hidden email";
+	return `${local.slice(0, 1)}${"•".repeat(Math.max(2, Math.min(6, local.length - 1)))}@${domain}`;
+}
+
+export const getInvitationPreview = createServerFn({ method: "GET" })
+	.validator((value: unknown) => ({
+		invitationId: text(objectInput(value).invitationId, "Invitation"),
+	}))
+	.handler(async ({ data }) => {
+		const [invitation] = await db
+			.select({
+				id: schema.invitation.id,
+				email: schema.invitation.email,
+				role: schema.invitation.role,
+				status: schema.invitation.status,
+				expiresAt: schema.invitation.expiresAt,
+				organizationName: schema.organization.name,
+			})
+			.from(schema.invitation)
+			.innerJoin(
+				schema.organization,
+				eq(schema.organization.id, schema.invitation.organizationId),
+			)
+			.where(eq(schema.invitation.id, data.invitationId))
+			.limit(1);
+		if (!invitation) return { state: "invalid" as const };
+		const state = invitationState(invitation.status, invitation.expiresAt);
+		return {
+			state,
+			organizationName: invitation.organizationName,
+			role: invitation.role,
+			maskedEmail: maskEmail(invitation.email),
+			expiresAt: invitation.expiresAt,
+		};
+	});
+
+export const acceptWorkspaceInvitation = createServerFn({ method: "POST" })
+	.validator((value: unknown) => ({
+		invitationId: text(objectInput(value).invitationId, "Invitation"),
+	}))
+	.handler(async ({ data }) => {
+		const { headers } = await requireAccountSession({ writable: true });
+		const result = await auth.api.acceptInvitation({
+			headers,
+			body: { invitationId: data.invitationId },
+		});
+		await auth.api.setActiveOrganization({
+			headers,
+			body: { organizationId: result.member.organizationId },
+		});
+		return { organizationId: result.member.organizationId };
+	});
+
+export const rejectWorkspaceInvitation = createServerFn({ method: "POST" })
+	.validator((value: unknown) => ({
+		invitationId: text(objectInput(value).invitationId, "Invitation"),
+	}))
+	.handler(async ({ data }) => {
+		const { headers } = await requireAccountSession({ writable: true });
+		await auth.api.rejectInvitation({
+			headers,
+			body: { invitationId: data.invitationId },
 		});
 		return { success: true };
 	});

@@ -12,21 +12,46 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { getRegistrationStatus } from "@/lib/platform-admin";
 import { getSession } from "@/lib/session";
+import { getInvitationPreview } from "@/lib/workspace-invitations";
 
 export const Route = createFileRoute("/signup")({
-	beforeLoad: async () => {
+	validateSearch: (search: Record<string, unknown>) => {
+		const result: { invitationId?: string } = {};
+		if (typeof search.invitationId === "string")
+			result.invitationId = search.invitationId;
+		return result;
+	},
+	beforeLoad: async ({ search }) => {
 		const session = await getSession();
 
 		if (session) {
-			throw redirect({ to: "/dashboard" });
+			throw redirect(
+				search.invitationId
+					? {
+							to: "/invitations/$invitationId",
+							params: { invitationId: search.invitationId },
+						}
+					: { to: "/dashboard" },
+			);
 		}
 	},
-	loader: () => getRegistrationStatus(),
+	loaderDeps: ({ search }) => ({ invitationId: search.invitationId }),
+	loader: async ({ deps }) => {
+		const registration = await getRegistrationStatus();
+		const invitation = deps.invitationId
+			? await getInvitationPreview({
+					data: { invitationId: deps.invitationId },
+				})
+			: null;
+		return { registration, invitation };
+	},
 	component: Signup,
 });
 
 function Signup() {
-	const registration = Route.useLoaderData();
+	const { registration, invitation } = Route.useLoaderData();
+	const search = Route.useSearch();
+	const invitationSignup = invitation?.state === "pending";
 	const navigate = useNavigate();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -68,7 +93,12 @@ function Signup() {
 		setError(null);
 		setIsPending(true);
 
-		const result = await authClient.signUp.email({ name, email, password });
+		const result = await authClient.signUp.email(
+			{ name, email, password },
+			search.invitationId
+				? { headers: { "x-dv-exam-invitation": search.invitationId } }
+				: undefined,
+		);
 
 		setIsPending(false);
 
@@ -80,6 +110,13 @@ function Signup() {
 			return;
 		}
 
+		if (search.invitationId) {
+			await navigate({
+				to: "/invitations/$invitationId",
+				params: { invitationId: search.invitationId },
+			});
+			return;
+		}
 		await createWorkspace(result.data.user);
 	}
 
@@ -97,13 +134,15 @@ function Signup() {
 	return (
 		<AuthLayout
 			title={
-				registration.enabled
+				registration.enabled || invitationSignup
 					? "Create your account"
 					: "Sign-ups are currently closed"
 			}
 			description={
-				registration.enabled
-					? "Start organising your exams in one simple workspace."
+				registration.enabled || invitationSignup
+					? invitationSignup
+						? `Create an account to join ${invitation.organizationName}.`
+						: "Start organising your exams in one simple workspace."
 					: "An administrator has temporarily disabled new registrations."
 			}
 			footer={
@@ -112,6 +151,7 @@ function Signup() {
 					<Link
 						className="font-medium text-foreground underline underline-offset-4"
 						to="/login"
+						search={{ invitationId: search.invitationId }}
 					>
 						Sign in
 					</Link>
@@ -172,10 +212,10 @@ function Signup() {
 				<Button
 					className="mt-1 h-10 w-full"
 					type={createdUser ? "button" : "submit"}
-					disabled={isPending || !registration.enabled}
+					disabled={isPending || (!registration.enabled && !invitationSignup)}
 					onClick={createdUser ? retryWorkspace : undefined}
 				>
-					{!registration.enabled
+					{!registration.enabled && !invitationSignup
 						? "Registration closed"
 						: isPending
 							? "Creating account…"

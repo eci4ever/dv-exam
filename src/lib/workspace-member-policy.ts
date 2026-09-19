@@ -52,3 +52,25 @@ export function assertSeatAvailable(input: {
 	if (input.members + input.pendingInvitations >= input.limit)
 		throw new Error("This workspace has reached its member limit.");
 }
+
+export function invitationState(
+	status: string,
+	expiresAt: Date,
+	now = new Date(),
+) {
+	return status === "pending" && expiresAt <= now ? "expired" : status;
+}
+
+export function isInvitationUsableForSignup(input: {
+	status: string;
+	expiresAt: Date;
+	invitedEmail: string;
+	signupEmail: string;
+	now?: Date;
+}) {
+	return (
+		invitationState(input.status, input.expiresAt, input.now) === "pending" &&
+		input.invitedEmail.trim().toLowerCase() ===
+			input.signupEmail.trim().toLowerCase()
+	);
+}

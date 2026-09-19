@@ -3,6 +3,8 @@ import {
 	assertMemberCanBeManaged,
 	assertSeatAvailable,
 	assertWorkspaceManager,
+	invitationState,
+	isInvitationUsableForSignup,
 } from "@/lib/workspace-member-policy";
 
 describe("workspace member policy", () => {
@@ -52,5 +54,30 @@ describe("workspace member policy", () => {
 		expect(() =>
 			assertSeatAvailable({ members: 8, pendingInvitations: 1, limit: 10 }),
 		).not.toThrow();
+	});
+
+	it("requires a pending, unexpired invitation for the same email", () => {
+		const now = new Date("2026-09-19T00:00:00Z");
+		expect(
+			isInvitationUsableForSignup({
+				status: "pending",
+				expiresAt: new Date("2026-09-20T00:00:00Z"),
+				invitedEmail: "Learner@Example.com",
+				signupEmail: "learner@example.com",
+				now,
+			}),
+		).toBe(true);
+		expect(
+			isInvitationUsableForSignup({
+				status: "pending",
+				expiresAt: new Date("2026-09-18T00:00:00Z"),
+				invitedEmail: "learner@example.com",
+				signupEmail: "learner@example.com",
+				now,
+			}),
+		).toBe(false);
+		expect(
+			invitationState("pending", new Date("2026-09-18T00:00:00Z"), now),
+		).toBe("expired");
 	});
 });

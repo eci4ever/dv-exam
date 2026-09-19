@@ -27,6 +27,7 @@ import { Route as AttemptsAttemptIdRouteImport } from './routes/attempts/$attemp
 import { Route as ExamsIndexRouteImport } from './routes/exams/index'
 import { Route as ExamsExamIdRouteImport } from './routes/exams/$examId'
 import { Route as ExamsNewRouteImport } from './routes/exams/new'
+import { Route as InvitationsInvitationIdRouteImport } from './routes/invitations/$invitationId'
 import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
@@ -131,6 +132,11 @@ const ExamsNewRoute = ExamsNewRouteImport.update({
   path: '/exams/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitationsInvitationIdRoute = InvitationsInvitationIdRouteImport.update({
+  id: '/invitations/$invitationId',
+  path: '/invitations/$invitationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuestionsIndexRoute = QuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
+  '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
+  '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/attempts/$attemptId': typeof AttemptsAttemptIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exams/new': typeof ExamsNewRoute
+  '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
+    | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
     | '/results/$attemptId'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
+    | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
     | '/results/$attemptId'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/attempts/$attemptId'
     | '/exams/$examId'
     | '/exams/new'
+    | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
     | '/results/$attemptId'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   AttemptsAttemptIdRoute: typeof AttemptsAttemptIdRoute
   ExamsExamIdRoute: typeof ExamsExamIdRoute
   ExamsNewRoute: typeof ExamsNewRoute
+  InvitationsInvitationIdRoute: typeof InvitationsInvitationIdRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
   ResultsAttemptIdRoute: typeof ResultsAttemptIdRoute
@@ -561,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitations/$invitationId': {
+      id: '/invitations/$invitationId'
+      path: '/invitations/$invitationId'
+      fullPath: '/invitations/$invitationId'
+      preLoaderRoute: typeof InvitationsInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/questions/': {
       id: '/questions/'
       path: '/questions'
@@ -672,6 +692,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttemptsAttemptIdRoute: AttemptsAttemptIdRoute,
   ExamsExamIdRoute: ExamsExamIdRoute,
   ExamsNewRoute: ExamsNewRoute,
+  InvitationsInvitationIdRoute: InvitationsInvitationIdRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
   ResultsAttemptIdRoute: ResultsAttemptIdRoute,
