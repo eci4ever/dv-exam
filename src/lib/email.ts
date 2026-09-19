@@ -22,6 +22,67 @@ async function digestToken(token: string) {
 		.join("");
 }
 
+async function deliverWorkspaceInvitation(input: {
+	email: string;
+	invitationId: string;
+	inviterName: string;
+	organizationName: string;
+	role: string;
+}) {
+	const runtimeEnv = env as Cloudflare.Env & { RESEND_FROM_EMAIL?: string };
+	const from = runtimeEnv.RESEND_FROM_EMAIL ?? runtimeEnv.EMAIL_FROM;
+	if (!env.RESEND_API_KEY || !from)
+		throw new Error("Invitation email delivery is not configured.");
+	const resend = new Resend(env.RESEND_API_KEY);
+	const url = `${env.BETTER_AUTH_URL.replace(/\/$/, "")}/invitations/${encodeURIComponent(input.invitationId)}`;
+	const safeUrl = escapeHtml(url);
+	const safeInviter = escapeHtml(input.inviterName);
+	const safeOrganization = escapeHtml(input.organizationName);
+	const safeRole = escapeHtml(input.role);
+	const result = await resend.emails.send(
+		{
+			from,
+			to: input.email,
+			subject: `You're invited to ${input.organizationName} on DV-EXAM`,
+			html: `<p>${safeInviter} invited you to join <strong>${safeOrganization}</strong> as ${safeRole}.</p><p><a href="${safeUrl}">Review invitation</a></p><p>This invitation expires in seven days.</p>`,
+			text: `${input.inviterName} invited you to join ${input.organizationName} as ${input.role}.\n\nReview invitation: ${url}\n\nThis invitation expires in seven days.`,
+		},
+		{
+			idempotencyKey: `workspace-invitation/${await digestToken(input.invitationId)}`,
+		},
+	);
+	if (result.error) throw new Error(result.error.name);
+}
+
+export function queueWorkspaceInvitationEmail(input: {
+	email: string;
+	invitationId: string;
+	inviterName: string;
+	organizationName: string;
+	role: string;
+	organizationId: string;
+	inviterId: string;
+}) {
+	waitUntil(
+		deliverWorkspaceInvitation(input).catch(async (error) => {
+			await writeAuditEvent({
+				category: "organization",
+				type: "workspace.invitation-delivery",
+				result: "failure",
+				actorUserId: input.inviterId,
+				effectiveUserId: input.inviterId,
+				targetType: "organization",
+				targetId: input.organizationId,
+				organizationId: input.organizationId,
+				metadata: {
+					provider: "resend",
+					error: error instanceof Error ? error.name : "UnknownError",
+				},
+			});
+		}),
+	);
+}
+
 async function deliverPasswordReset(input: {
 	email: string;
 	name: string;

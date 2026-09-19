@@ -4,11 +4,14 @@ import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { queuePasswordResetEmail } from "@/lib/email";
+import {
+	queuePasswordResetEmail,
+	queueWorkspaceInvitationEmail,
+} from "@/lib/email";
 import {
 	organizationAccessControl,
 	organizationRoles,
@@ -59,6 +62,56 @@ async function assertMemberCapacity(organizationId: string) {
 			message: "This workspace has reached its member limit.",
 		});
 	}
+}
+
+async function assertInvitationCapacity(
+	organizationId: string,
+	invitedEmail: string,
+) {
+	await ensurePlatformData();
+	const [entitlement, members, invitations] = await Promise.all([
+		db
+			.select({
+				limit: schema.platformPlan.memberLimit,
+				status: schema.organizationEntitlement.status,
+			})
+			.from(schema.organizationEntitlement)
+			.innerJoin(
+				schema.platformPlan,
+				eq(schema.platformPlan.id, schema.organizationEntitlement.planId),
+			)
+			.where(eq(schema.organizationEntitlement.organizationId, organizationId))
+			.limit(1)
+			.then((rows) => rows[0]),
+		db
+			.select({ total: count() })
+			.from(schema.member)
+			.where(eq(schema.member.organizationId, organizationId))
+			.then((rows) => rows[0]?.total ?? 0),
+		db
+			.select({ total: count() })
+			.from(schema.invitation)
+			.where(
+				and(
+					eq(schema.invitation.organizationId, organizationId),
+					eq(schema.invitation.status, "pending"),
+					gt(schema.invitation.expiresAt, new Date()),
+					ne(
+						sql`lower(${schema.invitation.email})`,
+						invitedEmail.toLowerCase(),
+					),
+				),
+			)
+			.then((rows) => rows[0]?.total ?? 0),
+	]);
+	if (entitlement?.status === "suspended")
+		throw new APIError("FORBIDDEN", {
+			message: "This workspace is suspended.",
+		});
+	if (entitlement && members + invitations >= entitlement.limit)
+		throw new APIError("FORBIDDEN", {
+			message: "This workspace has reached its member limit.",
+		});
 }
 
 export const auth = betterAuth({
@@ -248,9 +301,74 @@ export const auth = betterAuth({
 		admin(),
 		organization({
 			ac: organizationAccessControl,
+			invitationExpiresIn: 60 * 60 * 24 * 7,
+			cancelPendingInvitationsOnReInvite: true,
+			sendInvitationEmail: async (data) => {
+				queueWorkspaceInvitationEmail({
+					email: data.email,
+					invitationId: data.id,
+					inviterName: data.inviter.user.name,
+					organizationName: data.organization.name,
+					role: Array.isArray(data.role) ? data.role.join(", ") : data.role,
+					organizationId: data.organization.id,
+					inviterId: data.inviter.userId,
+				});
+			},
 			organizationLimit: 1,
 			roles: organizationRoles,
 			organizationHooks: {
+				beforeCreateInvitation: async ({ invitation: pending }) => {
+					await assertInvitationCapacity(pending.organizationId, pending.email);
+				},
+				afterCreateInvitation: async ({ invitation: created, inviter }) => {
+					await writeAuditEvent({
+						category: "organization",
+						type: "workspace.invitation-sent",
+						actorUserId: inviter.userId,
+						effectiveUserId: inviter.userId,
+						targetType: "organization",
+						targetId: created.organizationId,
+						organizationId: created.organizationId,
+						metadata: { role: created.role },
+					});
+				},
+				afterAcceptInvitation: async ({ invitation: accepted, user }) => {
+					await writeAuditEvent({
+						category: "organization",
+						type: "workspace.invitation-accepted",
+						actorUserId: user.id,
+						effectiveUserId: user.id,
+						targetType: "user",
+						targetId: user.id,
+						organizationId: accepted.organizationId,
+						metadata: { role: accepted.role },
+					});
+				},
+				afterRejectInvitation: async ({ invitation: rejected, user }) => {
+					await writeAuditEvent({
+						category: "organization",
+						type: "workspace.invitation-rejected",
+						actorUserId: user.id,
+						effectiveUserId: user.id,
+						targetType: "user",
+						targetId: user.id,
+						organizationId: rejected.organizationId,
+					});
+				},
+				afterCancelInvitation: async ({
+					invitation: cancelled,
+					cancelledBy,
+				}) => {
+					await writeAuditEvent({
+						category: "organization",
+						type: "workspace.invitation-cancelled",
+						actorUserId: cancelledBy.userId,
+						effectiveUserId: cancelledBy.userId,
+						targetType: "organization",
+						targetId: cancelled.organizationId,
+						organizationId: cancelled.organizationId,
+					});
+				},
 				afterCreateOrganization: async ({
 					organization: createdOrganization,
 					user: createdBy,

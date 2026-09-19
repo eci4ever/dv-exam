@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { and, asc, count, eq, like, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -26,29 +26,29 @@ function requiredString(value: unknown, label: string) {
 	return value.trim();
 }
 
-export async function requireWorkspaceManager(options?: {
-	writable?: boolean;
-}) {
-	const { headers, session } = await requireAccountSession(options);
-	const organizations = await auth.api.listOrganizations({ headers });
-	const organizationId =
-		session.session.activeOrganizationId ?? organizations[0]?.id;
-	if (!organizationId) throw new Error("Select a workspace to continue.");
-	const [membership] = await db
-		.select({ id: schema.member.id, role: schema.member.role })
-		.from(schema.member)
-		.where(
-			and(
-				eq(schema.member.organizationId, organizationId),
-				eq(schema.member.userId, session.user.id),
-			),
-		)
-		.limit(1);
-	if (!membership) throw new Error("Workspace access is required.");
-	assertWorkspaceManager(membership.role);
-	await requireActiveOrganization(organizationId);
-	return { headers, session, organizationId, membership };
-}
+export const requireWorkspaceManager = createServerOnlyFn(
+	async (options?: { writable?: boolean }) => {
+		const { headers, session } = await requireAccountSession(options);
+		const organizations = await auth.api.listOrganizations({ headers });
+		const organizationId =
+			session.session.activeOrganizationId ?? organizations[0]?.id;
+		if (!organizationId) throw new Error("Select a workspace to continue.");
+		const [membership] = await db
+			.select({ id: schema.member.id, role: schema.member.role })
+			.from(schema.member)
+			.where(
+				and(
+					eq(schema.member.organizationId, organizationId),
+					eq(schema.member.userId, session.user.id),
+				),
+			)
+			.limit(1);
+		if (!membership) throw new Error("Workspace access is required.");
+		assertWorkspaceManager(membership.role);
+		await requireActiveOrganization(organizationId);
+		return { headers, session, organizationId, membership };
+	},
+);
 
 export const listWorkspaceMembers = createServerFn({ method: "GET" })
 	.validator((value: unknown) => {

@@ -35,6 +35,7 @@ import { Route as ResultsAttemptIdRouteImport } from './routes/results/$attemptI
 import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
 import { Route as ScheduleScheduleIdRouteImport } from './routes/schedule/$scheduleId'
 import { Route as ScheduleNewRouteImport } from './routes/schedule/new'
+import { Route as WorkspaceInvitationsRouteImport } from './routes/workspace/invitations'
 import { Route as WorkspaceMembersRouteImport } from './routes/workspace/members'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -170,6 +171,11 @@ const ScheduleNewRoute = ScheduleNewRouteImport.update({
   path: '/schedule/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceInvitationsRoute = WorkspaceInvitationsRouteImport.update({
+  id: '/workspace/invitations',
+  path: '/workspace/invitations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceMembersRoute = WorkspaceMembersRouteImport.update({
   id: '/workspace/members',
   path: '/workspace/members',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
     | '/admin/'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
     | '/admin'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
     | '/admin/'
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   ResultsAttemptIdRoute: typeof ResultsAttemptIdRoute
   ScheduleScheduleIdRoute: typeof ScheduleScheduleIdRoute
   ScheduleNewRoute: typeof ScheduleNewRoute
+  WorkspaceInvitationsRoute: typeof WorkspaceInvitationsRoute
   WorkspaceMembersRoute: typeof WorkspaceMembersRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -604,6 +617,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/invitations': {
+      id: '/workspace/invitations'
+      path: '/workspace/invitations'
+      fullPath: '/workspace/invitations'
+      preLoaderRoute: typeof WorkspaceInvitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/members': {
       id: '/workspace/members'
       path: '/workspace/members'
@@ -657,6 +677,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResultsAttemptIdRoute: ResultsAttemptIdRoute,
   ScheduleScheduleIdRoute: ScheduleScheduleIdRoute,
   ScheduleNewRoute: ScheduleNewRoute,
+  WorkspaceInvitationsRoute: WorkspaceInvitationsRoute,
   WorkspaceMembersRoute: WorkspaceMembersRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -670,3 +691,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

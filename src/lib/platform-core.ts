@@ -1,3 +1,4 @@
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { and, eq } from "drizzle-orm";
 
@@ -19,56 +20,67 @@ export {
 	PLATFORM_SETTINGS_ID,
 } from "@/lib/platform-data";
 
-export async function requirePlatformAdmin(options?: { writable?: boolean }) {
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-	if (!session?.user.role?.split(",").includes("admin")) {
-		throw new Error("Administrator access is required.");
-	}
-	if (options?.writable) {
-		assertWritableSession(session.session.impersonatedBy);
-	}
-	return { headers, session };
-}
+const currentRequestHeaders = createServerOnlyFn(() => getRequestHeaders());
 
-export async function requireAccountSession(options?: { writable?: boolean }) {
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-	if (!session) throw new Error("Please sign in to continue.");
-	if (options?.writable) assertWritableSession(session.session.impersonatedBy);
-	return { headers, session };
-}
+export const requirePlatformAdmin = createServerOnlyFn(
+	async (options?: { writable?: boolean }) => {
+		const headers = currentRequestHeaders();
+		const session = await auth.api.getSession({ headers });
+		if (!session?.user.role?.split(",").includes("admin")) {
+			throw new Error("Administrator access is required.");
+		}
+		if (options?.writable) {
+			assertWritableSession(session.session.impersonatedBy);
+		}
+		return { headers, session };
+	},
+);
 
-export async function auditForSession(
-	session: Awaited<ReturnType<typeof auth.api.getSession>>,
-	input: Omit<
-		AuditInput,
-		"actorUserId" | "effectiveUserId" | "sessionId" | "userAgent"
-	>,
-) {
-	if (!session) return;
-	const identity = mapAuditIdentity({
-		userId: session.user.id,
-		impersonatedBy: session.session.impersonatedBy,
-	});
-	const headers = getRequestHeaders();
-	await writeAuditEvent({
-		...input,
-		...identity,
-		sessionId: session.session.id,
-		userAgent: headers.get("user-agent"),
-	});
-}
+export const requireAccountSession = createServerOnlyFn(
+	async (options?: { writable?: boolean }) => {
+		const headers = currentRequestHeaders();
+		const session = await auth.api.getSession({ headers });
+		if (!session) throw new Error("Please sign in to continue.");
+		if (options?.writable)
+			assertWritableSession(session.session.impersonatedBy);
+		return { headers, session };
+	},
+);
 
-export async function requireActiveOrganization(organizationId: string) {
-	await ensurePlatformData();
-	const [entitlement] = await db
-		.select({ status: schema.organizationEntitlement.status })
-		.from(schema.organizationEntitlement)
-		.where(eq(schema.organizationEntitlement.organizationId, organizationId))
-		.limit(1);
-	assertOrganizationAccessible(entitlement?.status ?? "active");
-}
+export const auditForSession = createServerOnlyFn(
+	async (
+		session: Awaited<ReturnType<typeof auth.api.getSession>>,
+		input: Omit<
+			AuditInput,
+			"actorUserId" | "effectiveUserId" | "sessionId" | "userAgent"
+		>,
+	) => {
+		if (!session) return;
+		const identity = mapAuditIdentity({
+			userId: session.user.id,
+			impersonatedBy: session.session.impersonatedBy,
+		});
+		const headers = currentRequestHeaders();
+		await writeAuditEvent({
+			...input,
+			...identity,
+			sessionId: session.session.id,
+			userAgent: headers.get("user-agent"),
+		});
+	},
+);
+
+export const requireActiveOrganization = createServerOnlyFn(
+	async (organizationId: string) => {
+		await ensurePlatformData();
+		const [entitlement] = await db
+			.select({ status: schema.organizationEntitlement.status })
+			.from(schema.organizationEntitlement)
+			.where(eq(schema.organizationEntitlement.organizationId, organizationId))
+			.limit(1);
+		assertOrganizationAccessible(entitlement?.status ?? "active");
+	},
+);
 
 type OrganizationResource = "exam" | "question";
 type OrganizationAction = "create" | "read" | "update" | "delete" | "publish";
