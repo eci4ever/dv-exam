@@ -73,10 +73,13 @@ function recipientStatus(
 export const listPublishedExamChoices = createServerFn({
 	method: "GET",
 }).handler(async () => {
-	const { organizationId } = await requireOrganizationPermission({
-		resource: "exam",
-		action: "read",
-	});
+	const { organizationId, organizationRole } =
+		await requireOrganizationPermission({
+			resource: "exam",
+			action: "read",
+		});
+	if (!canManage(organizationRole))
+		throw new Error("You do not have permission to manage exam delivery.");
 	return db
 		.select({
 			id: schema.exam.id,
@@ -97,10 +100,13 @@ export const listPublishedExamChoices = createServerFn({
 
 export const listExamSchedules = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const { organizationId } = await requireOrganizationPermission({
-			resource: "exam",
-			action: "read",
-		});
+		const { organizationId, organizationRole } =
+			await requireOrganizationPermission({
+				resource: "exam",
+				action: "read",
+			});
+		if (!canManage(organizationRole))
+			throw new Error("You do not have permission to manage exam delivery.");
 		const rows = await db
 			.select({
 				schedule: schema.examSchedule,
@@ -319,10 +325,13 @@ export const getExamScheduleMonitoring = createServerFn({ method: "GET" })
 		scheduleId: requiredText(record(value).scheduleId, "Schedule"),
 	}))
 	.handler(async ({ data }) => {
-		const { organizationId } = await requireOrganizationPermission({
-			resource: "exam",
-			action: "read",
-		});
+		const { organizationId, organizationRole } =
+			await requireOrganizationPermission({
+				resource: "exam",
+				action: "read",
+			});
+		if (!canManage(organizationRole))
+			throw new Error("You do not have permission to monitor exam delivery.");
 		const [target] = await db
 			.select({
 				schedule: schema.examSchedule,

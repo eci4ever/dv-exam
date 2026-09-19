@@ -391,8 +391,19 @@ function PlansAndUsage() {
 													<td className="p-4">
 														{org.activeExamCount} / {org.activeExamLimit}
 													</td>
-													<td className="p-4 text-muted-foreground">
-														Not tracked yet
+													<td className="p-4">
+														<span
+															className={
+																org.monthlyAttemptCount /
+																	org.monthlyAttemptLimit >=
+																0.8
+																	? "font-medium text-destructive"
+																	: ""
+															}
+														>
+															{org.monthlyAttemptCount.toLocaleString()} /{" "}
+															{org.monthlyAttemptLimit.toLocaleString()}
+														</span>
 													</td>
 												</tr>
 											))}

@@ -6,10 +6,10 @@ describe("Worker D1 test harness", () => {
 		const result = await env.DB.prepare(
 			"SELECT name FROM sqlite_schema WHERE type = 'table' AND name = ?",
 		)
-			.bind("auditEvent")
+			.bind("examSchedule")
 			.first<{ name: string }>();
 
-		expect(result?.name).toBe("auditEvent");
+		expect(result?.name).toBe("examSchedule");
 	});
 
 	it("enforces one open draft per exam series", async () => {
@@ -102,5 +102,87 @@ describe("Worker D1 test harness", () => {
 			sourceQuestionId: null,
 			prompt: "Original prompt",
 		});
+	});
+
+	it("enforces one attempt for each scheduled student", async () => {
+		const now = Date.now();
+		await env.DB.batch([
+			env.DB.prepare(
+				'INSERT INTO "user" (id,name,email,emailVerified,createdAt,updatedAt) VALUES (?,?,?,?,?,?)',
+			).bind(
+				"student-user",
+				"Student User",
+				"student@example.test",
+				1,
+				now,
+				now,
+			),
+			env.DB.prepare(
+				"INSERT INTO examSchedule (id,organizationId,examId,opensAt,closesAt,createdBy,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?)",
+			).bind(
+				"schedule-1",
+				"exam-org",
+				"exam-v1",
+				now - 1_000,
+				now + 60_000,
+				"exam-user",
+				now,
+				now,
+			),
+			env.DB.prepare(
+				"INSERT INTO examScheduleRecipient (id,scheduleId,userId,assignedAt) VALUES (?,?,?,?)",
+			).bind("recipient-1", "schedule-1", "student-user", now),
+			env.DB.prepare(
+				"INSERT INTO examAttempt (id,scheduleId,examId,userId,status,startedAt,deadlineAt,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)",
+			).bind(
+				"attempt-1",
+				"schedule-1",
+				"exam-v1",
+				"student-user",
+				"in_progress",
+				now,
+				now + 60_000,
+				now,
+				now,
+			),
+		]);
+
+		await expect(
+			env.DB.prepare(
+				"INSERT INTO examAttempt (id,scheduleId,examId,userId,status,startedAt,deadlineAt,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)",
+			)
+				.bind(
+					"attempt-2",
+					"schedule-1",
+					"exam-v1",
+					"student-user",
+					"in_progress",
+					now,
+					now + 60_000,
+					now,
+					now,
+				)
+				.run(),
+		).rejects.toThrow();
+	});
+
+	it("keeps a response unique per attempt question", async () => {
+		const now = Date.now();
+		await env.DB.batch([
+			env.DB.prepare(
+				"INSERT INTO examItemOption (id,examItemId,text,isCorrect,position) VALUES (?,?,?,?,?)",
+			).bind("item-option-1", "item-1", "Answer", 1, 0),
+			env.DB.prepare(
+				"INSERT INTO examResponse (id,attemptId,examItemId,selectedOptionId,updatedAt) VALUES (?,?,?,?,?)",
+			).bind("response-1", "attempt-1", "item-1", "item-option-1", now),
+		]);
+
+		await expect(
+			env.DB.prepare(
+				"INSERT INTO examResponse (id,attemptId,examItemId,selectedOptionId,updatedAt) VALUES (?,?,?,?,?)",
+			)
+				.bind("response-2", "attempt-1", "item-1", "item-option-1", now)
+				.run(),
+		).rejects.toThrow();
 	});
 });

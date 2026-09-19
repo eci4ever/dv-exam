@@ -84,10 +84,17 @@ export const listExams = createServerFn({ method: "GET" })
 		} as const;
 	})
 	.handler(async ({ data }) => {
-		const { organizationId } = await requireOrganizationPermission({
-			resource: "exam",
-			action: "read",
-		});
+		const { organizationId, organizationRole } =
+			await requireOrganizationPermission({
+				resource: "exam",
+				action: "read",
+			});
+		if (
+			!organizationRole
+				.split(",")
+				.some((role) => ["owner", "admin", "teacher"].includes(role))
+		)
+			throw new Error("You do not have permission to view exam answers.");
 		const where = and(
 			eq(schema.exam.organizationId, organizationId),
 			eq(schema.exam.status, data.status),

@@ -273,8 +273,19 @@ export const updatePlan = createServerFn({ method: "POST" })
 			.limit(1);
 		if (!current) throw new Error("Plan not found.");
 
+		const now = new Date();
+		const monthStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+		);
+		const monthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+		);
 		const usageRows = await db
-			.select({ usage: count(schema.member.id) })
+			.select({
+				members: count(schema.member.id),
+				activeExams: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${schema.organizationEntitlement.organizationId} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+				monthlyAttempts: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${schema.organizationEntitlement.organizationId} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
+			})
 			.from(schema.organizationEntitlement)
 			.leftJoin(
 				schema.member,
@@ -285,8 +296,26 @@ export const updatePlan = createServerFn({ method: "POST" })
 			)
 			.where(eq(schema.organizationEntitlement.planId, data.id))
 			.groupBy(schema.organizationEntitlement.organizationId);
-		const maxMembers = Math.max(0, ...usageRows.map((row) => row.usage));
+		const maxMembers = Math.max(0, ...usageRows.map((row) => row.members));
+		const maxActiveExams = Math.max(
+			0,
+			...usageRows.map((row) => row.activeExams),
+		);
+		const maxMonthlyAttempts = Math.max(
+			0,
+			...usageRows.map((row) => row.monthlyAttempts),
+		);
 		assertPlanLimitReductionSafe(data.memberLimit, maxMembers, "members");
+		assertPlanLimitReductionSafe(
+			data.activeExamLimit,
+			maxActiveExams,
+			"active exams",
+		);
+		assertPlanLimitReductionSafe(
+			data.monthlyAttemptLimit,
+			maxMonthlyAttempts,
+			"monthly attempts",
+		);
 
 		try {
 			await db
@@ -364,6 +393,13 @@ export const listPlanOrganizations = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		await requirePlatformAdmin();
 		await ensurePlatformData();
+		const now = new Date();
+		const monthStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+		);
+		const monthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+		);
 		const conditions = [
 			data.search
 				? or(
@@ -396,7 +432,9 @@ export const listPlanOrganizations = createServerFn({ method: "GET" })
 					memberLimit: schema.platformPlan.memberLimit,
 					memberCount,
 					activeExamLimit: schema.platformPlan.activeExamLimit,
-					activeExamCount: sql<number>`(select count(*) from ${schema.exam} where ${schema.exam.organizationId} = ${schema.organization.id} and ${schema.exam.status} = 'published')`,
+					activeExamCount: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${schema.organization.id} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+					monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
+					monthlyAttemptCount: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${schema.organization.id} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
 				})
 				.from(schema.organization)
 				.innerJoin(
@@ -454,6 +492,8 @@ export const assignOrganizationPlan = createServerFn({ method: "POST" })
 			.select({
 				id: schema.platformPlan.id,
 				memberLimit: schema.platformPlan.memberLimit,
+				activeExamLimit: schema.platformPlan.activeExamLimit,
+				monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
 			})
 			.from(schema.platformPlan)
 			.where(
@@ -464,14 +504,35 @@ export const assignOrganizationPlan = createServerFn({ method: "POST" })
 			)
 			.limit(1);
 		if (!plan) throw new Error("Select an active plan.");
+		const now = new Date();
+		const monthStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+		);
+		const monthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+		);
 		const [usage] = await db
-			.select({ count: count() })
+			.select({
+				members: count(schema.member.id),
+				activeExams: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${data.organizationId} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+				monthlyAttempts: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${data.organizationId} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
+			})
 			.from(schema.member)
 			.where(eq(schema.member.organizationId, data.organizationId));
 		assertPlanLimitReductionSafe(
 			plan.memberLimit,
-			usage?.count ?? 0,
+			usage?.members ?? 0,
 			"members",
+		);
+		assertPlanLimitReductionSafe(
+			plan.activeExamLimit,
+			usage?.activeExams ?? 0,
+			"active exams",
+		);
+		assertPlanLimitReductionSafe(
+			plan.monthlyAttemptLimit,
+			usage?.monthlyAttempts ?? 0,
+			"monthly attempts",
 		);
 		const result = await db
 			.update(schema.organizationEntitlement)
