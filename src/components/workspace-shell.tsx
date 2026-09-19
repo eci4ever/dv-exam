@@ -30,7 +30,14 @@ interface WorkspaceShellProps {
 		organizationRole?: string | null;
 		maintenanceNotice?: string | null;
 	};
-	activeItem: "exams" | "questions" | "schedule" | "my-exams" | "results";
+	activeItem:
+		| "exams"
+		| "questions"
+		| "schedule"
+		| "my-exams"
+		| "results"
+		| "workspace-members"
+		| "workspace-invitations";
 	title: string;
 	children: ReactNode;
 }

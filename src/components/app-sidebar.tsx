@@ -65,7 +65,9 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "questions"
 		| "schedule"
 		| "my-exams"
-		| "results";
+		| "results"
+		| "workspace-members"
+		| "workspace-invitations";
 }
 
 interface MockSidebarItemProps {
@@ -210,11 +212,35 @@ export function AppSidebar({
 					<SidebarGroupContent>
 						<SidebarMenu>
 							<MockSidebarItem icon={PanelsTopLeftIcon} label="Overview" />
-							<MockSidebarItem icon={UsersRoundIcon} label="Members" />
+							{canManageOrganization ? (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/workspace/members">
+												<UsersRoundIcon />
+												<span>Members</span>
+											</a>
+										}
+										isActive={activeItem === "workspace-members"}
+										tooltip="Members"
+									/>
+								</SidebarMenuItem>
+							) : null}
 							<MockSidebarItem icon={MegaphoneIcon} label="Announcements" />
 							{canManageOrganization ? (
 								<>
-									<MockSidebarItem icon={MailPlusIcon} label="Invitations" />
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											render={
+												<a href="/workspace/invitations">
+													<MailPlusIcon />
+													<span>Invitations</span>
+												</a>
+											}
+											isActive={activeItem === "workspace-invitations"}
+											tooltip="Invitations"
+										/>
+									</SidebarMenuItem>
 									<MockSidebarItem
 										icon={GraduationCapIcon}
 										label="Academic Setup"
