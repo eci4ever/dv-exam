@@ -467,6 +467,10 @@ export const examSchedule = sqliteTable(
 		examId: text("examId")
 			.notNull()
 			.references(() => exam.id, { onDelete: "restrict" }),
+		audienceMode: text("audienceMode")
+			.$type<"all_students" | "selected_classes">()
+			.default("all_students")
+			.notNull(),
 		opensAt: integer("opensAt", { mode: "timestamp_ms" }).notNull(),
 		closesAt: integer("closesAt", { mode: "timestamp_ms" }).notNull(),
 		cancelledAt: integer("cancelledAt", { mode: "timestamp_ms" }),
@@ -486,6 +490,26 @@ export const examSchedule = sqliteTable(
 			table.closesAt,
 		),
 		index("examSchedule_exam_idx").on(table.examId),
+	],
+);
+
+export const examScheduleClass = sqliteTable(
+	"examScheduleClass",
+	{
+		id: text("id").primaryKey(),
+		scheduleId: text("scheduleId")
+			.notNull()
+			.references(() => examSchedule.id, { onDelete: "cascade" }),
+		classId: text("classId")
+			.notNull()
+			.references(() => academicClass.id, { onDelete: "restrict" }),
+	},
+	(table) => [
+		uniqueIndex("examScheduleClass_schedule_class_idx").on(
+			table.scheduleId,
+			table.classId,
+		),
+		index("examScheduleClass_class_idx").on(table.classId),
 	],
 );
 
@@ -695,6 +719,21 @@ export const examScheduleRelations = relations(
 		}),
 		recipients: many(examScheduleRecipient),
 		attempts: many(examAttempt),
+		classes: many(examScheduleClass),
+	}),
+);
+
+export const examScheduleClassRelations = relations(
+	examScheduleClass,
+	({ one }) => ({
+		schedule: one(examSchedule, {
+			fields: [examScheduleClass.scheduleId],
+			references: [examSchedule.id],
+		}),
+		academicClass: one(academicClass, {
+			fields: [examScheduleClass.classId],
+			references: [academicClass.id],
+		}),
 	}),
 );
 

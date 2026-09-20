@@ -32,6 +32,7 @@ function Dashboard() {
 		organizationRole,
 		entitlement,
 		maintenanceNotice,
+		studentClasses,
 	} = Route.useRouteContext();
 	const firstName = session.user.name.split(/\s+/)[0] || session.user.name;
 
@@ -96,6 +97,21 @@ function Dashboard() {
 							</p>
 						) : null}
 					</section>
+					{studentClasses.length ? (
+						<section className="rounded-xl border bg-card p-6">
+							<p className="text-sm font-medium">Your classes</p>
+							<div className="mt-3 flex flex-wrap gap-2">
+								{studentClasses.map((item) => (
+									<span
+										className="rounded-md border px-2.5 py-1 text-sm"
+										key={item.id}
+									>
+										{item.name} · {item.code}
+									</span>
+								))}
+							</div>
+						</section>
+					) : null}
 				</main>
 			</SidebarInset>
 		</SidebarProvider>

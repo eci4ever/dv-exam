@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -43,7 +43,7 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 		const organizationRole = organization?.members.find(
 			(member) => member.userId === session.user.id,
 		)?.role;
-		const [entitlement, settings] = await Promise.all([
+		const [entitlement, settings, studentClasses] = await Promise.all([
 			activeOrganizationId
 				? db
 						.select({
@@ -67,6 +67,32 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 						.then((rows) => rows[0] ?? null)
 				: Promise.resolve(null),
 			getPlatformSettingsRecord(),
+			activeOrganizationId && organizationRole?.split(",").includes("student")
+				? db
+						.select({
+							id: schema.academicClass.id,
+							name: schema.academicClass.name,
+							code: schema.academicClass.code,
+						})
+						.from(schema.academicClassMember)
+						.innerJoin(
+							schema.academicClass,
+							eq(schema.academicClass.id, schema.academicClassMember.classId),
+						)
+						.innerJoin(
+							schema.member,
+							eq(schema.member.id, schema.academicClassMember.memberId),
+						)
+						.where(
+							and(
+								eq(schema.member.userId, session.user.id),
+								eq(schema.member.organizationId, activeOrganizationId),
+								eq(schema.academicClassMember.role, "student"),
+								eq(schema.academicClass.status, "active"),
+							),
+						)
+						.orderBy(asc(schema.academicClass.name))
+				: Promise.resolve([]),
 		]);
 
 		return {
@@ -77,6 +103,7 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 			isOrganizationOwner,
 			organizationRole,
 			entitlement,
+			studentClasses,
 			maintenanceNotice:
 				settings.maintenanceEnabled && settings.maintenanceMessage
 					? settings.maintenanceMessage

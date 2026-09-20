@@ -25,6 +25,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import {
 	cancelExamSchedule,
 	getExamScheduleMonitoring,
+	listScheduleClassChoices,
 	updateExamSchedule,
 	userCanManageDelivery,
 } from "@/lib/exam-delivery";
@@ -59,6 +60,17 @@ function ScheduleDetailPage() {
 	const [status, setStatus] = useState("all");
 	const [opensAt, setOpensAt] = useState("");
 	const [closesAt, setClosesAt] = useState("");
+	const [audienceMode, setAudienceMode] = useState<
+		"all_students" | "selected_classes"
+	>("all_students");
+	const [classIds, setClassIds] = useState<string[]>([]);
+	const [classChoices, setClassChoices] = useState<
+		Awaited<ReturnType<typeof listScheduleClassChoices>>
+	>([]);
+	const isManager =
+		data.organizationRole
+			?.split(",")
+			.some((role) => role === "owner" || role === "admin") ?? false;
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const load = useCallback(async () => {
@@ -68,6 +80,8 @@ function ScheduleDetailPage() {
 			setResult(next);
 			setOpensAt(localInput(next.opensAt));
 			setClosesAt(localInput(next.closesAt));
+			setAudienceMode(next.audienceMode);
+			setClassIds(next.classes.map((item) => item.id));
 		} catch (caught) {
 			setError(
 				caught instanceof Error ? caught.message : "Unable to load schedule.",
@@ -76,6 +90,9 @@ function ScheduleDetailPage() {
 	}, [scheduleId]);
 	useEffect(() => {
 		void load();
+		void listScheduleClassChoices()
+			.then(setClassChoices)
+			.catch(() => undefined);
 	}, [load]);
 	const rows = useMemo(
 		() =>
@@ -168,6 +185,12 @@ function ScheduleDetailPage() {
 										Version {result.version} · {result.durationMinutes} minutes
 										· {result.passingPercentage}% pass mark
 									</p>
+									<p className="mt-1 text-sm text-muted-foreground">
+										Audience:{" "}
+										{result.audienceMode === "all_students"
+											? "All students"
+											: result.classes.map((item) => item.name).join(", ")}
+									</p>
 								</div>
 							</div>
 							<section className="rounded-xl border bg-card p-5">
@@ -200,6 +223,57 @@ function ScheduleDetailPage() {
 										/>
 									</div>
 								</div>
+								{result.status === "scheduled" ? (
+									<div className="mt-4 space-y-3">
+										<label
+											className="text-sm font-medium"
+											htmlFor="schedule-audience"
+										>
+											Audience
+										</label>
+										<select
+											id="schedule-audience"
+											className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+											value={audienceMode}
+											disabled={!isManager}
+											onChange={(event) =>
+												setAudienceMode(
+													event.target.value as
+														| "all_students"
+														| "selected_classes",
+												)
+											}
+										>
+											<option value="all_students">All students</option>
+											<option value="selected_classes">Selected classes</option>
+										</select>
+										{audienceMode === "selected_classes" ? (
+											<div className="grid gap-2 rounded-lg border p-3">
+												{classChoices.map((item) => (
+													<label
+														className="flex items-center gap-3 text-sm"
+														key={item.id}
+													>
+														<input
+															type="checkbox"
+															checked={classIds.includes(item.id)}
+															onChange={(event) =>
+																setClassIds((current) =>
+																	event.target.checked
+																		? [...current, item.id]
+																		: current.filter((id) => id !== item.id),
+																)
+															}
+														/>
+														<span>
+															{item.name} · {item.code}
+														</span>
+													</label>
+												))}
+											</div>
+										) : null}
+									</div>
+								) : null}
 								<div className="mt-4 flex flex-wrap gap-3">
 									<Button
 										disabled={
@@ -216,6 +290,8 @@ function ScheduleDetailPage() {
 														scheduleId,
 														opensAt: new Date(opensAt).toISOString(),
 														closesAt: new Date(closesAt).toISOString(),
+														audienceMode,
+														classIds,
 													},
 												});
 												await load();

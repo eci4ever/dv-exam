@@ -7,6 +7,35 @@ export type ExamRecipientStatus =
 	| "missed";
 export type ExamAttemptStatus = "in_progress" | "submitted" | "timed_out";
 export type ExamSubmissionReason = "manual" | "timeout";
+export type ExamScheduleAudienceMode = "all_students" | "selected_classes";
+
+export function normalizeScheduleAudience(input: {
+	audienceMode: unknown;
+	classIds: unknown;
+}) {
+	const audienceMode: ExamScheduleAudienceMode =
+		input.audienceMode === "selected_classes"
+			? "selected_classes"
+			: "all_students";
+	const classIds = Array.isArray(input.classIds)
+		? [
+				...new Set(
+					input.classIds
+						.filter(
+							(id): id is string =>
+								typeof id === "string" && Boolean(id.trim()),
+						)
+						.map((id) => id.trim()),
+				),
+			]
+		: [];
+	if (audienceMode === "selected_classes" && !classIds.length)
+		throw new Error("Select at least one class.");
+	return {
+		audienceMode,
+		classIds: audienceMode === "selected_classes" ? classIds : [],
+	};
+}
 
 export function getExamScheduleStatus(input: {
 	opensAt: Date;

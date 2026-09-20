@@ -8,6 +8,7 @@ import {
 	calculateExamScore,
 	type ExamRecipientStatus,
 	getExamScheduleStatus,
+	normalizeScheduleAudience,
 	normalizeScheduleWindow,
 } from "@/lib/exam-delivery-policy";
 import {
@@ -43,7 +44,7 @@ async function currentMembership(options?: { writable?: boolean }) {
 		session.session.activeOrganizationId ?? organizations[0]?.id;
 	if (!organizationId) throw new Error("Select a workspace to continue.");
 	const [membership] = await db
-		.select({ role: schema.member.role })
+		.select({ id: schema.member.id, role: schema.member.role })
 		.from(schema.member)
 		.where(
 			and(
@@ -53,13 +54,57 @@ async function currentMembership(options?: { writable?: boolean }) {
 		)
 		.limit(1);
 	if (!membership) throw new Error("Workspace access is required.");
-	return { headers, session, organizationId, role: membership.role };
+	return {
+		headers,
+		session,
+		organizationId,
+		memberId: membership.id,
+		role: membership.role,
+	};
 }
 
 function canManage(role: string) {
 	return role
 		.split(",")
 		.some((item) => ["owner", "admin", "teacher"].includes(item));
+}
+
+function isOrganizationManager(role: string) {
+	return role.split(",").some((item) => item === "owner" || item === "admin");
+}
+
+async function assertTeacherScheduleAccess(input: {
+	scheduleId: string;
+	createdBy: string;
+	userId: string;
+	memberId: string;
+	role: string;
+}) {
+	if (isOrganizationManager(input.role)) return;
+	const sources = await db
+		.select({ classId: schema.examScheduleClass.classId })
+		.from(schema.examScheduleClass)
+		.where(eq(schema.examScheduleClass.scheduleId, input.scheduleId));
+	if (!sources.length) {
+		if (input.createdBy !== input.userId)
+			throw new Error("You do not have access to this schedule.");
+		return;
+	}
+	const assignments = await db
+		.select({ classId: schema.academicClassMember.classId })
+		.from(schema.academicClassMember)
+		.where(
+			and(
+				inArray(
+					schema.academicClassMember.classId,
+					sources.map((source) => source.classId),
+				),
+				eq(schema.academicClassMember.memberId, input.memberId),
+				eq(schema.academicClassMember.role, "teacher"),
+			),
+		);
+	if (assignments.length !== sources.length)
+		throw new Error("You do not have access to this schedule.");
 }
 
 function recipientStatus(
@@ -98,15 +143,97 @@ export const listPublishedExamChoices = createServerFn({
 		.orderBy(asc(schema.exam.title));
 });
 
+export const listScheduleClassChoices = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const { organizationId, memberId, role } = await currentMembership();
+	if (!canManage(role))
+		throw new Error("You do not have permission to manage exam delivery.");
+	const manager = isOrganizationManager(role);
+	return db
+		.select({
+			id: schema.academicClass.id,
+			name: schema.academicClass.name,
+			code: schema.academicClass.code,
+		})
+		.from(schema.academicClass)
+		.where(
+			and(
+				eq(schema.academicClass.organizationId, organizationId),
+				eq(schema.academicClass.status, "active"),
+				manager
+					? undefined
+					: sql`exists (select 1 from ${schema.academicClassMember} acm where acm.classId = ${schema.academicClass.id} and acm.memberId = ${memberId} and acm.role = 'teacher')`,
+			),
+		)
+		.orderBy(asc(schema.academicClass.name));
+});
+
+async function resolveScheduleAudience(input: {
+	organizationId: string;
+	memberId: string;
+	role: string;
+	audienceMode: "all_students" | "selected_classes";
+	classIds: string[];
+}) {
+	const manager = isOrganizationManager(input.role);
+	if (input.audienceMode === "all_students") {
+		if (!manager) throw new Error("Teachers must schedule assigned classes.");
+		const students = await db
+			.select({ userId: schema.member.userId })
+			.from(schema.member)
+			.where(
+				and(
+					eq(schema.member.organizationId, input.organizationId),
+					or(
+						eq(schema.member.role, "student"),
+						like(schema.member.role, "%,student,%"),
+						like(schema.member.role, "student,%"),
+						like(schema.member.role, "%,student"),
+					),
+				),
+			);
+		return { students, classes: [] as Array<{ id: string }> };
+	}
+	const classes = await db
+		.select({ id: schema.academicClass.id })
+		.from(schema.academicClass)
+		.where(
+			and(
+				eq(schema.academicClass.organizationId, input.organizationId),
+				eq(schema.academicClass.status, "active"),
+				inArray(schema.academicClass.id, input.classIds),
+				manager
+					? undefined
+					: sql`exists (select 1 from ${schema.academicClassMember} acm where acm.classId = ${schema.academicClass.id} and acm.memberId = ${input.memberId} and acm.role = 'teacher')`,
+			),
+		);
+	if (classes.length !== input.classIds.length)
+		throw new Error("Select only active classes you are assigned to.");
+	const students = await db
+		.selectDistinct({ userId: schema.member.userId })
+		.from(schema.academicClassMember)
+		.innerJoin(
+			schema.member,
+			eq(schema.member.id, schema.academicClassMember.memberId),
+		)
+		.where(
+			and(
+				inArray(schema.academicClassMember.classId, input.classIds),
+				eq(schema.academicClassMember.role, "student"),
+				eq(schema.member.organizationId, input.organizationId),
+			),
+		);
+	return { students, classes };
+}
+
 export const listExamSchedules = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const { organizationId, organizationRole } =
-			await requireOrganizationPermission({
-				resource: "exam",
-				action: "read",
-			});
-		if (!canManage(organizationRole))
+		const { session, organizationId, memberId, role } =
+			await currentMembership();
+		if (!canManage(role))
 			throw new Error("You do not have permission to manage exam delivery.");
+		const manager = isOrganizationManager(role);
 		const rows = await db
 			.select({
 				schedule: schema.examSchedule,
@@ -121,7 +248,17 @@ export const listExamSchedules = createServerFn({ method: "GET" }).handler(
 				schema.examScheduleRecipient,
 				eq(schema.examScheduleRecipient.scheduleId, schema.examSchedule.id),
 			)
-			.where(eq(schema.examSchedule.organizationId, organizationId))
+			.where(
+				and(
+					eq(schema.examSchedule.organizationId, organizationId),
+					manager
+						? undefined
+						: or(
+								eq(schema.examSchedule.createdBy, session.user.id),
+								sql`exists (select 1 from ${schema.examScheduleClass} esc inner join ${schema.academicClassMember} acm on acm.classId = esc.classId where esc.scheduleId = ${schema.examSchedule.id} and acm.memberId = ${memberId} and acm.role = 'teacher')`,
+							),
+				),
+			)
 			.groupBy(schema.examSchedule.id)
 			.orderBy(desc(schema.examSchedule.opensAt));
 		return rows.map((row) => ({
@@ -144,15 +281,20 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 		});
 		return {
 			examId: requiredText(input.examId, "Exam"),
+			...normalizeScheduleAudience({
+				audienceMode: input.audienceMode,
+				classIds: input.classIds,
+			}),
 			...window,
 		};
 	})
 	.handler(async ({ data }) => {
-		const { session, organizationId } = await requireOrganizationPermission({
-			resource: "exam",
-			action: "create",
-			writable: true,
-		});
+		const { session, organizationId, memberId, role } = await currentMembership(
+			{ writable: true },
+		);
+		if (!canManage(role))
+			throw new Error("You do not have permission to manage exam delivery.");
+		await requireActiveOrganization(organizationId);
 		const [exam] = await db
 			.select({ id: schema.exam.id })
 			.from(schema.exam)
@@ -165,20 +307,14 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 			)
 			.limit(1);
 		if (!exam) throw new Error("Select an available published exam.");
-		const students = await db
-			.select({ userId: schema.member.userId })
-			.from(schema.member)
-			.where(
-				and(
-					eq(schema.member.organizationId, organizationId),
-					or(
-						eq(schema.member.role, "student"),
-						like(schema.member.role, "%,student,%"),
-						like(schema.member.role, "student,%"),
-						like(schema.member.role, "%,student"),
-					),
-				),
-			);
+		const audience = await resolveScheduleAudience({
+			organizationId,
+			memberId,
+			role,
+			audienceMode: data.audienceMode,
+			classIds: data.classIds,
+		});
+		const students = audience.students;
 		if (!students.length)
 			throw new Error("Add at least one student before scheduling an exam.");
 		const id = crypto.randomUUID();
@@ -188,12 +324,20 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 				id,
 				organizationId,
 				examId: exam.id,
+				audienceMode: data.audienceMode,
 				opensAt: data.opensAt,
 				closesAt: data.closesAt,
 				createdBy: session.user.id,
 				createdAt: now,
 				updatedAt: now,
 			}),
+			...audience.classes.map((item) =>
+				db.insert(schema.examScheduleClass).values({
+					id: crypto.randomUUID(),
+					scheduleId: id,
+					classId: item.id,
+				}),
+			),
 			...students.map((student) =>
 				db.insert(schema.examScheduleRecipient).values({
 					id: crypto.randomUUID(),
@@ -209,7 +353,11 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 			organizationId,
 			targetType: "examSchedule",
 			targetId: id,
-			metadata: { recipientCount: students.length },
+			metadata: {
+				recipientCount: students.length,
+				audienceMode: data.audienceMode,
+				classCount: audience.classes.length,
+			},
 		});
 		return { id };
 	});
@@ -221,14 +369,19 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 			scheduleId: requiredText(input.scheduleId, "Schedule"),
 			opensAt: dateValue(input.opensAt, "Open time"),
 			closesAt: dateValue(input.closesAt, "Close time"),
+			...normalizeScheduleAudience({
+				audienceMode: input.audienceMode,
+				classIds: input.classIds,
+			}),
 		};
 	})
 	.handler(async ({ data }) => {
-		const { session, organizationId } = await requireOrganizationPermission({
-			resource: "exam",
-			action: "update",
-			writable: true,
-		});
+		const { session, organizationId, memberId, role } = await currentMembership(
+			{ writable: true },
+		);
+		if (!canManage(role))
+			throw new Error("You do not have permission to manage exam delivery.");
+		await requireActiveOrganization(organizationId);
 		const [target] = await db
 			.select()
 			.from(schema.examSchedule)
@@ -240,12 +393,32 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 			)
 			.limit(1);
 		if (!target || target.cancelledAt) throw new Error("Schedule not found.");
+		await assertTeacherScheduleAccess({
+			scheduleId: target.id,
+			createdBy: target.createdBy,
+			userId: session.user.id,
+			memberId,
+			role,
+		});
 		const [attempts] = await db
 			.select({ total: count() })
 			.from(schema.examAttempt)
 			.where(eq(schema.examAttempt.scheduleId, target.id));
 		const started = target.opensAt <= new Date() || (attempts?.total ?? 0) > 0;
 		if (started) {
+			const sources = await db
+				.select({ classId: schema.examScheduleClass.classId })
+				.from(schema.examScheduleClass)
+				.where(eq(schema.examScheduleClass.scheduleId, target.id));
+			const currentClassIds = sources.map((source) => source.classId).sort();
+			const requestedClassIds = [...data.classIds].sort();
+			if (
+				data.audienceMode !== target.audienceMode ||
+				currentClassIds.join(",") !== requestedClassIds.join(",")
+			)
+				throw new Error(
+					"Audience cannot be changed after a schedule opens or an attempt exists.",
+				);
 			if (data.closesAt <= target.closesAt)
 				throw new Error("An active schedule can only be extended.");
 			await db
@@ -254,14 +427,48 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 				.where(eq(schema.examSchedule.id, target.id));
 		} else {
 			normalizeScheduleWindow(data);
-			await db
-				.update(schema.examSchedule)
-				.set({
-					opensAt: data.opensAt,
-					closesAt: data.closesAt,
-					updatedAt: new Date(),
-				})
-				.where(eq(schema.examSchedule.id, target.id));
+			const audience = await resolveScheduleAudience({
+				organizationId,
+				memberId,
+				role,
+				audienceMode: data.audienceMode,
+				classIds: data.classIds,
+			});
+			if (!audience.students.length)
+				throw new Error("The selected audience has no students.");
+			const now = new Date();
+			await db.batch([
+				db
+					.update(schema.examSchedule)
+					.set({
+						opensAt: data.opensAt,
+						closesAt: data.closesAt,
+						audienceMode: data.audienceMode,
+						updatedAt: now,
+					})
+					.where(eq(schema.examSchedule.id, target.id)),
+				db
+					.delete(schema.examScheduleClass)
+					.where(eq(schema.examScheduleClass.scheduleId, target.id)),
+				db
+					.delete(schema.examScheduleRecipient)
+					.where(eq(schema.examScheduleRecipient.scheduleId, target.id)),
+				...audience.classes.map((item) =>
+					db.insert(schema.examScheduleClass).values({
+						id: crypto.randomUUID(),
+						scheduleId: target.id,
+						classId: item.id,
+					}),
+				),
+				...audience.students.map((student) =>
+					db.insert(schema.examScheduleRecipient).values({
+						id: crypto.randomUUID(),
+						scheduleId: target.id,
+						userId: student.userId,
+						assignedAt: now,
+					}),
+				),
+			]);
 		}
 		await auditForSession(session, {
 			category: "organization",
@@ -325,12 +532,9 @@ export const getExamScheduleMonitoring = createServerFn({ method: "GET" })
 		scheduleId: requiredText(record(value).scheduleId, "Schedule"),
 	}))
 	.handler(async ({ data }) => {
-		const { organizationId, organizationRole } =
-			await requireOrganizationPermission({
-				resource: "exam",
-				action: "read",
-			});
-		if (!canManage(organizationRole))
+		const { session, organizationId, memberId, role } =
+			await currentMembership();
+		if (!canManage(role))
 			throw new Error("You do not have permission to monitor exam delivery.");
 		const [target] = await db
 			.select({
@@ -350,6 +554,13 @@ export const getExamScheduleMonitoring = createServerFn({ method: "GET" })
 			)
 			.limit(1);
 		if (!target) throw new Error("Schedule not found.");
+		await assertTeacherScheduleAccess({
+			scheduleId: target.schedule.id,
+			createdBy: target.schedule.createdBy,
+			userId: session.user.id,
+			memberId,
+			role,
+		});
 		const rows = await db
 			.select({
 				recipient: schema.examScheduleRecipient,
@@ -379,6 +590,19 @@ export const getExamScheduleMonitoring = createServerFn({ method: "GET" })
 			attempt: row.attempt,
 			status: recipientStatus(row.attempt, target.schedule.closesAt),
 		}));
+		const classNames = await db
+			.select({
+				id: schema.academicClass.id,
+				name: schema.academicClass.name,
+				code: schema.academicClass.code,
+			})
+			.from(schema.examScheduleClass)
+			.innerJoin(
+				schema.academicClass,
+				eq(schema.academicClass.id, schema.examScheduleClass.classId),
+			)
+			.where(eq(schema.examScheduleClass.scheduleId, target.schedule.id))
+			.orderBy(asc(schema.academicClass.name));
 		return {
 			...target.schedule,
 			examTitle: target.examTitle,
@@ -386,6 +610,7 @@ export const getExamScheduleMonitoring = createServerFn({ method: "GET" })
 			durationMinutes: target.durationMinutes,
 			passingPercentage: target.passingPercentage,
 			status: getExamScheduleStatus(target.schedule),
+			classes: classNames,
 			recipients,
 			summary: recipients.reduce<Record<ExamRecipientStatus, number>>(
 				(totals, recipient) => {

@@ -6,6 +6,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import {
 	createExamSchedule,
 	listPublishedExamChoices,
+	listScheduleClassChoices,
 	userCanManageDelivery,
 } from "@/lib/exam-delivery";
 import { getDashboardSession } from "@/lib/session";
@@ -28,13 +29,27 @@ function NewSchedulePage() {
 		Awaited<ReturnType<typeof listPublishedExamChoices>>
 	>([]);
 	const [examId, setExamId] = useState("");
+	const [classes, setClasses] = useState<
+		Awaited<ReturnType<typeof listScheduleClassChoices>>
+	>([]);
+	const isManager =
+		data.organizationRole
+			?.split(",")
+			.some((role) => role === "owner" || role === "admin") ?? false;
+	const [audienceMode, setAudienceMode] = useState<
+		"all_students" | "selected_classes"
+	>(isManager ? "all_students" : "selected_classes");
+	const [classIds, setClassIds] = useState<string[]>([]);
 	const [opensAt, setOpensAt] = useState("");
 	const [closesAt, setClosesAt] = useState("");
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	useEffect(() => {
-		void listPublishedExamChoices()
-			.then(setExams)
+		void Promise.all([listPublishedExamChoices(), listScheduleClassChoices()])
+			.then(([examRows, classRows]) => {
+				setExams(examRows);
+				setClasses(classRows);
+			})
 			.catch((caught) =>
 				setError(
 					caught instanceof Error ? caught.message : "Unable to load exams.",
@@ -65,6 +80,8 @@ function NewSchedulePage() {
 										examId,
 										opensAt: new Date(opensAt).toISOString(),
 										closesAt: new Date(closesAt).toISOString(),
+										audienceMode,
+										classIds,
 									},
 								});
 								await navigate({
@@ -132,6 +149,56 @@ function NewSchedulePage() {
 									onValueChange={setClosesAt}
 								/>
 							</div>
+						</div>
+						<div className="space-y-3">
+							<label className="text-sm font-medium" htmlFor="audience">
+								Audience
+							</label>
+							<select
+								id="audience"
+								className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+								value={audienceMode}
+								onChange={(event) =>
+									setAudienceMode(
+										event.target.value as "all_students" | "selected_classes",
+									)
+								}
+								disabled={!isManager}
+							>
+								<option value="all_students">All students</option>
+								<option value="selected_classes">Selected classes</option>
+							</select>
+							{audienceMode === "selected_classes" ? (
+								<div className="grid gap-2 rounded-lg border p-3">
+									{classes.length ? (
+										classes.map((item) => (
+											<label
+												className="flex items-center gap-3 text-sm"
+												key={item.id}
+											>
+												<input
+													type="checkbox"
+													checked={classIds.includes(item.id)}
+													onChange={(event) =>
+														setClassIds((current) =>
+															event.target.checked
+																? [...current, item.id]
+																: current.filter((id) => id !== item.id),
+														)
+													}
+												/>
+												<span>
+													{item.name} · {item.code}
+												</span>
+											</label>
+										))
+									) : (
+										<p className="text-sm text-muted-foreground">
+											No assigned active classes available.
+										</p>
+									)}
+								</div>
+							) : null}
 						</div>
 						{error ? <p className="text-sm text-destructive">{error}</p> : null}
 						<div className="flex gap-3">

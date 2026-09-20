@@ -4,6 +4,7 @@ import {
 	calculateAttemptDeadline,
 	calculateExamScore,
 	getExamScheduleStatus,
+	normalizeScheduleAudience,
 } from "@/lib/exam-delivery-policy";
 
 describe("exam delivery policy", () => {
@@ -63,5 +64,20 @@ describe("exam delivery policy", () => {
 		expect(() => assertAttemptCapacity({ used: 10, limit: 10 })).toThrow(
 			"monthly attempt limit",
 		);
+	});
+
+	it("validates and deduplicates schedule classes", () => {
+		expect(
+			normalizeScheduleAudience({
+				audienceMode: "selected_classes",
+				classIds: ["a", "a", "b"],
+			}),
+		).toEqual({ audienceMode: "selected_classes", classIds: ["a", "b"] });
+		expect(() =>
+			normalizeScheduleAudience({
+				audienceMode: "selected_classes",
+				classIds: [],
+			}),
+		).toThrow("at least one class");
 	});
 });
