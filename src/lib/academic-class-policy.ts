@@ -33,3 +33,12 @@ export function assertClassManager(role: string) {
 	if (!role.split(",").some((item) => item === "owner" || item === "admin"))
 		throw new Error("Workspace manager access is required.");
 }
+
+export function assertClassAccess(role: string, assignedTeacher: boolean) {
+	const roles = role.split(",");
+	if (
+		!roles.some((item) => item === "owner" || item === "admin") &&
+		!(roles.includes("teacher") && assignedTeacher)
+	)
+		throw new Error("Class access is required.");
+}

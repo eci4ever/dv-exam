@@ -587,10 +587,22 @@ export const updateAdminOrganizationMemberRole = createServerFn({
 			throw new Error("Transfer ownership before changing the owner's role.");
 		}
 
-		await db
-			.update(schema.member)
-			.set({ role: data.role })
-			.where(eq(schema.member.id, data.memberId));
+		await db.batch([
+			db
+				.update(schema.member)
+				.set({ role: data.role })
+				.where(eq(schema.member.id, data.memberId)),
+			db
+				.delete(schema.academicClassMember)
+				.where(
+					and(
+						eq(schema.academicClassMember.memberId, data.memberId),
+						data.role === "admin"
+							? undefined
+							: ne(schema.academicClassMember.role, data.role),
+					),
+				),
+		]);
 		await auditForSession(session, {
 			category: "organization",
 			type: "organization.member-role-updated",

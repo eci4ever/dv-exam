@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	assertActiveClass,
+	assertClassAccess,
 	assertClassManager,
 	normalizeClassCode,
 	validateAcademicClass,
@@ -26,5 +27,11 @@ describe("academic class policy", () => {
 	it("prevents archived class mutations", () => {
 		expect(() => assertActiveClass("active")).not.toThrow();
 		expect(() => assertActiveClass("archived")).toThrow("Archived classes");
+	});
+
+	it("allows only assigned teachers outside workspace management", () => {
+		expect(() => assertClassAccess("teacher", true)).not.toThrow();
+		expect(() => assertClassAccess("teacher", false)).toThrow("Class access");
+		expect(() => assertClassAccess("student", true)).toThrow("Class access");
 	});
 });

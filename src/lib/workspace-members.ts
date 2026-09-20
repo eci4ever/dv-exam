@@ -1,5 +1,5 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { and, asc, count, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, like, ne, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -180,10 +180,22 @@ export const updateWorkspaceMemberRole = createServerFn({ method: "POST" })
 			targetRole: target.role,
 			action: "update",
 		});
-		await db
-			.update(schema.member)
-			.set({ role: data.role })
-			.where(eq(schema.member.id, target.id));
+		await db.batch([
+			db
+				.update(schema.member)
+				.set({ role: data.role })
+				.where(eq(schema.member.id, target.id)),
+			db
+				.delete(schema.academicClassMember)
+				.where(
+					and(
+						eq(schema.academicClassMember.memberId, target.id),
+						data.role === "admin"
+							? undefined
+							: ne(schema.academicClassMember.role, data.role),
+					),
+				),
+		]);
 		await auditForSession(session, {
 			category: "organization",
 			type: "workspace.member-role-updated",

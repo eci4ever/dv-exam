@@ -33,7 +33,7 @@ export const Route = createFileRoute("/workspace/classes/")({
 		if (
 			!data.organizationRole
 				?.split(",")
-				.some((role) => role === "owner" || role === "admin") ||
+				.some((role) => ["owner", "admin", "teacher"].includes(role)) ||
 			data.entitlement?.status === "suspended"
 		)
 			throw redirect({ to: "/dashboard" });
@@ -144,10 +144,12 @@ function ClassesPage() {
 								Organize teachers and students into exam cohorts.
 							</p>
 						</div>
-						<Button onClick={() => setOpen(true)}>
-							<PlusIcon />
-							New class
-						</Button>
+						{result?.canManageClasses ? (
+							<Button onClick={() => setOpen(true)}>
+								<PlusIcon />
+								New class
+							</Button>
+						) : null}
 					</div>
 					<div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
 						<Input

@@ -228,6 +228,20 @@ export function AppSidebar({
 								</SidebarMenuItem>
 							) : null}
 							<MockSidebarItem icon={MegaphoneIcon} label="Announcements" />
+							{canManageExams ? (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/workspace/classes">
+												<GraduationCapIcon />
+												<span>Classes</span>
+											</a>
+										}
+										isActive={activeItem === "workspace-classes"}
+										tooltip="Classes"
+									/>
+								</SidebarMenuItem>
+							) : null}
 							{canManageOrganization ? (
 								<>
 									<SidebarMenuItem>
@@ -240,18 +254,6 @@ export function AppSidebar({
 											}
 											isActive={activeItem === "workspace-invitations"}
 											tooltip="Invitations"
-										/>
-									</SidebarMenuItem>
-									<SidebarMenuItem>
-										<SidebarMenuButton
-											render={
-												<a href="/workspace/classes">
-													<GraduationCapIcon />
-													<span>Classes</span>
-												</a>
-											}
-											isActive={activeItem === "workspace-classes"}
-											tooltip="Classes"
 										/>
 									</SidebarMenuItem>
 									{isOrganizationOwner ? (
