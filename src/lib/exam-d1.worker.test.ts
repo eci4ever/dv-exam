@@ -188,6 +188,12 @@ describe("Worker D1 test harness", () => {
 
 	it("stores class sources without changing the recipient snapshot", async () => {
 		const now = Date.now();
+		const legacySchedule = await env.DB.prepare(
+			"SELECT classSnapshotCapturedAt FROM examSchedule WHERE id = ?",
+		)
+			.bind("schedule-1")
+			.first<{ classSnapshotCapturedAt: number | null }>();
+		expect(legacySchedule?.classSnapshotCapturedAt).toBeNull();
 		await env.DB.batch([
 			env.DB.prepare(
 				"INSERT INTO member (id,organizationId,userId,role,createdAt) VALUES (?,?,?,?,?)",
@@ -210,6 +216,12 @@ describe("Worker D1 test harness", () => {
 			env.DB.prepare(
 				"INSERT INTO examScheduleClass (id,scheduleId,classId) VALUES (?,?,?)",
 			).bind("schedule-class-1", "schedule-1", "class-1"),
+			env.DB.prepare(
+				"INSERT INTO examScheduleRecipientClass (id,recipientId,classId) VALUES (?,?,?)",
+			).bind("recipient-class-1", "recipient-1", "class-1"),
+			env.DB.prepare(
+				"UPDATE examSchedule SET classSnapshotCapturedAt = ? WHERE id = ?",
+			).bind(now, "schedule-1"),
 		]);
 
 		await env.DB.prepare("DELETE FROM academicClassMember WHERE id = ?")
@@ -220,14 +232,14 @@ describe("Worker D1 test harness", () => {
 		)
 			.bind("schedule-1")
 			.first<{ userId: string }>();
-		const schedule = await env.DB.prepare(
-			"SELECT audienceMode FROM examSchedule WHERE id = ?",
+		const snapshotClass = await env.DB.prepare(
+			"SELECT classId FROM examScheduleRecipientClass WHERE recipientId = ?",
 		)
-			.bind("schedule-1")
-			.first<{ audienceMode: string }>();
+			.bind("recipient-1")
+			.first<{ classId: string }>();
 
 		expect(recipient?.userId).toBe("student-user");
-		expect(schedule?.audienceMode).toBe("all_students");
+		expect(snapshotClass?.classId).toBe("class-1");
 		await expect(
 			env.DB.prepare(
 				"INSERT INTO examScheduleClass (id,scheduleId,classId) VALUES (?,?,?)",

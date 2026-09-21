@@ -180,7 +180,7 @@ async function resolveScheduleAudience(input: {
 	if (input.audienceMode === "all_students") {
 		if (!manager) throw new Error("Teachers must schedule assigned classes.");
 		const students = await db
-			.select({ userId: schema.member.userId })
+			.select({ memberId: schema.member.id, userId: schema.member.userId })
 			.from(schema.member)
 			.where(
 				and(
@@ -193,7 +193,41 @@ async function resolveScheduleAudience(input: {
 					),
 				),
 			);
-		return { students, classes: [] as Array<{ id: string }> };
+		const classMemberships = students.length
+			? await db
+					.select({
+						memberId: schema.academicClassMember.memberId,
+						classId: schema.academicClassMember.classId,
+					})
+					.from(schema.academicClassMember)
+					.innerJoin(
+						schema.academicClass,
+						eq(schema.academicClass.id, schema.academicClassMember.classId),
+					)
+					.where(
+						and(
+							inArray(
+								schema.academicClassMember.memberId,
+								students.map((student) => student.memberId),
+							),
+							eq(schema.academicClassMember.role, "student"),
+							eq(schema.academicClass.status, "active"),
+						),
+					)
+			: [];
+		const classesByMember = new Map<string, string[]>();
+		for (const membership of classMemberships) {
+			const classIds = classesByMember.get(membership.memberId) ?? [];
+			classIds.push(membership.classId);
+			classesByMember.set(membership.memberId, classIds);
+		}
+		return {
+			students: students.map((student) => ({
+				userId: student.userId,
+				classIds: classesByMember.get(student.memberId) ?? [],
+			})),
+			classes: [] as Array<{ id: string }>,
+		};
 	}
 	const classes = await db
 		.select({ id: schema.academicClass.id })
@@ -210,8 +244,11 @@ async function resolveScheduleAudience(input: {
 		);
 	if (classes.length !== input.classIds.length)
 		throw new Error("Select only active classes you are assigned to.");
-	const students = await db
-		.selectDistinct({ userId: schema.member.userId })
+	const studentMemberships = await db
+		.select({
+			userId: schema.member.userId,
+			classId: schema.academicClassMember.classId,
+		})
 		.from(schema.academicClassMember)
 		.innerJoin(
 			schema.member,
@@ -224,7 +261,43 @@ async function resolveScheduleAudience(input: {
 				eq(schema.member.organizationId, input.organizationId),
 			),
 		);
-	return { students, classes };
+	const studentsByUser = new Map<string, Set<string>>();
+	for (const membership of studentMemberships) {
+		const classIds = studentsByUser.get(membership.userId) ?? new Set<string>();
+		classIds.add(membership.classId);
+		studentsByUser.set(membership.userId, classIds);
+	}
+	return {
+		students: [...studentsByUser].map(([userId, classIds]) => ({
+			userId,
+			classIds: [...classIds],
+		})),
+		classes,
+	};
+}
+
+function buildRecipientSnapshot(
+	students: Array<{ userId: string; classIds: string[] }>,
+	scheduleId: string,
+	assignedAt: Date,
+) {
+	const recipients = students.map((student) => ({
+		id: crypto.randomUUID(),
+		scheduleId,
+		userId: student.userId,
+		assignedAt,
+		classIds: student.classIds,
+	}));
+	return {
+		recipients,
+		classes: recipients.flatMap((recipient) =>
+			recipient.classIds.map((classId) => ({
+				id: crypto.randomUUID(),
+				recipientId: recipient.id,
+				classId,
+			})),
+		),
+	};
 }
 
 export const listExamSchedules = createServerFn({ method: "GET" }).handler(
@@ -319,12 +392,14 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 			throw new Error("Add at least one student before scheduling an exam.");
 		const id = crypto.randomUUID();
 		const now = new Date();
+		const recipientSnapshot = buildRecipientSnapshot(students, id, now);
 		await db.batch([
 			db.insert(schema.examSchedule).values({
 				id,
 				organizationId,
 				examId: exam.id,
 				audienceMode: data.audienceMode,
+				classSnapshotCapturedAt: now,
 				opensAt: data.opensAt,
 				closesAt: data.closesAt,
 				createdBy: session.user.id,
@@ -338,13 +413,16 @@ export const createExamSchedule = createServerFn({ method: "POST" })
 					classId: item.id,
 				}),
 			),
-			...students.map((student) =>
+			...recipientSnapshot.recipients.map((recipient) =>
 				db.insert(schema.examScheduleRecipient).values({
-					id: crypto.randomUUID(),
-					scheduleId: id,
-					userId: student.userId,
-					assignedAt: now,
+					id: recipient.id,
+					scheduleId: recipient.scheduleId,
+					userId: recipient.userId,
+					assignedAt: recipient.assignedAt,
 				}),
+			),
+			...recipientSnapshot.classes.map((item) =>
+				db.insert(schema.examScheduleRecipientClass).values(item),
 			),
 		]);
 		await auditForSession(session, {
@@ -437,6 +515,11 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 			if (!audience.students.length)
 				throw new Error("The selected audience has no students.");
 			const now = new Date();
+			const recipientSnapshot = buildRecipientSnapshot(
+				audience.students,
+				target.id,
+				now,
+			);
 			await db.batch([
 				db
 					.update(schema.examSchedule)
@@ -444,6 +527,7 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 						opensAt: data.opensAt,
 						closesAt: data.closesAt,
 						audienceMode: data.audienceMode,
+						classSnapshotCapturedAt: now,
 						updatedAt: now,
 					})
 					.where(eq(schema.examSchedule.id, target.id)),
@@ -460,13 +544,16 @@ export const updateExamSchedule = createServerFn({ method: "POST" })
 						classId: item.id,
 					}),
 				),
-				...audience.students.map((student) =>
+				...recipientSnapshot.recipients.map((recipient) =>
 					db.insert(schema.examScheduleRecipient).values({
-						id: crypto.randomUUID(),
-						scheduleId: target.id,
-						userId: student.userId,
-						assignedAt: now,
+						id: recipient.id,
+						scheduleId: recipient.scheduleId,
+						userId: recipient.userId,
+						assignedAt: recipient.assignedAt,
 					}),
+				),
+				...recipientSnapshot.classes.map((item) =>
+					db.insert(schema.examScheduleRecipientClass).values(item),
 				),
 			]);
 		}

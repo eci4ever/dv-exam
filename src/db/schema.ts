@@ -471,6 +471,9 @@ export const examSchedule = sqliteTable(
 			.$type<"all_students" | "selected_classes">()
 			.default("all_students")
 			.notNull(),
+		classSnapshotCapturedAt: integer("classSnapshotCapturedAt", {
+			mode: "timestamp_ms",
+		}),
 		opensAt: integer("opensAt", { mode: "timestamp_ms" }).notNull(),
 		closesAt: integer("closesAt", { mode: "timestamp_ms" }).notNull(),
 		cancelledAt: integer("cancelledAt", { mode: "timestamp_ms" }),
@@ -531,6 +534,26 @@ export const examScheduleRecipient = sqliteTable(
 			table.userId,
 		),
 		index("examScheduleRecipient_user_idx").on(table.userId),
+	],
+);
+
+export const examScheduleRecipientClass = sqliteTable(
+	"examScheduleRecipientClass",
+	{
+		id: text("id").primaryKey(),
+		recipientId: text("recipientId")
+			.notNull()
+			.references(() => examScheduleRecipient.id, { onDelete: "cascade" }),
+		classId: text("classId")
+			.notNull()
+			.references(() => academicClass.id, { onDelete: "restrict" }),
+	},
+	(table) => [
+		uniqueIndex("examScheduleRecipientClass_recipient_class_idx").on(
+			table.recipientId,
+			table.classId,
+		),
+		index("examScheduleRecipientClass_class_idx").on(table.classId),
 	],
 );
 
@@ -739,7 +762,7 @@ export const examScheduleClassRelations = relations(
 
 export const examScheduleRecipientRelations = relations(
 	examScheduleRecipient,
-	({ one }) => ({
+	({ one, many }) => ({
 		schedule: one(examSchedule, {
 			fields: [examScheduleRecipient.scheduleId],
 			references: [examSchedule.id],
@@ -747,6 +770,21 @@ export const examScheduleRecipientRelations = relations(
 		user: one(user, {
 			fields: [examScheduleRecipient.userId],
 			references: [user.id],
+		}),
+		classes: many(examScheduleRecipientClass),
+	}),
+);
+
+export const examScheduleRecipientClassRelations = relations(
+	examScheduleRecipientClass,
+	({ one }) => ({
+		recipient: one(examScheduleRecipient, {
+			fields: [examScheduleRecipientClass.recipientId],
+			references: [examScheduleRecipient.id],
+		}),
+		academicClass: one(academicClass, {
+			fields: [examScheduleRecipientClass.classId],
+			references: [academicClass.id],
 		}),
 	}),
 );
