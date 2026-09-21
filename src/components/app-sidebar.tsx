@@ -2,6 +2,7 @@ import {
 	Building2Icon,
 	CalendarDaysIcon,
 	ChartNoAxesColumnIncreasingIcon,
+	ChartSplineIcon,
 	CreditCardIcon,
 	FileTextIcon,
 	GaugeIcon,
@@ -66,6 +67,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "schedule"
 		| "my-exams"
 		| "results"
+		| "reports"
 		| "workspace-members"
 		| "workspace-invitations"
 		| "workspace-classes";
@@ -202,6 +204,20 @@ export function AppSidebar({
 										}
 										isActive={activeItem === "questions"}
 										tooltip="Question Bank"
+									/>
+								</SidebarMenuItem>
+							) : null}
+							{canManageExams ? (
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<a href="/reports">
+												<ChartSplineIcon />
+												<span>Reports</span>
+											</a>
+										}
+										isActive={activeItem === "reports"}
+										tooltip="Reports"
 									/>
 								</SidebarMenuItem>
 							) : null}

@@ -31,6 +31,7 @@ import { Route as InvitationsInvitationIdRouteImport } from './routes/invitation
 import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
+import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as ResultsIndexRouteImport } from './routes/results/index'
 import { Route as ResultsAttemptIdRouteImport } from './routes/results/$attemptId'
 import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
@@ -154,6 +155,11 @@ const QuestionsNewRoute = QuestionsNewRouteImport.update({
   path: '/questions/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultsIndexRoute = ResultsIndexRouteImport.update({
   id: '/results/',
   path: '/results/',
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/exams': typeof ExamsIndexRoute
   '/questions': typeof QuestionsIndexRoute
+  '/reports': typeof ReportsIndexRoute
   '/results': typeof ResultsIndexRoute
   '/schedule': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -317,6 +325,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/questions/': typeof QuestionsIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/reports/'
     | '/results/'
     | '/schedule/'
     | '/api/auth/$'
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/exams'
     | '/questions'
+    | '/reports'
     | '/results'
     | '/schedule'
     | '/api/auth/$'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/exams/'
     | '/questions/'
+    | '/reports/'
     | '/results/'
     | '/schedule/'
     | '/api/auth/$'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
   QuestionsIndexRoute: typeof QuestionsIndexRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
   ResultsIndexRoute: typeof ResultsIndexRoute
   ScheduleIndexRoute: typeof ScheduleIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuestionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/': {
+      id: '/reports/'
+      path: '/reports'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/results/': {
       id: '/results/'
       path: '/results'
@@ -744,6 +764,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   ExamsIndexRoute: ExamsIndexRoute,
   QuestionsIndexRoute: QuestionsIndexRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
   ResultsIndexRoute: ResultsIndexRoute,
   ScheduleIndexRoute: ScheduleIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
