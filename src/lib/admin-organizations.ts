@@ -16,6 +16,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { deleteOrganizationLifecycle } from "@/lib/organization-lifecycle";
 import {
 	auditForSession,
 	ensurePlatformData,
@@ -729,21 +730,7 @@ export const deleteAdminOrganization = createServerFn({ method: "POST" })
 			);
 		}
 
-		await db.batch([
-			db
-				.update(schema.session)
-				.set({ activeOrganizationId: null })
-				.where(eq(schema.session.activeOrganizationId, data.organizationId)),
-			db
-				.delete(schema.invitation)
-				.where(eq(schema.invitation.organizationId, data.organizationId)),
-			db
-				.delete(schema.member)
-				.where(eq(schema.member.organizationId, data.organizationId)),
-			db
-				.delete(schema.organization)
-				.where(eq(schema.organization.id, data.organizationId)),
-		]);
+		await deleteOrganizationLifecycle(data.organizationId);
 		await auditForSession(session, {
 			category: "organization",
 			type: "organization.deleted",

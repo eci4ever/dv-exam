@@ -38,6 +38,7 @@ interface WorkspaceShellProps {
 		| "results"
 		| "reports"
 		| "workspace-overview"
+		| "settings"
 		| "workspace-members"
 		| "workspace-invitations"
 		| "workspace-classes";
