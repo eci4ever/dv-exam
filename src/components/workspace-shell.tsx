@@ -37,6 +37,7 @@ interface WorkspaceShellProps {
 		| "my-exams"
 		| "results"
 		| "reports"
+		| "workspace-overview"
 		| "workspace-members"
 		| "workspace-invitations"
 		| "workspace-classes";

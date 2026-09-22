@@ -38,6 +38,7 @@ import { Route as ResultsAttemptIdRouteImport } from './routes/results/$attemptI
 import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
 import { Route as ScheduleScheduleIdRouteImport } from './routes/schedule/$scheduleId'
 import { Route as ScheduleNewRouteImport } from './routes/schedule/new'
+import { Route as WorkspaceIndexRouteImport } from './routes/workspace/index'
 import { Route as WorkspaceInvitationsRouteImport } from './routes/workspace/invitations'
 import { Route as WorkspaceMembersRouteImport } from './routes/workspace/members'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
@@ -191,6 +192,11 @@ const ScheduleNewRoute = ScheduleNewRouteImport.update({
   path: '/schedule/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
+  id: '/workspace/',
+  path: '/workspace/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceInvitationsRoute = WorkspaceInvitationsRouteImport.update({
   id: '/workspace/invitations',
   path: '/workspace/invitations',
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/reports/': typeof ReportsIndexRoute
   '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
+  '/workspace/': typeof WorkspaceIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
   '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsIndexRoute
   '/results': typeof ResultsIndexRoute
   '/schedule': typeof ScheduleIndexRoute
+  '/workspace': typeof WorkspaceIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId/preview': typeof ExamsExamIdPreviewRoute
   '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
@@ -337,6 +345,7 @@ export interface FileRoutesById {
   '/reports/': typeof ReportsIndexRoute
   '/results/': typeof ResultsIndexRoute
   '/schedule/': typeof ScheduleIndexRoute
+  '/workspace/': typeof WorkspaceIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/exams/$examId_/preview': typeof ExamsExamIdPreviewRoute
   '/workspace/classes/$classId': typeof WorkspaceClassesClassIdRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/results/'
     | '/schedule/'
+    | '/workspace/'
     | '/api/auth/$'
     | '/exams/$examId/preview'
     | '/workspace/classes/$classId'
@@ -415,6 +425,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/results'
     | '/schedule'
+    | '/workspace'
     | '/api/auth/$'
     | '/exams/$examId/preview'
     | '/workspace/classes/$classId'
@@ -453,6 +464,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/results/'
     | '/schedule/'
+    | '/workspace/'
     | '/api/auth/$'
     | '/exams/$examId_/preview'
     | '/workspace/classes/$classId'
@@ -492,6 +504,7 @@ export interface RootRouteChildren {
   ReportsIndexRoute: typeof ReportsIndexRoute
   ResultsIndexRoute: typeof ResultsIndexRoute
   ScheduleIndexRoute: typeof ScheduleIndexRoute
+  WorkspaceIndexRoute: typeof WorkspaceIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ExamsExamIdPreviewRoute: typeof ExamsExamIdPreviewRoute
   WorkspaceClassesClassIdRoute: typeof WorkspaceClassesClassIdRoute
@@ -703,6 +716,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/': {
+      id: '/workspace/'
+      path: '/workspace'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof WorkspaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/invitations': {
       id: '/workspace/invitations'
       path: '/workspace/invitations'
@@ -788,6 +808,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsIndexRoute: ReportsIndexRoute,
   ResultsIndexRoute: ResultsIndexRoute,
   ScheduleIndexRoute: ScheduleIndexRoute,
+  WorkspaceIndexRoute: WorkspaceIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ExamsExamIdPreviewRoute: ExamsExamIdPreviewRoute,
   WorkspaceClassesClassIdRoute: WorkspaceClassesClassIdRoute,

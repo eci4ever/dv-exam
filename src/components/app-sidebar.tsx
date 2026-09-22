@@ -68,6 +68,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "my-exams"
 		| "results"
 		| "reports"
+		| "workspace-overview"
 		| "workspace-members"
 		| "workspace-invitations"
 		| "workspace-classes";
@@ -228,7 +229,18 @@ export function AppSidebar({
 					<SidebarGroupLabel>Workspace</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
-							<MockSidebarItem icon={PanelsTopLeftIcon} label="Overview" />
+							<SidebarMenuItem>
+								<SidebarMenuButton
+									render={
+										<a href="/workspace">
+											<PanelsTopLeftIcon />
+											<span>Overview</span>
+										</a>
+									}
+									isActive={activeItem === "workspace-overview"}
+									tooltip="Workspace overview"
+								/>
+							</SidebarMenuItem>
 							{canManageOrganization ? (
 								<SidebarMenuItem>
 									<SidebarMenuButton
