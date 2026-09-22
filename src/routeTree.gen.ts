@@ -32,6 +32,7 @@ import { Route as QuestionsIndexRouteImport } from './routes/questions/index'
 import { Route as QuestionsQuestionIdRouteImport } from './routes/questions/$questionId'
 import { Route as QuestionsNewRouteImport } from './routes/questions/new'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as ReportsScheduleIdRouteImport } from './routes/reports/$scheduleId'
 import { Route as ResultsIndexRouteImport } from './routes/results/index'
 import { Route as ResultsAttemptIdRouteImport } from './routes/results/$attemptId'
 import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
@@ -160,6 +161,11 @@ const ReportsIndexRoute = ReportsIndexRouteImport.update({
   path: '/reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsScheduleIdRoute = ReportsScheduleIdRouteImport.update({
+  id: '/reports/$scheduleId',
+  path: '/reports/$scheduleId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultsIndexRoute = ResultsIndexRouteImport.update({
   id: '/results/',
   path: '/results/',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/reports/$scheduleId': typeof ReportsScheduleIdRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/reports/$scheduleId': typeof ReportsScheduleIdRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/invitations/$invitationId': typeof InvitationsInvitationIdRoute
   '/questions/$questionId': typeof QuestionsQuestionIdRoute
   '/questions/new': typeof QuestionsNewRoute
+  '/reports/$scheduleId': typeof ReportsScheduleIdRoute
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/reports/$scheduleId'
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/reports/$scheduleId'
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/invitations/$invitationId'
     | '/questions/$questionId'
     | '/questions/new'
+    | '/reports/$scheduleId'
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
@@ -467,6 +479,7 @@ export interface RootRouteChildren {
   InvitationsInvitationIdRoute: typeof InvitationsInvitationIdRoute
   QuestionsQuestionIdRoute: typeof QuestionsQuestionIdRoute
   QuestionsNewRoute: typeof QuestionsNewRoute
+  ReportsScheduleIdRoute: typeof ReportsScheduleIdRoute
   ResultsAttemptIdRoute: typeof ResultsAttemptIdRoute
   ScheduleScheduleIdRoute: typeof ScheduleScheduleIdRoute
   ScheduleNewRoute: typeof ScheduleNewRoute
@@ -648,6 +661,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/$scheduleId': {
+      id: '/reports/$scheduleId'
+      path: '/reports/$scheduleId'
+      fullPath: '/reports/$scheduleId'
+      preLoaderRoute: typeof ReportsScheduleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/results/': {
       id: '/results/'
       path: '/results'
@@ -755,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvitationsInvitationIdRoute: InvitationsInvitationIdRoute,
   QuestionsQuestionIdRoute: QuestionsQuestionIdRoute,
   QuestionsNewRoute: QuestionsNewRoute,
+  ReportsScheduleIdRoute: ReportsScheduleIdRoute,
   ResultsAttemptIdRoute: ResultsAttemptIdRoute,
   ScheduleScheduleIdRoute: ScheduleScheduleIdRoute,
   ScheduleNewRoute: ScheduleNewRoute,

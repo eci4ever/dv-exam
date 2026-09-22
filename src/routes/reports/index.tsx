@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -227,13 +227,12 @@ function ReportsOverviewPage() {
 			id: "action",
 			header: "",
 			cell: ({ row }) => (
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => window.location.assign(`/reports/${row.original.id}`)}
+				<a
+					className={buttonVariants({ size: "sm", variant: "outline" })}
+					href={`/reports/${row.original.id}`}
 				>
 					View report
-				</Button>
+				</a>
 			),
 		},
 	];

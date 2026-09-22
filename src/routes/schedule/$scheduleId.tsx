@@ -19,7 +19,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import {
@@ -192,6 +192,12 @@ function ScheduleDetailPage() {
 											: result.classes.map((item) => item.name).join(", ")}
 									</p>
 								</div>
+								<a
+									className={buttonVariants({ variant: "outline" })}
+									href={`/reports/${scheduleId}`}
+								>
+									View report
+								</a>
 							</div>
 							<section className="rounded-xl border bg-card p-5">
 								<div className="grid gap-4 sm:grid-cols-2">
