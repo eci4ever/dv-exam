@@ -1,7 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
+	ActivityIcon,
 	AlertTriangleIcon,
 	Building2Icon,
+	CalendarDaysIcon,
+	FileTextIcon,
 	ShieldCheckIcon,
 	UserRoundCheckIcon,
 	UsersRoundIcon,
@@ -54,12 +57,44 @@ function PlatformOverview() {
 			value: data.metrics.suspendedOrganizations,
 			icon: ShieldCheckIcon,
 		},
+		{
+			label: "Total exams",
+			value: data.metrics.totalExams,
+			icon: FileTextIcon,
+		},
+		{
+			label: "Open schedules",
+			value: data.metrics.openSchedules,
+			icon: CalendarDaysIcon,
+		},
+		{
+			label: "Attempts (30 days)",
+			value: data.metrics.attemptsLast30Days,
+			icon: ActivityIcon,
+		},
 	];
 	const attention = [
-		["Banned users", data.attention.bannedUsers],
-		["Ownerless organizations", data.attention.ownerlessOrganizations],
-		["Organizations at member limit", data.attention.organizationsAtLimit],
-		["Suspended organizations", data.attention.suspendedOrganizations],
+		["Banned users", data.attention.bannedUsers, "/admin/users?status=banned"],
+		[
+			"Ownerless organizations",
+			data.attention.ownerlessOrganizations,
+			"/admin/organizations",
+		],
+		[
+			"Organizations near limit",
+			data.attention.organizationsNearLimit,
+			"/admin/organizations?health=near_limit",
+		],
+		[
+			"Organizations at limit",
+			data.attention.organizationsAtLimit,
+			"/admin/organizations?health=at_limit",
+		],
+		[
+			"Suspended organizations",
+			data.attention.suspendedOrganizations,
+			"/admin/organizations?health=suspended",
+		],
 	] as const;
 
 	return (
@@ -101,16 +136,17 @@ function PlatformOverview() {
 								</div>
 							</div>
 							<div className="divide-y">
-								{attention.map(([label, value]) => (
-									<div
+								{attention.map(([label, value, href]) => (
+									<a
 										key={label}
+										href={href}
 										className="flex items-center justify-between gap-4 px-5 py-4 text-sm"
 									>
 										<span>{label}</span>
 										<Badge variant={value > 0 ? "destructive" : "secondary"}>
 											{value}
 										</Badge>
-									</div>
+									</a>
 								))}
 							</div>
 						</section>
@@ -155,6 +191,25 @@ function PlatformOverview() {
 							)}
 						</section>
 					</div>
+					<section className="rounded-xl border bg-card">
+						<div className="border-b p-5">
+							<h2 className="font-medium">Plan distribution</h2>
+						</div>
+						<div className="grid gap-3 p-5 sm:grid-cols-3">
+							{data.planDistribution.map((plan) => (
+								<a
+									className="rounded-lg border p-4 hover:bg-muted/50"
+									href={`/admin/organizations?plan=${plan.planId}`}
+									key={plan.planId}
+								>
+									<p className="text-sm text-muted-foreground">
+										{plan.planName}
+									</p>
+									<p className="mt-2 text-2xl font-semibold">{plan.count}</p>
+								</a>
+							))}
+						</div>
+					</section>
 				</div>
 			</main>
 		</PlatformAdminShell>

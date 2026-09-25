@@ -14,6 +14,7 @@ import {
 	ChevronRightIcon,
 	ChevronsUpDownIcon,
 	CrownIcon,
+	GaugeIcon,
 	RefreshCwIcon,
 	SearchIcon,
 	Trash2Icon,
@@ -85,7 +86,19 @@ import { getDashboardSession } from "@/lib/session";
 const PAGE_SIZE = 25;
 
 export const Route = createFileRoute("/admin/organizations")({
-	beforeLoad: async () => {
+	validateSearch: (value: Record<string, unknown>) => ({
+		plan: typeof value.plan === "string" ? value.plan : "all",
+		status:
+			value.status === "active" || value.status === "suspended"
+				? value.status
+				: "all",
+		health: ["healthy", "near_limit", "at_limit", "suspended"].includes(
+			String(value.health),
+		)
+			? String(value.health)
+			: "all",
+	}),
+	beforeLoad: async ({ search }) => {
 		const dashboard = await getDashboardSession();
 
 		if (!dashboard) throw redirect({ to: "/login" });
@@ -100,6 +113,9 @@ export const Route = createFileRoute("/admin/organizations")({
 					pageSize: PAGE_SIZE,
 					sortBy: "createdAt",
 					sortDirection: "desc",
+					planId: search.plan,
+					status: search.status,
+					health: search.health,
 				},
 			}),
 			listPlans(),
@@ -181,6 +197,7 @@ function RolePicker({
 }
 
 function OrganizationManagement() {
+	const routeSearch = Route.useSearch();
 	const {
 		session,
 		organizations: userOrganizations,
@@ -199,10 +216,20 @@ function OrganizationManagement() {
 	const [page, setPage] = useState(1);
 	const [sortBy, setSortBy] = useState<OrganizationSortField>("createdAt");
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-	const [planFilter, setPlanFilter] = useState("all");
+	const [planFilter, setPlanFilter] = useState(routeSearch.plan);
 	const [statusFilter, setStatusFilter] = useState<
 		"all" | "active" | "suspended"
-	>("all");
+	>(routeSearch.status as "all" | "active" | "suspended");
+	const [healthFilter, setHealthFilter] = useState<
+		"all" | "healthy" | "near_limit" | "at_limit" | "suspended"
+	>(
+		routeSearch.health as
+			| "all"
+			| "healthy"
+			| "near_limit"
+			| "at_limit"
+			| "suspended",
+	);
 	const [isLoading, setIsLoading] = useState(false);
 	const [pageError, setPageError] = useState<string | null>(null);
 	const listRequest = useRef(0);
@@ -250,6 +277,7 @@ function OrganizationManagement() {
 					sortDirection,
 					planId: planFilter,
 					status: statusFilter,
+					health: healthFilter,
 				},
 			});
 
@@ -269,7 +297,15 @@ function OrganizationManagement() {
 		} finally {
 			if (requestId === listRequest.current) setIsLoading(false);
 		}
-	}, [page, planFilter, search, sortBy, sortDirection, statusFilter]);
+	}, [
+		healthFilter,
+		page,
+		planFilter,
+		search,
+		sortBy,
+		sortDirection,
+		statusFilter,
+	]);
 
 	useEffect(() => {
 		const timeout = window.setTimeout(() => void loadOrganizations(), 300);
@@ -644,7 +680,20 @@ function OrganizationManagement() {
 						<ArrowUpDownIcon />
 					</Button>
 				),
-				cell: ({ row }) => row.original.memberCount,
+				cell: ({ row }) =>
+					`${row.original.memberCount}/${row.original.memberLimit}`,
+			},
+			{
+				id: "activeExams",
+				header: "Active exams",
+				cell: ({ row }) =>
+					`${row.original.activeExamCount}/${row.original.activeExamLimit}`,
+			},
+			{
+				id: "monthlyAttempts",
+				header: "Monthly attempts",
+				cell: ({ row }) =>
+					`${row.original.monthlyAttemptCount}/${row.original.monthlyAttemptLimit}`,
 			},
 			{
 				accessorKey: "planName",
@@ -663,6 +712,22 @@ function OrganizationManagement() {
 						}
 					>
 						{row.original.status}
+					</Badge>
+				),
+			},
+			{
+				accessorKey: "health",
+				header: "Health",
+				cell: ({ row }) => (
+					<Badge
+						variant={
+							row.original.health === "at_limit" ||
+							row.original.health === "suspended"
+								? "destructive"
+								: "secondary"
+						}
+					>
+						{row.original.health.replace("_", " ")}
 					</Badge>
 				),
 			},
@@ -814,6 +879,22 @@ function OrganizationManagement() {
 									>
 										<option value="all">All statuses</option>
 										<option value="active">Active</option>
+										<option value="suspended">Suspended</option>
+									</select>
+									<select
+										value={healthFilter}
+										onChange={(event) => {
+											setHealthFilter(
+												event.target.value as typeof healthFilter,
+											);
+											setPage(1);
+										}}
+										className="h-9 rounded-md border bg-transparent px-3 text-sm"
+									>
+										<option value="all">All health</option>
+										<option value="healthy">Healthy</option>
+										<option value="near_limit">Near limit</option>
+										<option value="at_limit">At limit</option>
 										<option value="suspended">Suspended</option>
 									</select>
 								</div>
@@ -1003,6 +1084,7 @@ function OrganizationManagement() {
 									<Badge variant="secondary">{details.members.length}</Badge>
 								</TabsTrigger>
 								<TabsTrigger value="access">Plan & Access</TabsTrigger>
+								<TabsTrigger value="health">Health &amp; Usage</TabsTrigger>
 							</TabsList>
 
 							<TabsContent value="general" className="grid gap-4">
@@ -1250,9 +1332,8 @@ function OrganizationManagement() {
 								<section className="rounded-xl border p-4 sm:p-5">
 									<h3 className="font-medium">Plan assignment</h3>
 									<p className="mt-1 text-sm text-muted-foreground">
-										Member usage: {details.members.length} /{" "}
-										{details.organization.memberLimit}. Exam and attempt usage
-										are not tracked yet.
+										Member usage: {details.organization.memberCount} /{" "}
+										{details.organization.memberLimit}.
 									</p>
 									<label className="mt-4 grid gap-2 text-sm font-medium">
 										Plan
@@ -1301,6 +1382,69 @@ function OrganizationManagement() {
 											</Button>
 										)}
 									</div>
+								</section>
+							</TabsContent>
+
+							<TabsContent value="health" className="grid gap-4">
+								<section className="rounded-xl border p-4 sm:p-5">
+									<div className="flex items-start justify-between gap-4">
+										<div>
+											<div className="flex items-center gap-2">
+												<GaugeIcon className="size-4" />
+												<h3 className="font-medium">Live entitlement usage</h3>
+											</div>
+											<p className="mt-1 text-sm text-muted-foreground">
+												Calculated{" "}
+												{formatDate(details.organization.usageCalculatedAt)}
+											</p>
+										</div>
+										<Badge
+											variant={
+												details.organization.health === "healthy"
+													? "secondary"
+													: "destructive"
+											}
+										>
+											{details.organization.health.replace("_", " ")}
+										</Badge>
+									</div>
+									<div className="mt-5 grid gap-3 sm:grid-cols-3">
+										{[
+											[
+												"Members",
+												details.organization.memberCount,
+												details.organization.memberLimit,
+											],
+											[
+												"Active exams",
+												details.organization.activeExamCount,
+												details.organization.activeExamLimit,
+											],
+											[
+												"Monthly attempts",
+												details.organization.monthlyAttemptCount,
+												details.organization.monthlyAttemptLimit,
+											],
+										].map(([label, used, limit]) => (
+											<div
+												className="rounded-lg border p-4"
+												key={label as string}
+											>
+												<p className="text-sm text-muted-foreground">
+													{label as string}
+												</p>
+												<p className="mt-2 text-xl font-semibold">
+													{used as number}/{limit as number}
+												</p>
+											</div>
+										))}
+									</div>
+									<a
+										className="mt-5 inline-flex text-sm font-medium underline underline-offset-4"
+										href={`/admin/audit?organization=${details.organization.id}`}
+									>
+										View filtered audit activity
+									</a>
 								</section>
 							</TabsContent>
 						</Tabs>

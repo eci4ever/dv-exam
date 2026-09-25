@@ -27,6 +27,11 @@ import {
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/audit")({
+	validateSearch: (value: Record<string, unknown>) => ({
+		organization:
+			typeof value.organization === "string" ? value.organization : "",
+		event: typeof value.event === "string" ? value.event : "",
+	}),
 	beforeLoad: async () => {
 		const dashboard = await getDashboardSession();
 		if (!dashboard) throw redirect({ to: "/login" });
@@ -34,9 +39,20 @@ export const Route = createFileRoute("/admin/audit")({
 			throw redirect({ to: "/dashboard" });
 		return dashboard;
 	},
-	loader: async () => ({
-		events: await listAuditEvents({ data: {} }),
+	loaderDeps: ({ search }) => ({
+		organizationId: search.organization,
+		eventId: search.event,
+	}),
+	loader: async ({ deps }) => ({
+		events: await listAuditEvents({
+			data: { organizationId: deps.organizationId },
+		}),
 		options: await listAuditFilterOptions(),
+		selectedEvent: deps.eventId
+			? await getAuditEvent({ data: { eventId: deps.eventId } }).catch(
+					() => null,
+				)
+			: null,
 	}),
 	component: AuditLog,
 });
@@ -51,6 +67,7 @@ function title(value: string) {
 }
 
 function AuditLog() {
+	const routeSearch = Route.useSearch();
 	const context = Route.useRouteContext();
 	const initial = Route.useLoaderData();
 	const [data, setData] = useState(initial.events);
@@ -59,15 +76,34 @@ function AuditLog() {
 	const [result, setResult] = useState("all");
 	const [typeFilter, setTypeFilter] = useState("all");
 	const [actorId, setActorId] = useState("");
-	const [organizationId, setOrganizationId] = useState("");
+	const [organizationId, setOrganizationId] = useState(
+		routeSearch.organization,
+	);
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 	const [dateFrom, setDateFrom] = useState("");
 	const [dateTo, setDateTo] = useState("");
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [detail, setDetail] = useState<AuditDetail | null>(null);
+	const [detail, setDetail] = useState<AuditDetail | null>(
+		initial.selectedEvent,
+	);
 	const request = useRef(0);
+
+	useEffect(() => {
+		if (!routeSearch.event) return;
+		let cancelled = false;
+		void getAuditEvent({ data: { eventId: routeSearch.event } })
+			.then((event) => {
+				if (!cancelled) setDetail(event);
+			})
+			.catch(() => {
+				if (!cancelled) setError("Unable to load the linked audit event.");
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [routeSearch.event]);
 
 	const load = useCallback(
 		async (nextPage = page) => {

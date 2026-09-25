@@ -3,13 +3,13 @@ import {
 	and,
 	asc,
 	count,
-	countDistinct,
 	desc,
 	eq,
 	isNull,
 	like,
 	ne,
 	or,
+	sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
@@ -22,6 +22,10 @@ import {
 	ensurePlatformData,
 	requirePlatformAdmin,
 } from "@/lib/platform-core";
+import {
+	getUsageHealth,
+	type UsageHealth,
+} from "@/lib/workspace-governance-policy";
 
 const organizationSortFields = [
 	"name",
@@ -38,6 +42,7 @@ export interface AdminOrganizationListInput {
 	search?: string;
 	planId?: string;
 	status?: "all" | "active" | "suspended";
+	health?: "all" | UsageHealth;
 	page?: number;
 	pageSize?: number;
 	sortBy?: OrganizationSortField;
@@ -134,8 +139,22 @@ function validateListInput(
 		input.status === "active" || input.status === "suspended"
 			? input.status
 			: "all";
+	const health = ["healthy", "near_limit", "at_limit", "suspended"].includes(
+		String(input.health),
+	)
+		? (input.health as UsageHealth)
+		: "all";
 
-	return { search, planId, status, page, pageSize, sortBy, sortDirection };
+	return {
+		search,
+		planId,
+		status,
+		health,
+		page,
+		pageSize,
+		sortBy,
+		sortDirection,
+	};
 }
 
 function validateUpdateInput(value: unknown): UpdateAdminOrganizationInput {
@@ -233,6 +252,13 @@ async function organizationExists(organizationId: string) {
 
 async function getOrganizationDetails(organizationId: string) {
 	await ensurePlatformData();
+	const now = new Date();
+	const monthStart = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+	);
+	const monthEnd = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+	);
 	const [organization] = await db
 		.select({
 			id: schema.organization.id,
@@ -245,6 +271,10 @@ async function getOrganizationDetails(organizationId: string) {
 			status: schema.organizationEntitlement.status,
 			suspensionReason: schema.organizationEntitlement.suspensionReason,
 			memberLimit: schema.platformPlan.memberLimit,
+			activeExamLimit: schema.platformPlan.activeExamLimit,
+			monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
+			activeExamCount: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${organizationId} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+			monthlyAttemptCount: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${organizationId} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
 		})
 		.from(schema.organization)
 		.innerJoin(
@@ -283,7 +313,25 @@ async function getOrganizationDetails(organizationId: string) {
 	});
 
 	return {
-		organization,
+		organization: {
+			...organization,
+			memberCount: members.length,
+			health: getUsageHealth({
+				status: organization.status,
+				usage: [
+					{ used: members.length, limit: organization.memberLimit },
+					{
+						used: organization.activeExamCount,
+						limit: organization.activeExamLimit,
+					},
+					{
+						used: organization.monthlyAttemptCount,
+						limit: organization.monthlyAttemptLimit,
+					},
+				],
+			}),
+			usageCalculatedAt: now,
+		},
 		members,
 		owner:
 			members.find((member) => member.role.split(",").includes("owner")) ??
@@ -296,6 +344,13 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		await requirePlatformAdmin();
 		await ensurePlatformData();
+		const now = new Date();
+		const monthStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+		);
+		const monthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+		);
 
 		const ownerMember = alias(schema.member, "ownerMember");
 		const ownerUser = alias(schema.user, "ownerUser");
@@ -329,7 +384,7 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 						: schema.organization.createdAt;
 		const orderDirection = data.sortDirection === "asc" ? asc : desc;
 
-		const baseRows = db
+		const baseRows = await db
 			.select({
 				id: schema.organization.id,
 				name: schema.organization.name,
@@ -344,6 +399,10 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 				planName: schema.platformPlan.name,
 				status: schema.organizationEntitlement.status,
 				memberLimit: schema.platformPlan.memberLimit,
+				activeExamLimit: schema.platformPlan.activeExamLimit,
+				monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
+				activeExamCount: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${schema.organization.id} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+				monthlyAttemptCount: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${schema.organization.id} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
 			})
 			.from(schema.organization)
 			.innerJoin(
@@ -376,26 +435,38 @@ export const listAdminOrganizations = createServerFn({ method: "GET" })
 				ownerUser.name,
 				ownerUser.email,
 			)
-			.orderBy(orderDirection(orderColumn))
-			.limit(data.pageSize)
-			.offset((data.page - 1) * data.pageSize);
-
-		const [organizations, totalRows] = await Promise.all([
-			baseRows,
-			db
-				.select({ count: countDistinct(schema.organization.id) })
-				.from(schema.organization)
-				.leftJoin(
-					ownerMember,
-					and(
-						eq(ownerMember.organizationId, schema.organization.id),
-						eq(ownerMember.role, "owner"),
-					),
-				)
-				.leftJoin(ownerUser, eq(ownerUser.id, ownerMember.userId))
-				.where(searchCondition),
-		]);
-		const total = totalRows[0]?.count ?? 0;
+			.orderBy(orderDirection(orderColumn));
+		const matching = baseRows
+			.map((organization) => ({
+				...organization,
+				health: getUsageHealth({
+					status: organization.status,
+					usage: [
+						{
+							used: organization.memberCount,
+							limit: organization.memberLimit,
+						},
+						{
+							used: organization.activeExamCount,
+							limit: organization.activeExamLimit,
+						},
+						{
+							used: organization.monthlyAttemptCount,
+							limit: organization.monthlyAttemptLimit,
+						},
+					],
+				}),
+				usageCalculatedAt: now,
+			}))
+			.filter(
+				(organization) =>
+					data.health === "all" || organization.health === data.health,
+			);
+		const total = matching.length;
+		const organizations = matching.slice(
+			(data.page - 1) * data.pageSize,
+			data.page * data.pageSize,
+		);
 
 		return {
 			organizations,

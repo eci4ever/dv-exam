@@ -66,7 +66,13 @@ import {
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/users")({
-	beforeLoad: async () => {
+	validateSearch: (value: Record<string, unknown>) => ({
+		status:
+			value.status === "active" || value.status === "banned"
+				? value.status
+				: "all",
+	}),
+	beforeLoad: async ({ search }) => {
 		const dashboard = await getDashboardSession();
 
 		if (!dashboard) {
@@ -78,7 +84,7 @@ export const Route = createFileRoute("/admin/users")({
 		}
 
 		const [users, provisioningOrganizations] = await Promise.all([
-			listPlatformUsers({ data: {} }),
+			listPlatformUsers({ data: { status: search.status } }),
 			listUserProvisioningOrganizations(),
 		]);
 		return { ...dashboard, initialUsers: users, provisioningOrganizations };
@@ -128,6 +134,7 @@ type RiskAction =
 	| "delete";
 
 function UserManagement() {
+	const routeSearch = Route.useSearch();
 	const {
 		session,
 		organizations,
@@ -146,7 +153,7 @@ function UserManagement() {
 	const [error, setError] = useState<string | null>(null);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [roleFilter, setRoleFilter] = useState("all");
-	const [statusFilter, setStatusFilter] = useState("all");
+	const [statusFilter, setStatusFilter] = useState(routeSearch.status);
 	const [page, setPage] = useState(1);
 	const [pageCount, setPageCount] = useState(initialUsers.pageCount);
 	const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);

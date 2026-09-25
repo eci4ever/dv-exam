@@ -25,6 +25,7 @@ import {
 	requirePlatformAdmin,
 } from "@/lib/platform-core";
 import { assertPlanLimitReductionSafe } from "@/lib/platform-policy";
+import { getUsageHealth } from "@/lib/workspace-governance-policy";
 
 export type OrganizationStatus = "active" | "suspended";
 export type AuditCategory =
@@ -628,6 +629,13 @@ export const getPlatformOverview = createServerFn({ method: "GET" }).handler(
 		await requirePlatformAdmin();
 		await ensurePlatformData();
 		const now = new Date();
+		const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+		const monthStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+		);
+		const monthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+		);
 		const [
 			totals,
 			activeUsers,
@@ -637,6 +645,11 @@ export const getPlatformOverview = createServerFn({ method: "GET" }).handler(
 			ownerless,
 			atLimit,
 			recent,
+			totalExams,
+			openSchedules,
+			attempts30d,
+			planDistribution,
+			organizationUsage,
 		] = await Promise.all([
 			db.select({ count: count() }).from(schema.user),
 			db
@@ -694,21 +707,93 @@ export const getPlatformOverview = createServerFn({ method: "GET" }).handler(
 				.from(schema.auditEvent)
 				.orderBy(desc(schema.auditEvent.createdAt))
 				.limit(10),
+			db.select({ count: count() }).from(schema.exam),
+			db
+				.select({ count: count() })
+				.from(schema.examSchedule)
+				.where(
+					and(
+						isNull(schema.examSchedule.cancelledAt),
+						lte(schema.examSchedule.opensAt, now),
+						gte(schema.examSchedule.closesAt, now),
+					),
+				),
+			db
+				.select({ count: count() })
+				.from(schema.examAttempt)
+				.where(gte(schema.examAttempt.startedAt, thirtyDaysAgo)),
+			db
+				.select({
+					planId: schema.platformPlan.id,
+					planName: schema.platformPlan.name,
+					count: count(schema.organizationEntitlement.organizationId),
+				})
+				.from(schema.platformPlan)
+				.leftJoin(
+					schema.organizationEntitlement,
+					eq(schema.organizationEntitlement.planId, schema.platformPlan.id),
+				)
+				.groupBy(schema.platformPlan.id),
+			db
+				.select({
+					id: schema.organization.id,
+					status: schema.organizationEntitlement.status,
+					memberLimit: schema.platformPlan.memberLimit,
+					activeExamLimit: schema.platformPlan.activeExamLimit,
+					monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
+					members: sql<number>`(select count(*) from ${schema.member} member where member.organizationId = ${schema.organization.id})`,
+					activeExams: sql<number>`(select count(*) from ${schema.examSchedule} schedule where schedule.organizationId = ${schema.organization.id} and schedule.cancelledAt is null and schedule.opensAt <= ${now.getTime()} and schedule.closesAt > ${now.getTime()})`,
+					monthlyAttempts: sql<number>`(select count(*) from ${schema.examAttempt} attempt inner join ${schema.examSchedule} schedule on schedule.id = attempt.scheduleId where schedule.organizationId = ${schema.organization.id} and attempt.startedAt >= ${monthStart.getTime()} and attempt.startedAt < ${monthEnd.getTime()})`,
+				})
+				.from(schema.organization)
+				.innerJoin(
+					schema.organizationEntitlement,
+					eq(
+						schema.organizationEntitlement.organizationId,
+						schema.organization.id,
+					),
+				)
+				.innerJoin(
+					schema.platformPlan,
+					eq(schema.platformPlan.id, schema.organizationEntitlement.planId),
+				),
 		]);
+		const health = organizationUsage.map((organization) =>
+			getUsageHealth({
+				status: organization.status,
+				usage: [
+					{ used: organization.members, limit: organization.memberLimit },
+					{
+						used: organization.activeExams,
+						limit: organization.activeExamLimit,
+					},
+					{
+						used: organization.monthlyAttempts,
+						limit: organization.monthlyAttemptLimit,
+					},
+				],
+			}),
+		);
 		return {
 			metrics: {
 				totalUsers: totals[0]?.count ?? 0,
 				activeUsers: activeUsers[0]?.count ?? 0,
 				activeOrganizations: activeOrgs[0]?.count ?? 0,
 				suspendedOrganizations: suspendedOrgs[0]?.count ?? 0,
+				totalExams: totalExams[0]?.count ?? 0,
+				openSchedules: openSchedules[0]?.count ?? 0,
+				attemptsLast30Days: attempts30d[0]?.count ?? 0,
 			},
 			attention: {
 				bannedUsers: bannedUsers[0]?.count ?? 0,
 				ownerlessOrganizations: ownerless[0]?.count ?? 0,
 				organizationsAtLimit: atLimit[0]?.count ?? 0,
+				organizationsNearLimit: health.filter((item) => item === "near_limit")
+					.length,
 				suspendedOrganizations: suspendedOrgs[0]?.count ?? 0,
 			},
 			recent,
+			planDistribution,
 		};
 	},
 );
