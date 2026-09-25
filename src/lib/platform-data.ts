@@ -101,12 +101,17 @@ export async function ensurePlatformData() {
 }
 
 export async function getPlatformSettingsRecord() {
-	await ensurePlatformData();
-	const [settings] = await db
-		.select()
-		.from(schema.platformSettings)
-		.where(eq(schema.platformSettings.id, PLATFORM_SETTINGS_ID))
-		.limit(1);
+	const loadSettings = () =>
+		db
+			.select()
+			.from(schema.platformSettings)
+			.where(eq(schema.platformSettings.id, PLATFORM_SETTINGS_ID))
+			.limit(1);
+	let [settings] = await loadSettings();
+	if (!settings) {
+		await ensurePlatformData();
+		[settings] = await loadSettings();
+	}
 	if (!settings) throw new Error("Platform settings are unavailable.");
 	return settings;
 }

@@ -5,10 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
-import {
-	ensurePlatformData,
-	getPlatformSettingsRecord,
-} from "@/lib/platform-data";
+import { getPlatformSettingsRecord } from "@/lib/platform-data";
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () =>
 	auth.api.getSession({ headers: getRequestHeaders() }),
@@ -22,18 +19,25 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 		if (!session) {
 			return null;
 		}
-		await ensurePlatformData();
-
-		const organizations = await auth.api.listOrganizations({ headers });
-		const activeOrganizationId =
-			session.session.activeOrganizationId ?? organizations[0]?.id;
-
-		const organization = activeOrganizationId
-			? await auth.api.getFullOrganization({
-					headers,
-					query: { organizationId: activeOrganizationId },
-				})
-			: null;
+		const sessionOrganizationId = session.session.activeOrganizationId;
+		const loadOrganization = (organizationId: string) =>
+			auth.api.getFullOrganization({
+				headers,
+				query: { organizationId },
+			});
+		const [organizations, settings, sessionOrganization] = await Promise.all([
+			auth.api.listOrganizations({ headers }),
+			getPlatformSettingsRecord(),
+			sessionOrganizationId
+				? loadOrganization(sessionOrganizationId)
+				: Promise.resolve(null),
+		]);
+		const activeOrganizationId = sessionOrganizationId ?? organizations[0]?.id;
+		const organization =
+			sessionOrganization ??
+			(activeOrganizationId
+				? await loadOrganization(activeOrganizationId)
+				: null);
 		const isOrganizationOwner =
 			organization?.members.some(
 				(member) =>
@@ -43,7 +47,7 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 		const organizationRole = organization?.members.find(
 			(member) => member.userId === session.user.id,
 		)?.role;
-		const [entitlement, settings, studentClasses] = await Promise.all([
+		const [entitlement, studentClasses] = await Promise.all([
 			activeOrganizationId
 				? db
 						.select({
@@ -66,7 +70,6 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 						.limit(1)
 						.then((rows) => rows[0] ?? null)
 				: Promise.resolve(null),
-			getPlatformSettingsRecord(),
 			activeOrganizationId && organizationRole?.split(",").includes("student")
 				? db
 						.select({

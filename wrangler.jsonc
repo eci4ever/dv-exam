@@ -3,6 +3,22 @@
   "name": "dv-exam",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "placement": {
+    "mode": "smart"
+  },
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  },
   "d1_databases": [
     {
       "binding": "DB",
