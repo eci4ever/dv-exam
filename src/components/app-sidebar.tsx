@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
 	Building2Icon,
 	CalendarDaysIcon,
@@ -131,10 +132,10 @@ export function AppSidebar({
 							<SidebarMenuItem>
 								<SidebarMenuButton
 									render={
-										<a href="/dashboard">
+										<Link to="/dashboard">
 											<LayoutDashboardIcon />
 											<span>Dashboard</span>
-										</a>
+										</Link>
 									}
 									isActive={activeItem === "dashboard"}
 									tooltip="Dashboard"
@@ -144,10 +145,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/exams">
+											<Link to="/exams">
 												<FileTextIcon />
 												<span>Exams</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "exams"}
 										tooltip="Exams"
@@ -157,10 +158,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/my-exams">
+											<Link to="/my-exams">
 												<FileTextIcon />
 												<span>My Exams</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "my-exams"}
 										tooltip="My Exams"
@@ -171,10 +172,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/schedule">
+											<Link to="/schedule">
 												<CalendarDaysIcon />
 												<span>Schedule</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "schedule"}
 										tooltip="Schedule"
@@ -184,10 +185,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/results">
+											<Link to="/results">
 												<ChartNoAxesColumnIncreasingIcon />
 												<span>Results</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "results"}
 										tooltip="Results"
@@ -198,10 +199,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/questions">
+											<Link to="/questions">
 												<LibraryIcon />
 												<span>Question Bank</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "questions"}
 										tooltip="Question Bank"
@@ -212,10 +213,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/reports">
+											<Link to="/reports">
 												<ChartSplineIcon />
 												<span>Reports</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "reports"}
 										tooltip="Reports"
@@ -232,10 +233,10 @@ export function AppSidebar({
 							<SidebarMenuItem>
 								<SidebarMenuButton
 									render={
-										<a href="/workspace">
+										<Link to="/workspace">
 											<PanelsTopLeftIcon />
 											<span>Overview</span>
-										</a>
+										</Link>
 									}
 									isActive={activeItem === "workspace-overview"}
 									tooltip="Workspace overview"
@@ -245,10 +246,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/workspace/members">
+											<Link to="/workspace/members">
 												<UsersRoundIcon />
 												<span>Members</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "workspace-members"}
 										tooltip="Members"
@@ -260,10 +261,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/workspace/classes">
+											<Link to="/workspace/classes">
 												<GraduationCapIcon />
 												<span>Classes</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "workspace-classes"}
 										tooltip="Classes"
@@ -275,10 +276,10 @@ export function AppSidebar({
 									<SidebarMenuItem>
 										<SidebarMenuButton
 											render={
-												<a href="/workspace/invitations">
+												<Link to="/workspace/invitations">
 													<MailPlusIcon />
 													<span>Invitations</span>
-												</a>
+												</Link>
 											}
 											isActive={activeItem === "workspace-invitations"}
 											tooltip="Invitations"
@@ -288,10 +289,10 @@ export function AppSidebar({
 										<SidebarMenuItem>
 											<SidebarMenuButton
 												render={
-													<a href="/workspace/settings">
+													<Link to="/workspace/settings">
 														<Settings2Icon />
 														<span>Settings</span>
-													</a>
+													</Link>
 												}
 												isActive={activeItem === "settings"}
 												tooltip="Settings"
@@ -311,10 +312,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin">
+											<Link to="/admin">
 												<GaugeIcon />
 												<span>Overview</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "admin-overview"}
 										tooltip="Platform overview"
@@ -323,10 +324,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin/users">
+											<Link to="/admin/users" search={{ status: "all" }}>
 												<UsersRoundIcon />
 												<span>Users</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "users"}
 										tooltip="Users"
@@ -335,10 +336,13 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin/organizations">
+											<Link
+												to="/admin/organizations"
+												search={{ plan: "all", status: "all", health: "all" }}
+											>
 												<Building2Icon />
 												<span>Organizations</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "organizations"}
 										tooltip="Organizations"
@@ -347,10 +351,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin/plans">
+											<Link to="/admin/plans">
 												<CreditCardIcon />
 												<span>Plans & Usage</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "plans"}
 										tooltip="Plans & Usage"
@@ -359,10 +363,13 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin/audit">
+											<Link
+												to="/admin/audit"
+												search={{ organization: "", event: "" }}
+											>
 												<ScrollTextIcon />
 												<span>Audit Log</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "audit"}
 										tooltip="Audit Log"
@@ -371,10 +378,10 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<a href="/admin/settings">
+											<Link to="/admin/settings">
 												<SlidersHorizontalIcon />
 												<span>System Settings</span>
-											</a>
+											</Link>
 										}
 										isActive={activeItem === "admin-settings"}
 										tooltip="System Settings"
