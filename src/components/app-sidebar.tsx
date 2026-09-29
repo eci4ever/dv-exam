@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import {
 	Building2Icon,
 	CalendarDaysIcon,
-	ChartNoAxesColumnIncreasingIcon,
 	ChartSplineIcon,
 	CreditCardIcon,
 	FileTextIcon,
@@ -10,9 +9,6 @@ import {
 	GraduationCapIcon,
 	LayoutDashboardIcon,
 	LibraryIcon,
-	type LucideIcon,
-	MailPlusIcon,
-	MegaphoneIcon,
 	PanelsTopLeftIcon,
 	ScrollTextIcon,
 	Settings2Icon,
@@ -72,36 +68,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "workspace-overview"
 		| "workspace-members"
 		| "workspace-invitations"
+		| "workspace-people"
 		| "workspace-classes"
 		| "workspace-billing";
-}
-
-interface MockSidebarItemProps {
-	icon: LucideIcon;
-	label: string;
-	tooltip?: string;
-}
-
-function MockSidebarItem({
-	icon: Icon,
-	label,
-	tooltip = label,
-}: MockSidebarItemProps) {
-	return (
-		<SidebarMenuItem>
-			<SidebarMenuButton type="button" tooltip={tooltip}>
-				<Icon />
-				<span>{label}</span>
-			</SidebarMenuButton>
-		</SidebarMenuItem>
-	);
 }
 
 export function AppSidebar({
 	user,
 	organizations,
 	activeOrganizationId,
-	isOrganizationOwner,
+	isOrganizationOwner: _isOrganizationOwner,
 	organizationRole,
 	isImpersonating,
 	activeItem = "dashboard",
@@ -159,13 +135,13 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<Link to="/my-exams">
+											<Link to="/my-exams" search={{ tab: "available" }}>
 												<FileTextIcon />
-												<span>My Exams</span>
+												<span>Exams</span>
 											</Link>
 										}
 										isActive={activeItem === "my-exams"}
-										tooltip="My Exams"
+										tooltip="Exams"
 									/>
 								</SidebarMenuItem>
 							)}
@@ -182,20 +158,7 @@ export function AppSidebar({
 										tooltip="Schedule"
 									/>
 								</SidebarMenuItem>
-							) : (
-								<SidebarMenuItem>
-									<SidebarMenuButton
-										render={
-											<Link to="/results">
-												<ChartNoAxesColumnIncreasingIcon />
-												<span>Results</span>
-											</Link>
-										}
-										isActive={activeItem === "results"}
-										tooltip="Results"
-									/>
-								</SidebarMenuItem>
-							)}
+							) : null}
 							{canManageExams ? (
 								<SidebarMenuItem>
 									<SidebarMenuButton
@@ -247,17 +210,20 @@ export function AppSidebar({
 								<SidebarMenuItem>
 									<SidebarMenuButton
 										render={
-											<Link to="/workspace/members">
+											<Link to="/workspace/people" search={{ tab: "members" }}>
 												<UsersRoundIcon />
-												<span>Members</span>
+												<span>People</span>
 											</Link>
 										}
-										isActive={activeItem === "workspace-members"}
-										tooltip="Members"
+										isActive={
+											activeItem === "workspace-people" ||
+											activeItem === "workspace-members" ||
+											activeItem === "workspace-invitations"
+										}
+										tooltip="People"
 									/>
 								</SidebarMenuItem>
 							) : null}
-							<MockSidebarItem icon={MegaphoneIcon} label="Announcements" />
 							{canManageExams ? (
 								<SidebarMenuItem>
 									<SidebarMenuButton
@@ -273,46 +239,21 @@ export function AppSidebar({
 								</SidebarMenuItem>
 							) : null}
 							{canManageOrganization ? (
-								<>
-									<SidebarMenuItem>
-										<SidebarMenuButton
-											render={
-												<Link to="/workspace/invitations">
-													<MailPlusIcon />
-													<span>Invitations</span>
-												</Link>
-											}
-											isActive={activeItem === "workspace-invitations"}
-											tooltip="Invitations"
-										/>
-									</SidebarMenuItem>
-									<SidebarMenuItem>
-										<SidebarMenuButton
-											render={
-												<Link to="/workspace/settings">
-													<Settings2Icon />
-													<span>Settings</span>
-												</Link>
-											}
-											isActive={activeItem === "settings"}
-											tooltip="Settings"
-										/>
-									</SidebarMenuItem>
-									{isOrganizationOwner ? (
-										<SidebarMenuItem>
-											<SidebarMenuButton
-												render={
-													<Link to="/workspace/billing">
-														<CreditCardIcon />
-														<span>Billing & Usage</span>
-													</Link>
-												}
-												isActive={activeItem === "workspace-billing"}
-												tooltip="Billing & Usage"
-											/>
-										</SidebarMenuItem>
-									) : null}
-								</>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										render={
+											<Link
+												to="/workspace/settings"
+												search={{ tab: "general" }}
+											>
+												<Settings2Icon />
+												<span>Settings</span>
+											</Link>
+										}
+										isActive={activeItem === "settings"}
+										tooltip="Settings"
+									/>
+								</SidebarMenuItem>
 							) : null}
 						</SidebarMenu>
 					</SidebarGroupContent>

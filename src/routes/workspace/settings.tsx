@@ -1,4 +1,9 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	redirect,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import {
 	ActivityIcon,
 	CreditCardIcon,
@@ -26,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { authClient } from "@/lib/auth-client";
 import { getDashboardSession } from "@/lib/session";
+import { getWorkspaceBilling } from "@/lib/workspace-billing";
 import {
 	deleteWorkspace,
 	getWorkspaceSettings,
@@ -35,6 +41,13 @@ import {
 import { canManageWorkspace } from "@/lib/workspace-governance-policy";
 
 export const Route = createFileRoute("/workspace/settings")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		tab: ["general", "roles", "plan", "activity", "danger"].includes(
+			String(search.tab),
+		)
+			? (String(search.tab) as SettingsTab)
+			: ("general" as SettingsTab),
+	}),
 	beforeLoad: async () => {
 		const dashboard = await getDashboardSession();
 		if (!dashboard) throw redirect({ to: "/login" });
@@ -42,9 +55,16 @@ export const Route = createFileRoute("/workspace/settings")({
 			throw redirect({ to: "/dashboard" });
 		return dashboard;
 	},
-	loader: () => getWorkspaceSettings(),
+	loader: async ({ context }) => ({
+		settings: await getWorkspaceSettings(),
+		billing: context.organizationRole?.split(",").includes("owner")
+			? await getWorkspaceBilling()
+			: null,
+	}),
 	component: WorkspaceSettings,
 });
+
+type SettingsTab = "general" | "roles" | "plan" | "activity" | "danger";
 
 const roles = [
 	["Owner", "Full access, ownership transfer, and workspace deletion."],
@@ -61,7 +81,9 @@ function message(error: unknown) {
 
 function WorkspaceSettings() {
 	const shell = Route.useRouteContext();
-	const initial = Route.useLoaderData();
+	const { settings: initial, billing } = Route.useLoaderData();
+	const { tab } = Route.useSearch();
+	const navigate = useNavigate({ from: Route.fullPath });
 	const router = useRouter();
 	const [name, setName] = useState(initial.organization.name);
 	const [slug, setSlug] = useState(initial.organization.slug);
@@ -159,7 +181,13 @@ function WorkspaceSettings() {
 					) : null}
 					{feedback ? <output className="text-sm">{feedback}</output> : null}
 
-					<Tabs defaultValue="general" className="gap-5">
+					<Tabs
+						value={tab === "danger" && !initial.canDelete ? "general" : tab}
+						onValueChange={(value) =>
+							void navigate({ search: { tab: value as SettingsTab } })
+						}
+						className="gap-5"
+					>
 						<TabsList
 							variant="line"
 							className="w-full justify-start overflow-x-auto"
@@ -168,8 +196,8 @@ function WorkspaceSettings() {
 							<TabsTrigger value="roles">
 								<ShieldCheckIcon /> Roles &amp; Permissions
 							</TabsTrigger>
-							<TabsTrigger value="usage">
-								<CreditCardIcon /> Plan &amp; Usage
+							<TabsTrigger value="plan">
+								<CreditCardIcon /> Plan &amp; Billing
 							</TabsTrigger>
 							<TabsTrigger value="activity">
 								<ActivityIcon /> Activity
@@ -231,7 +259,7 @@ function WorkspaceSettings() {
 							</section>
 						</TabsContent>
 
-						<TabsContent value="usage">
+						<TabsContent value="plan" className="space-y-5">
 							<section className="rounded-xl border bg-card p-5 sm:p-6">
 								<div className="flex items-start justify-between gap-4">
 									<div>
@@ -276,6 +304,39 @@ function WorkspaceSettings() {
 									})}
 								</div>
 							</section>
+							{billing ? (
+								<section className="space-y-4">
+									<div>
+										<h2 className="font-medium">Available plans</h2>
+										<p className="text-sm text-muted-foreground">
+											Checkout will become available when a billing provider is
+											configured.
+										</p>
+									</div>
+									<div className="grid gap-4 md:grid-cols-3">
+										{billing.plans.map((plan) => (
+											<div
+												className="rounded-xl border bg-card p-5"
+												key={plan.id}
+											>
+												<h3 className="font-semibold">{plan.name}</h3>
+												<p className="mt-1 min-h-10 text-sm text-muted-foreground">
+													{plan.description}
+												</p>
+												<Button
+													className="mt-5 w-full"
+													variant="outline"
+													disabled
+												>
+													{plan.id === billing.current.planId
+														? "Current plan"
+														: "Contact platform admin"}
+												</Button>
+											</div>
+										))}
+									</div>
+								</section>
+							) : null}
 						</TabsContent>
 
 						<TabsContent value="activity">

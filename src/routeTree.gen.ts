@@ -42,6 +42,7 @@ import { Route as WorkspaceIndexRouteImport } from './routes/workspace/index'
 import { Route as WorkspaceBillingRouteImport } from './routes/workspace/billing'
 import { Route as WorkspaceInvitationsRouteImport } from './routes/workspace/invitations'
 import { Route as WorkspaceMembersRouteImport } from './routes/workspace/members'
+import { Route as WorkspacePeopleRouteImport } from './routes/workspace/people'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ExamsExamIdPreviewRouteImport } from './routes/exams/$examId_.preview'
@@ -213,6 +214,11 @@ const WorkspaceMembersRoute = WorkspaceMembersRouteImport.update({
   path: '/workspace/members',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspacePeopleRoute = WorkspacePeopleRouteImport.update({
+  id: '/workspace/people',
+  path: '/workspace/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
   id: '/workspace/settings',
   path: '/workspace/settings',
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
+  '/workspace/people': typeof WorkspacePeopleRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
@@ -306,6 +313,7 @@ export interface FileRoutesByTo {
   '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
+  '/workspace/people': typeof WorkspacePeopleRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin': typeof AdminIndexRoute
   '/exams': typeof ExamsIndexRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
+  '/workspace/people': typeof WorkspacePeopleRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
+    | '/workspace/people'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
+    | '/workspace/people'
     | '/workspace/settings'
     | '/admin'
     | '/exams'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
+    | '/workspace/people'
     | '/workspace/settings'
     | '/admin/'
     | '/exams/'
@@ -510,6 +522,7 @@ export interface RootRouteChildren {
   WorkspaceBillingRoute: typeof WorkspaceBillingRoute
   WorkspaceInvitationsRoute: typeof WorkspaceInvitationsRoute
   WorkspaceMembersRoute: typeof WorkspaceMembersRoute
+  WorkspacePeopleRoute: typeof WorkspacePeopleRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
@@ -757,6 +770,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceMembersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/people': {
+      id: '/workspace/people'
+      path: '/workspace/people'
+      fullPath: '/workspace/people'
+      preLoaderRoute: typeof WorkspacePeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/settings': {
       id: '/workspace/settings'
       path: '/workspace/settings'
@@ -822,6 +842,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceBillingRoute: WorkspaceBillingRoute,
   WorkspaceInvitationsRoute: WorkspaceInvitationsRoute,
   WorkspaceMembersRoute: WorkspaceMembersRoute,
+  WorkspacePeopleRoute: WorkspacePeopleRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   ExamsIndexRoute: ExamsIndexRoute,

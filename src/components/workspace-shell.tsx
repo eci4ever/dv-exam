@@ -41,6 +41,7 @@ interface WorkspaceShellProps {
 		| "settings"
 		| "workspace-members"
 		| "workspace-invitations"
+		| "workspace-people"
 		| "workspace-classes"
 		| "workspace-billing";
 	title: string;

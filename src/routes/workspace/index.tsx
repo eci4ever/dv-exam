@@ -57,7 +57,7 @@ function WorkspaceOverviewPage() {
 		? ([
 				["Create exam", "/exams/new", PlusIcon],
 				["Schedule exam", "/schedule/new", CalendarDaysIcon],
-				["Invite member", "/workspace/invitations", MailPlusIcon],
+				["Invite member", "/workspace/people?tab=invitations", MailPlusIcon],
 				["Manage classes", "/workspace/classes", GraduationCapIcon],
 			] as const)
 		: teacher
@@ -67,8 +67,8 @@ function WorkspaceOverviewPage() {
 					["View classes", "/workspace/classes", GraduationCapIcon],
 				] as const)
 			: ([
-					["View my exams", "/my-exams", BookOpenCheckIcon],
-					["View results", "/results", ActivityIcon],
+					["View my exams", "/my-exams?tab=available", BookOpenCheckIcon],
+					["View results", "/my-exams?tab=results", ActivityIcon],
 				] as const);
 
 	return (

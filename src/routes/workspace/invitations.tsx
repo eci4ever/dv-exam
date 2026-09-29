@@ -21,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDashboardSession } from "@/lib/session";
 import {
 	cancelWorkspaceInvitation,
@@ -41,16 +40,21 @@ export const Route = createFileRoute("/workspace/invitations")({
 			data.entitlement?.status === "suspended"
 		)
 			throw redirect({ to: "/dashboard" });
-		return data;
+		throw redirect({
+			to: "/workspace/people",
+			search: { tab: "invitations" },
+		});
 	},
-	component: InvitationsPage,
 });
 
 type InvitationResult = Awaited<ReturnType<typeof listWorkspaceInvitations>>;
 type InvitationRow = InvitationResult["rows"][number];
 
-function InvitationsPage() {
-	const shell = Route.useRouteContext();
+export function InvitationsContent({
+	embedded = false,
+}: {
+	embedded?: boolean;
+}) {
 	const [result, setResult] = useState<InvitationResult | null>(null);
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState("pending");
@@ -223,13 +227,19 @@ function InvitationsPage() {
 		? result.seats / result.memberLimit
 		: 0;
 	return (
-		<WorkspaceShell
-			data={shell}
-			activeItem="workspace-invitations"
-			title="Invitations"
-		>
-			<main className="flex flex-1 p-4 sm:p-6 lg:p-8">
-				<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+		<>
+			<div
+				className={
+					embedded ? "flex flex-col gap-6" : "flex flex-1 p-4 sm:p-6 lg:p-8"
+				}
+			>
+				<div
+					className={
+						embedded
+							? "flex w-full flex-col gap-6"
+							: "mx-auto flex w-full max-w-6xl flex-col gap-6"
+					}
+				>
 					<div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
 						<div>
 							<h1 className="text-2xl font-semibold">Invitations</h1>
@@ -372,7 +382,7 @@ function InvitationsPage() {
 						</div>
 					</div>
 				</div>
-			</main>
+			</div>
 			<AlertDialog
 				open={Boolean(cancelTarget)}
 				onOpenChange={(open) => {
@@ -399,6 +409,6 @@ function InvitationsPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</WorkspaceShell>
+		</>
 	);
 }
