@@ -29,7 +29,10 @@ import {
 	assertUserHasNoOwnedOrganizations,
 	assertWritableSession,
 } from "@/lib/platform-policy";
-import { PLATFORM_ADMIN_ROLE } from "@/lib/platform-role";
+import {
+	PLATFORM_ADMIN_ROLE,
+	shouldGrantPlatformAdmin,
+} from "@/lib/platform-role";
 import { isInvitationUsableForSignup } from "@/lib/workspace-member-policy";
 
 async function assertMemberCapacity(organizationId: string) {
@@ -244,9 +247,15 @@ export const auth = betterAuth({
 			create: {
 				after: async (createdUser) => {
 					const bootstrapEmail = env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase();
+					const [userCount] = await db
+						.select({ total: count() })
+						.from(schema.user);
 					if (
-						bootstrapEmail &&
-						createdUser.email.toLowerCase() === bootstrapEmail
+						shouldGrantPlatformAdmin({
+							userCount: userCount?.total ?? 0,
+							userEmail: createdUser.email,
+							bootstrapEmail,
+						})
 					) {
 						await db
 							.update(schema.user)
