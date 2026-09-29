@@ -12,6 +12,7 @@ import {
 	assertWritableSession,
 	mapAuditIdentity,
 } from "@/lib/platform-policy";
+import { isPlatformAdmin } from "@/lib/platform-role";
 
 export {
 	DEFAULT_PLAN_ID,
@@ -26,7 +27,7 @@ export const requirePlatformAdmin = createServerOnlyFn(
 	async (options?: { writable?: boolean }) => {
 		const headers = currentRequestHeaders();
 		const session = await auth.api.getSession({ headers });
-		if (!session?.user.role?.split(",").includes("admin")) {
+		if (!session || !isPlatformAdmin(session.user.role)) {
 			throw new Error("Administrator access is required.");
 		}
 		if (options?.writable) {

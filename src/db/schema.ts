@@ -224,6 +224,15 @@ export const platformPlan = sqliteTable(
 		name: text("name").notNull(),
 		slug: text("slug").notNull().unique(),
 		description: text("description").notNull(),
+		priceCents: integer("priceCents").default(0).notNull(),
+		currency: text("currency").default("MYR").notNull(),
+		billingInterval: text("billingInterval")
+			.$type<"month" | "year">()
+			.default("month")
+			.notNull(),
+		trialDays: integer("trialDays").default(0).notNull(),
+		isPublic: integer("isPublic", { mode: "boolean" }).default(true).notNull(),
+		providerPriceId: text("providerPriceId"),
 		memberLimit: integer("memberLimit").notNull(),
 		activeExamLimit: integer("activeExamLimit").notNull(),
 		monthlyAttemptLimit: integer("monthlyAttemptLimit").notNull(),
@@ -232,6 +241,49 @@ export const platformPlan = sqliteTable(
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 	},
 	(table) => [index("platformPlan_active_idx").on(table.isActive)],
+);
+
+export const organizationSubscription = sqliteTable(
+	"organizationSubscription",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.unique()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		planId: text("planId")
+			.notNull()
+			.references(() => platformPlan.id, { onDelete: "restrict" }),
+		status: text("status")
+			.$type<
+				| "trialing"
+				| "active"
+				| "past_due"
+				| "cancelled"
+				| "expired"
+				| "suspended"
+			>()
+			.notNull(),
+		source: text("source").$type<"legacy" | "manual" | "provider">().notNull(),
+		provider: text("provider"),
+		providerCustomerId: text("providerCustomerId"),
+		providerSubscriptionId: text("providerSubscriptionId"),
+		currentPeriodStart: integer("currentPeriodStart", { mode: "timestamp_ms" }),
+		currentPeriodEnd: integer("currentPeriodEnd", { mode: "timestamp_ms" }),
+		trialEndsAt: integer("trialEndsAt", { mode: "timestamp_ms" }),
+		cancelAtPeriodEnd: integer("cancelAtPeriodEnd", { mode: "boolean" })
+			.default(false)
+			.notNull(),
+		createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("organizationSubscription_plan_idx").on(table.planId),
+		index("organizationSubscription_status_idx").on(table.status),
+		uniqueIndex("organizationSubscription_provider_subscription_idx").on(
+			table.providerSubscriptionId,
+		),
+	],
 );
 
 export const organizationEntitlement = sqliteTable(

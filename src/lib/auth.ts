@@ -3,8 +3,9 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
+import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { and, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
+import { and, count, eq, gt, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -28,6 +29,7 @@ import {
 	assertUserHasNoOwnedOrganizations,
 	assertWritableSession,
 } from "@/lib/platform-policy";
+import { PLATFORM_ADMIN_ROLE } from "@/lib/platform-role";
 import { isInvitationUsableForSignup } from "@/lib/workspace-member-policy";
 
 async function assertMemberCapacity(organizationId: string) {
@@ -241,21 +243,16 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (createdUser) => {
-					const firstUser = db
-						.select({ id: schema.user.id })
-						.from(schema.user)
-						.orderBy(sql`rowid`)
-						.limit(1);
-
-					await db
-						.update(schema.user)
-						.set({ role: "admin" })
-						.where(
-							and(
-								eq(schema.user.id, createdUser.id),
-								inArray(schema.user.id, firstUser),
-							),
-						);
+					const bootstrapEmail = env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase();
+					if (
+						bootstrapEmail &&
+						createdUser.email.toLowerCase() === bootstrapEmail
+					) {
+						await db
+							.update(schema.user)
+							.set({ role: PLATFORM_ADMIN_ROLE })
+							.where(eq(schema.user.id, createdUser.id));
+					}
 				},
 			},
 			update: {
@@ -267,13 +264,14 @@ export const auth = betterAuth({
 						.where(eq(schema.user.id, updatedUser.id))
 						.limit(1);
 					const targetIsActiveAdmin = Boolean(
-						current?.role?.split(",").includes("admin") && !current.banned,
+						current?.role?.split(",").includes(PLATFORM_ADMIN_ROLE) &&
+							!current.banned,
 					);
 					const nextRole =
 						typeof updatedUser.role === "string" ? updatedUser.role : undefined;
 					const demoting =
 						updatedUser.role !== undefined &&
-						!nextRole?.split(",").includes("admin");
+						!nextRole?.split(",").includes(PLATFORM_ADMIN_ROLE);
 					const banning = updatedUser.banned === true;
 					if (demoting || banning) {
 						const [activeAdmins] = await db
@@ -281,7 +279,7 @@ export const auth = betterAuth({
 							.from(schema.user)
 							.where(
 								and(
-									eq(schema.user.role, "admin"),
+									eq(schema.user.role, PLATFORM_ADMIN_ROLE),
 									eq(schema.user.banned, false),
 								),
 							);
@@ -310,7 +308,7 @@ export const auth = betterAuth({
 							.from(schema.user)
 							.where(
 								and(
-									eq(schema.user.role, "admin"),
+									eq(schema.user.role, PLATFORM_ADMIN_ROLE),
 									eq(schema.user.banned, false),
 								),
 							),
@@ -321,7 +319,8 @@ export const auth = betterAuth({
 					assertLastActiveAdminSafe({
 						action: "delete",
 						targetIsActiveAdmin: Boolean(
-							deletedRole?.split(",").includes("admin") && !deletedUser.banned,
+							deletedRole?.split(",").includes(PLATFORM_ADMIN_ROLE) &&
+								!deletedUser.banned,
 						),
 						activeAdminCount: activeAdmins[0]?.count ?? 0,
 					});
@@ -330,7 +329,10 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
-		admin(),
+		admin({
+			adminRoles: [PLATFORM_ADMIN_ROLE],
+			roles: { platform_admin: adminAc, user: userAc },
+		}),
 		organization({
 			ac: organizationAccessControl,
 			invitationExpiresIn: 60 * 60 * 24 * 7,

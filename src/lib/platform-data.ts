@@ -98,6 +98,36 @@ export async function ensurePlatformData() {
 			})
 			.onConflictDoNothing();
 	}
+	const missingSubscriptions = await db
+		.select({
+			organizationId: schema.organizationEntitlement.organizationId,
+			planId: schema.organizationEntitlement.planId,
+			status: schema.organizationEntitlement.status,
+		})
+		.from(schema.organizationEntitlement)
+		.leftJoin(
+			schema.organizationSubscription,
+			eq(
+				schema.organizationSubscription.organizationId,
+				schema.organizationEntitlement.organizationId,
+			),
+		)
+		.where(isNull(schema.organizationSubscription.organizationId));
+	for (const entitlement of missingSubscriptions) {
+		await db
+			.insert(schema.organizationSubscription)
+			.values({
+				id: `sub-legacy-${entitlement.organizationId}`,
+				organizationId: entitlement.organizationId,
+				planId: entitlement.planId,
+				status: entitlement.status === "suspended" ? "suspended" : "active",
+				source: "legacy",
+				cancelAtPeriodEnd: false,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.onConflictDoNothing();
+	}
 }
 
 export async function getPlatformSettingsRecord() {
@@ -130,6 +160,19 @@ export async function assignDefaultPlan(
 			status: "active",
 			assignedAt: now,
 			assignedBy,
+			updatedAt: now,
+		})
+		.onConflictDoNothing();
+	await db
+		.insert(schema.organizationSubscription)
+		.values({
+			id: crypto.randomUUID(),
+			organizationId,
+			planId: settings.defaultPlanId,
+			status: "active",
+			source: "manual",
+			cancelAtPeriodEnd: false,
+			createdAt: now,
 			updatedAt: now,
 		})
 		.onConflictDoNothing();

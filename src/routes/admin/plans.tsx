@@ -33,13 +33,14 @@ import {
 	setPlanActive,
 	updatePlan,
 } from "@/lib/platform-admin";
+import { isPlatformAdmin } from "@/lib/platform-role";
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/plans")({
 	beforeLoad: async () => {
 		const dashboard = await getDashboardSession();
 		if (!dashboard) throw redirect({ to: "/login" });
-		if (!dashboard.session.user.role?.split(",").includes("admin"))
+		if (!isPlatformAdmin(dashboard.session.user.role))
 			throw redirect({ to: "/dashboard" });
 		return dashboard;
 	},
@@ -173,7 +174,7 @@ function PlansAndUsage() {
 								Plans & usage
 							</h1>
 							<p className="mt-1 text-sm text-muted-foreground">
-								Manage limits and workspace access without billing workflows.
+								Define sellable plans, limits, and organization entitlements.
 							</p>
 						</div>
 					</div>

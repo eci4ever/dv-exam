@@ -13,13 +13,14 @@ import {
 import { PlatformAdminShell } from "@/components/platform-admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { getPlatformOverview } from "@/lib/platform-admin";
+import { isPlatformAdmin } from "@/lib/platform-role";
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/")({
 	beforeLoad: async () => {
 		const dashboard = await getDashboardSession();
 		if (!dashboard) throw redirect({ to: "/login" });
-		if (!dashboard.session.user.role?.split(",").includes("admin"))
+		if (!isPlatformAdmin(dashboard.session.user.role))
 			throw redirect({ to: "/dashboard" });
 		return dashboard;
 	},

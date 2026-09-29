@@ -41,7 +41,8 @@ interface WorkspaceShellProps {
 		| "settings"
 		| "workspace-members"
 		| "workspace-invitations"
-		| "workspace-classes";
+		| "workspace-classes"
+		| "workspace-billing";
 	title: string;
 	children: ReactNode;
 }

@@ -81,6 +81,7 @@ import {
 	reactivateOrganization,
 	suspendOrganization,
 } from "@/lib/platform-admin";
+import { isPlatformAdmin } from "@/lib/platform-role";
 import { getDashboardSession } from "@/lib/session";
 
 const PAGE_SIZE = 25;
@@ -102,7 +103,7 @@ export const Route = createFileRoute("/admin/organizations")({
 		const dashboard = await getDashboardSession();
 
 		if (!dashboard) throw redirect({ to: "/login" });
-		if (!dashboard.session.user.role?.split(",").includes("admin")) {
+		if (!isPlatformAdmin(dashboard.session.user.role)) {
 			throw redirect({ to: "/dashboard" });
 		}
 

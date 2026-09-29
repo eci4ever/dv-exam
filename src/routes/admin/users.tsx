@@ -63,6 +63,7 @@ import {
 	setPlatformUserRole,
 	updatePlatformUser,
 } from "@/lib/admin";
+import { isPlatformAdmin } from "@/lib/platform-role";
 import { getDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/admin/users")({
@@ -79,7 +80,7 @@ export const Route = createFileRoute("/admin/users")({
 			throw redirect({ to: "/login" });
 		}
 
-		if (!dashboard.session.user.role?.split(",").includes("admin")) {
+		if (!isPlatformAdmin(dashboard.session.user.role)) {
 			throw redirect({ to: "/dashboard" });
 		}
 
@@ -233,7 +234,7 @@ function UserManagement() {
 		return () => window.clearTimeout(timeout);
 	}, [search, roleFilter, statusFilter, sorting, refreshUsers]);
 
-	async function updateRole(userId: string, role: "admin" | "user") {
+	async function updateRole(userId: string, role: "platform_admin" | "user") {
 		setUpdatingUserId(userId);
 		setError(null);
 
@@ -648,7 +649,7 @@ function UserManagement() {
 										className="h-9 rounded-md border bg-transparent px-3 text-sm"
 									>
 										<option value="all">All roles</option>
-										<option value="admin">Admin</option>
+										<option value="platform_admin">Platform Admin</option>
 										<option value="user">User</option>
 									</select>
 									<select
@@ -1031,7 +1032,7 @@ function UserManagement() {
 													<h2 className="font-medium">Access role</h2>
 												</div>
 												<p className="mb-3 text-sm text-muted-foreground">
-													{selectedUser.role?.split(",").includes("admin")
+													{isPlatformAdmin(selectedUser.role)
 														? "Can manage platform users and organizations."
 														: "Has standard access to their workspace."}
 												</p>
@@ -1045,13 +1046,13 @@ function UserManagement() {
 													onClick={() =>
 														updateRole(
 															selectedUser.id,
-															selectedUser.role?.split(",").includes("admin")
+															isPlatformAdmin(selectedUser.role)
 																? "user"
-																: "admin",
+																: "platform_admin",
 														)
 													}
 												>
-													{selectedUser.role?.split(",").includes("admin")
+													{isPlatformAdmin(selectedUser.role)
 														? "Change to user"
 														: "Make platform admin"}
 												</Button>

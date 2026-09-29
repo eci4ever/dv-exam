@@ -51,7 +51,9 @@ export function NavUser({
 	const navigate = useNavigate();
 	const roleLabel = user.role
 		?.split(",")[0]
-		.replace(/^./, (character) => character.toUpperCase());
+		.split("_")
+		.map((part) => part.replace(/^./, (character) => character.toUpperCase()))
+		.join(" ");
 
 	async function signOut() {
 		await authClient.signOut();

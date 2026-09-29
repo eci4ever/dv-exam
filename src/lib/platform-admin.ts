@@ -108,7 +108,19 @@ function validatePlanInput(value: unknown) {
 export const getRegistrationStatus = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const settings = await getPlatformSettingsRecord();
-		return { enabled: settings.publicSignupEnabled };
+		const [plan] = await db
+			.select({
+				id: schema.platformPlan.id,
+				name: schema.platformPlan.name,
+				description: schema.platformPlan.description,
+				memberLimit: schema.platformPlan.memberLimit,
+				activeExamLimit: schema.platformPlan.activeExamLimit,
+				monthlyAttemptLimit: schema.platformPlan.monthlyAttemptLimit,
+			})
+			.from(schema.platformPlan)
+			.where(eq(schema.platformPlan.id, settings.defaultPlanId))
+			.limit(1);
+		return { enabled: settings.publicSignupEnabled, defaultPlan: plan ?? null };
 	},
 );
 
@@ -535,17 +547,31 @@ export const assignOrganizationPlan = createServerFn({ method: "POST" })
 			usage?.monthlyAttempts ?? 0,
 			"monthly attempts",
 		);
-		const result = await db
-			.update(schema.organizationEntitlement)
-			.set({
-				planId: data.planId,
-				assignedAt: new Date(),
-				assignedBy: session.user.id,
-				updatedAt: new Date(),
-			})
-			.where(
-				eq(schema.organizationEntitlement.organizationId, data.organizationId),
-			);
+		const [result] = await db.batch([
+			db
+				.update(schema.organizationEntitlement)
+				.set({
+					planId: data.planId,
+					assignedAt: now,
+					assignedBy: session.user.id,
+					updatedAt: now,
+				})
+				.where(
+					eq(
+						schema.organizationEntitlement.organizationId,
+						data.organizationId,
+					),
+				),
+			db
+				.update(schema.organizationSubscription)
+				.set({ planId: data.planId, source: "manual", updatedAt: now })
+				.where(
+					eq(
+						schema.organizationSubscription.organizationId,
+						data.organizationId,
+					),
+				),
+		]);
 		if (!result.meta.changes) throw new Error("Organization not found.");
 		await auditForSession(session, {
 			category: "organization",
@@ -568,18 +594,33 @@ export const suspendOrganization = createServerFn({ method: "POST" })
 	})
 	.handler(async ({ data }) => {
 		const { session } = await requirePlatformAdmin({ writable: true });
-		const result = await db
-			.update(schema.organizationEntitlement)
-			.set({
-				status: "suspended",
-				suspensionReason: data.reason,
-				suspendedAt: new Date(),
-				suspendedBy: session.user.id,
-				updatedAt: new Date(),
-			})
-			.where(
-				eq(schema.organizationEntitlement.organizationId, data.organizationId),
-			);
+		const now = new Date();
+		const [result] = await db.batch([
+			db
+				.update(schema.organizationEntitlement)
+				.set({
+					status: "suspended",
+					suspensionReason: data.reason,
+					suspendedAt: now,
+					suspendedBy: session.user.id,
+					updatedAt: now,
+				})
+				.where(
+					eq(
+						schema.organizationEntitlement.organizationId,
+						data.organizationId,
+					),
+				),
+			db
+				.update(schema.organizationSubscription)
+				.set({ status: "suspended", updatedAt: now })
+				.where(
+					eq(
+						schema.organizationSubscription.organizationId,
+						data.organizationId,
+					),
+				),
+		]);
 		if (!result.meta.changes) throw new Error("Organization not found.");
 		await auditForSession(session, {
 			category: "organization",
@@ -601,18 +642,33 @@ export const reactivateOrganization = createServerFn({ method: "POST" })
 	})
 	.handler(async ({ data }) => {
 		const { session } = await requirePlatformAdmin({ writable: true });
-		const result = await db
-			.update(schema.organizationEntitlement)
-			.set({
-				status: "active",
-				suspensionReason: null,
-				suspendedAt: null,
-				suspendedBy: null,
-				updatedAt: new Date(),
-			})
-			.where(
-				eq(schema.organizationEntitlement.organizationId, data.organizationId),
-			);
+		const now = new Date();
+		const [result] = await db.batch([
+			db
+				.update(schema.organizationEntitlement)
+				.set({
+					status: "active",
+					suspensionReason: null,
+					suspendedAt: null,
+					suspendedBy: null,
+					updatedAt: now,
+				})
+				.where(
+					eq(
+						schema.organizationEntitlement.organizationId,
+						data.organizationId,
+					),
+				),
+			db
+				.update(schema.organizationSubscription)
+				.set({ status: "active", updatedAt: now })
+				.where(
+					eq(
+						schema.organizationSubscription.organizationId,
+						data.organizationId,
+					),
+				),
+		]);
 		if (!result.meta.changes) throw new Error("Organization not found.");
 		await auditForSession(session, {
 			category: "organization",

@@ -10,6 +10,11 @@ import {
 	assertLastActiveAdminSafe,
 	assertUserHasNoOwnedOrganizations,
 } from "@/lib/platform-policy";
+import {
+	isPlatformAdmin,
+	PLATFORM_ADMIN_ROLE,
+	STANDARD_USER_ROLE,
+} from "@/lib/platform-role";
 
 async function protectAdminMutation(
 	userId: string,
@@ -26,7 +31,7 @@ async function protectAdminMutation(
 			.from(schema.user)
 			.where(
 				and(
-					eq(schema.user.role, "admin"),
+					eq(schema.user.role, PLATFORM_ADMIN_ROLE),
 					or(eq(schema.user.banned, false), isNull(schema.user.banned)),
 				),
 			),
@@ -34,9 +39,7 @@ async function protectAdminMutation(
 	if (!target) throw new Error("User not found.");
 	assertLastActiveAdminSafe({
 		action,
-		targetIsActiveAdmin: Boolean(
-			target.role?.split(",").includes("admin") && !target.banned,
-		),
+		targetIsActiveAdmin: isPlatformAdmin(target.role) && !target.banned,
 		activeAdminCount: activeAdmins?.count ?? 0,
 	});
 }
@@ -62,7 +65,10 @@ const listValidator = (value: unknown) => {
 	return {
 		search:
 			typeof input.search === "string" ? input.search.trim().slice(0, 100) : "",
-		role: input.role === "admin" || input.role === "user" ? input.role : "all",
+		role:
+			input.role === PLATFORM_ADMIN_ROLE || input.role === STANDARD_USER_ROLE
+				? input.role
+				: "all",
 		status:
 			input.status === "active" || input.status === "banned"
 				? input.status
@@ -92,8 +98,8 @@ export const listPlatformUsers = createServerFn({ method: "GET" })
 						like(schema.user.email, `%${data.search}%`),
 					)
 				: undefined,
-			data.role === "admin"
-				? eq(schema.user.role, "admin")
+			data.role === PLATFORM_ADMIN_ROLE
+				? eq(schema.user.role, PLATFORM_ADMIN_ROLE)
 				: data.role === "user"
 					? or(eq(schema.user.role, "user"), isNull(schema.user.role))
 					: undefined,
@@ -263,12 +269,15 @@ export const setPlatformUserRole = createServerFn({ method: "POST" })
 		const input = objectInput(value);
 		return {
 			userId: requiredText(input.userId, "User"),
-			role: input.role === "admin" ? "admin" : "user",
+			role:
+				input.role === PLATFORM_ADMIN_ROLE
+					? PLATFORM_ADMIN_ROLE
+					: STANDARD_USER_ROLE,
 		} as const;
 	})
 	.handler(async ({ data }) => {
 		const { headers, session } = await requirePlatformAdmin({ writable: true });
-		if (data.role !== "admin")
+		if (data.role !== PLATFORM_ADMIN_ROLE)
 			await protectAdminMutation(data.userId, "demote");
 		await auth.api.setRole({ headers, body: data });
 		await auditForSession(session, {

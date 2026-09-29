@@ -39,6 +39,7 @@ import { Route as ScheduleIndexRouteImport } from './routes/schedule/index'
 import { Route as ScheduleScheduleIdRouteImport } from './routes/schedule/$scheduleId'
 import { Route as ScheduleNewRouteImport } from './routes/schedule/new'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace/index'
+import { Route as WorkspaceBillingRouteImport } from './routes/workspace/billing'
 import { Route as WorkspaceInvitationsRouteImport } from './routes/workspace/invitations'
 import { Route as WorkspaceMembersRouteImport } from './routes/workspace/members'
 import { Route as WorkspaceSettingsRouteImport } from './routes/workspace/settings'
@@ -197,6 +198,11 @@ const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   path: '/workspace/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceBillingRoute = WorkspaceBillingRouteImport.update({
+  id: '/workspace/billing',
+  path: '/workspace/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceInvitationsRoute = WorkspaceInvitationsRouteImport.update({
   id: '/workspace/invitations',
   path: '/workspace/invitations',
@@ -257,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
@@ -296,6 +303,7 @@ export interface FileRoutesByTo {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/results/$attemptId': typeof ResultsAttemptIdRoute
   '/schedule/$scheduleId': typeof ScheduleScheduleIdRoute
   '/schedule/new': typeof ScheduleNewRoute
+  '/workspace/billing': typeof WorkspaceBillingRoute
   '/workspace/invitations': typeof WorkspaceInvitationsRoute
   '/workspace/members': typeof WorkspaceMembersRoute
   '/workspace/settings': typeof WorkspaceSettingsRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/results/$attemptId'
     | '/schedule/$scheduleId'
     | '/schedule/new'
+    | '/workspace/billing'
     | '/workspace/invitations'
     | '/workspace/members'
     | '/workspace/settings'
@@ -495,6 +507,7 @@ export interface RootRouteChildren {
   ResultsAttemptIdRoute: typeof ResultsAttemptIdRoute
   ScheduleScheduleIdRoute: typeof ScheduleScheduleIdRoute
   ScheduleNewRoute: typeof ScheduleNewRoute
+  WorkspaceBillingRoute: typeof WorkspaceBillingRoute
   WorkspaceInvitationsRoute: typeof WorkspaceInvitationsRoute
   WorkspaceMembersRoute: typeof WorkspaceMembersRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
@@ -723,6 +736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/billing': {
+      id: '/workspace/billing'
+      path: '/workspace/billing'
+      fullPath: '/workspace/billing'
+      preLoaderRoute: typeof WorkspaceBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/invitations': {
       id: '/workspace/invitations'
       path: '/workspace/invitations'
@@ -799,6 +819,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResultsAttemptIdRoute: ResultsAttemptIdRoute,
   ScheduleScheduleIdRoute: ScheduleScheduleIdRoute,
   ScheduleNewRoute: ScheduleNewRoute,
+  WorkspaceBillingRoute: WorkspaceBillingRoute,
   WorkspaceInvitationsRoute: WorkspaceInvitationsRoute,
   WorkspaceMembersRoute: WorkspaceMembersRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,

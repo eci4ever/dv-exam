@@ -20,7 +20,6 @@ import {
 	UsersRoundIcon,
 } from "lucide-react";
 import type * as React from "react";
-
 import { NavUser } from "@/components/nav-user";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
 import {
@@ -36,6 +35,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
+import { isPlatformAdmin } from "@/lib/platform-role";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	user: {
@@ -72,7 +72,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 		| "workspace-overview"
 		| "workspace-members"
 		| "workspace-invitations"
-		| "workspace-classes";
+		| "workspace-classes"
+		| "workspace-billing";
 }
 
 interface MockSidebarItemProps {
@@ -106,7 +107,7 @@ export function AppSidebar({
 	activeItem = "dashboard",
 	...props
 }: AppSidebarProps) {
-	const isAdmin = user.role?.split(",").includes("admin") ?? false;
+	const isAdmin = isPlatformAdmin(user.role);
 	const organizationRoles = organizationRole?.split(",") ?? [];
 	const canManageOrganization = organizationRoles.some((role) =>
 		["owner", "admin"].includes(role),
@@ -285,17 +286,29 @@ export function AppSidebar({
 											tooltip="Invitations"
 										/>
 									</SidebarMenuItem>
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											render={
+												<Link to="/workspace/settings">
+													<Settings2Icon />
+													<span>Settings</span>
+												</Link>
+											}
+											isActive={activeItem === "settings"}
+											tooltip="Settings"
+										/>
+									</SidebarMenuItem>
 									{isOrganizationOwner ? (
 										<SidebarMenuItem>
 											<SidebarMenuButton
 												render={
-													<Link to="/workspace/settings">
-														<Settings2Icon />
-														<span>Settings</span>
+													<Link to="/workspace/billing">
+														<CreditCardIcon />
+														<span>Billing & Usage</span>
 													</Link>
 												}
-												isActive={activeItem === "settings"}
-												tooltip="Settings"
+												isActive={activeItem === "workspace-billing"}
+												tooltip="Billing & Usage"
 											/>
 										</SidebarMenuItem>
 									) : null}
