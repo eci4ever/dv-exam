@@ -56,8 +56,6 @@ function Signup() {
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [organizationName, setOrganizationName] = useState("");
-	const [organizationSlug, setOrganizationSlug] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [isPending, setIsPending] = useState(false);
 	const [createdUser, setCreatedUser] = useState<{
@@ -67,8 +65,8 @@ function Signup() {
 
 	async function createWorkspace(user: { id: string; name: string }) {
 		const result = await authClient.organization.create({
-			name: organizationName.trim(),
-			slug: organizationSlug.trim().toLowerCase(),
+			name: "Default Workspace",
+			slug: `default-workspace-${user.id.toLowerCase()}`,
 			keepCurrentActiveOrganization: false,
 		});
 
@@ -81,6 +79,13 @@ function Signup() {
 			return;
 		}
 
+		if (search.invitationId) {
+			await navigate({
+				to: "/invitations/$invitationId",
+				params: { invitationId: search.invitationId },
+			});
+			return;
+		}
 		await navigate({ to: "/dashboard" });
 	}
 
@@ -106,13 +111,6 @@ function Signup() {
 			return;
 		}
 
-		if (search.invitationId) {
-			await navigate({
-				to: "/invitations/$invitationId",
-				params: { invitationId: search.invitationId },
-			});
-			return;
-		}
 		await createWorkspace(result.data.user);
 	}
 
@@ -131,16 +129,14 @@ function Signup() {
 		<AuthLayout
 			title={
 				registration.enabled || invitationSignup
-					? invitationSignup
-						? "Create your account"
-						: "Start your organization"
+					? "Create your account"
 					: "Sign-ups are currently closed"
 			}
 			description={
 				registration.enabled || invitationSignup
 					? invitationSignup
 						? `Create an account to join ${invitation.organizationName}.`
-						: "Create the owner account and workspace for your organization."
+						: "A Default Workspace will be created automatically for you."
 					: "An administrator has temporarily disabled new registrations."
 			}
 			footer={
@@ -157,67 +153,6 @@ function Signup() {
 			}
 		>
 			<form className="space-y-5" onSubmit={handleSubmit}>
-				{!invitationSignup ? (
-					<>
-						<div className="space-y-2">
-							<label
-								className="text-sm font-medium"
-								htmlFor="organization-name"
-							>
-								Organization name
-							</label>
-							<Input
-								id="organization-name"
-								name="organizationName"
-								placeholder="Your organization"
-								value={organizationName}
-								onValueChange={(value) => {
-									setOrganizationName(value);
-									setOrganizationSlug(
-										value
-											.toLowerCase()
-											.replace(/[^a-z0-9]+/g, "-")
-											.replace(/^-+|-+$/g, ""),
-									);
-								}}
-								required
-							/>
-						</div>
-						<div className="space-y-2">
-							<label
-								className="text-sm font-medium"
-								htmlFor="organization-slug"
-							>
-								Workspace slug
-							</label>
-							<Input
-								id="organization-slug"
-								name="organizationSlug"
-								pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-								placeholder="your-organization"
-								value={organizationSlug}
-								onValueChange={(value) =>
-									setOrganizationSlug(value.toLowerCase())
-								}
-								required
-							/>
-						</div>
-						{registration.defaultPlan ? (
-							<div className="rounded-lg border bg-muted/40 p-3 text-sm">
-								<p className="font-medium">
-									{registration.defaultPlan.name} plan
-								</p>
-								<p className="mt-1 text-muted-foreground">
-									Your organization starts with{" "}
-									{registration.defaultPlan.memberLimit} members,
-									{registration.defaultPlan.activeExamLimit} active exams, and{" "}
-									{registration.defaultPlan.monthlyAttemptLimit} monthly
-									attempts.
-								</p>
-							</div>
-						) : null}
-					</>
-				) : null}
 				<div className="space-y-2">
 					<label className="text-sm font-medium" htmlFor="full-name">
 						Full name
@@ -280,9 +215,7 @@ function Signup() {
 							? "Creating account…"
 							: createdUser
 								? "Set up workspace"
-								: invitationSignup
-									? "Create account"
-									: "Create organization"}
+								: "Create account"}
 				</Button>
 			</form>
 		</AuthLayout>
