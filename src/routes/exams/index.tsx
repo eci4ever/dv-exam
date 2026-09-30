@@ -34,6 +34,7 @@ function ExamsPage() {
 	const data = Route.useRouteContext();
 	const navigate = useNavigate();
 	const [search, setSearch] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [status, setStatus] = useState("published");
 	const [page, setPage] = useState(1);
 	const [result, setResult] = useState<Awaited<
@@ -42,11 +43,15 @@ function ExamsPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const load = useCallback(
-		async (next = page) => {
+		async (next: number) => {
 			setLoading(true);
 			setError(null);
 			try {
-				setResult(await listExams({ data: { search, status, page: next } }));
+				setResult(
+					await listExams({
+						data: { search: debouncedSearch, status, page: next },
+					}),
+				);
 			} catch (caught) {
 				setError(
 					caught instanceof Error ? caught.message : "Unable to load exams.",
@@ -55,14 +60,15 @@ function ExamsPage() {
 				setLoading(false);
 			}
 		},
-		[search, status, page],
+		[debouncedSearch, status],
 	);
 	useEffect(() => {
-		const timer = window.setTimeout(() => {
-			setPage(1);
-			void load(1);
-		}, 300);
+		const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
 		return () => window.clearTimeout(timer);
+	}, [search]);
+	useEffect(() => {
+		setPage(1);
+		void load(1);
 	}, [load]);
 	const columns = useMemo<ColumnDef<Row>[]>(
 		() => [

@@ -46,6 +46,7 @@ function QuestionBank() {
 	const data = Route.useRouteContext();
 	const navigate = useNavigate();
 	const [search, setSearch] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [type, setType] = useState("all");
 	const [difficulty, setDifficulty] = useState("all");
 	const [status, setStatus] = useState("active");
@@ -61,14 +62,14 @@ function QuestionBank() {
 	const [loading, setLoading] = useState(true);
 
 	const load = useCallback(
-		async (nextPage = page) => {
+		async (nextPage: number) => {
 			setLoading(true);
 			setError(null);
 			try {
 				setResult(
 					await listQuestions({
 						data: {
-							search,
+							search: debouncedSearch,
 							type,
 							difficulty,
 							status,
@@ -88,15 +89,17 @@ function QuestionBank() {
 				setLoading(false);
 			}
 		},
-		[search, type, difficulty, status, page, sortBy, sortDirection],
+		[debouncedSearch, type, difficulty, status, sortBy, sortDirection],
 	);
 
 	useEffect(() => {
-		const timer = window.setTimeout(() => {
-			setPage(1);
-			void load(1);
-		}, 300);
+		const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
 		return () => window.clearTimeout(timer);
+	}, [search]);
+
+	useEffect(() => {
+		setPage(1);
+		void load(1);
 	}, [load]);
 
 	const sort = useCallback(
@@ -190,7 +193,7 @@ function QuestionBank() {
 											await archiveQuestion({
 												data: { questionId: row.original.id },
 											});
-											await load();
+											await load(page);
 										}}
 									>
 										Continue
@@ -202,7 +205,7 @@ function QuestionBank() {
 				),
 			},
 		],
-		[navigate, status, sort, load],
+		[navigate, status, sort, load, page],
 	);
 	const table = useReactTable({
 		data: result?.rows ?? [],

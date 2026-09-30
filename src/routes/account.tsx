@@ -37,7 +37,7 @@ import {
 	revokeOtherAccountSessions,
 	updateAccountProfile,
 } from "@/lib/account";
-import { getDashboardSession } from "@/lib/session";
+import { getDashboardSession, invalidateDashboardSession } from "@/lib/session";
 
 export const Route = createFileRoute("/account")({
 	beforeLoad: async () => {
@@ -105,6 +105,7 @@ function AccountSettings() {
 		try {
 			await updateAccountProfile({ data: { name } });
 			setProfileState("Profile updated successfully.");
+			invalidateDashboardSession();
 			await router.invalidate();
 		} catch (error) {
 			setProfileState(messageFrom(error));

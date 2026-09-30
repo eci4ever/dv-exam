@@ -11,7 +11,7 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () =>
 	auth.api.getSession({ headers: getRequestHeaders() }),
 );
 
-export const getDashboardSession = createServerFn({ method: "GET" }).handler(
+const getDashboardSessionFromServer = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const headers = getRequestHeaders();
 		const session = await auth.api.getSession({ headers });
@@ -114,3 +114,60 @@ export const getDashboardSession = createServerFn({ method: "GET" }).handler(
 		};
 	},
 );
+
+type DashboardSession = Awaited<
+	ReturnType<typeof getDashboardSessionFromServer>
+>;
+
+const DASHBOARD_SESSION_CACHE_MS = 30_000;
+let cachedDashboardSession:
+	| {
+			value: DashboardSession;
+			expiresAt: number;
+	  }
+	| undefined;
+let pendingDashboardSession: Promise<DashboardSession> | undefined;
+let dashboardSessionCacheGeneration = 0;
+
+/**
+ * Reuse the workspace bootstrap briefly between client-side route guards.
+ * Server renders always load request-scoped data and never share this cache.
+ */
+export async function getDashboardSession(): Promise<DashboardSession> {
+	if (typeof window === "undefined") {
+		return getDashboardSessionFromServer();
+	}
+
+	const now = Date.now();
+	if (cachedDashboardSession && cachedDashboardSession.expiresAt > now) {
+		return cachedDashboardSession.value;
+	}
+	if (pendingDashboardSession) {
+		return pendingDashboardSession;
+	}
+
+	const generation = dashboardSessionCacheGeneration;
+	pendingDashboardSession = getDashboardSessionFromServer()
+		.then((value) => {
+			if (generation === dashboardSessionCacheGeneration) {
+				cachedDashboardSession = {
+					value,
+					expiresAt: Date.now() + DASHBOARD_SESSION_CACHE_MS,
+				};
+			}
+			return value;
+		})
+		.finally(() => {
+			if (generation === dashboardSessionCacheGeneration) {
+				pendingDashboardSession = undefined;
+			}
+		});
+
+	return pendingDashboardSession;
+}
+
+export function invalidateDashboardSession() {
+	dashboardSessionCacheGeneration += 1;
+	cachedDashboardSession = undefined;
+	pendingDashboardSession = undefined;
+}

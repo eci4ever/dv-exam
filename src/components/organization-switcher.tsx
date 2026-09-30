@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { formatOrganizationRole } from "@/lib/organization-permissions";
+import { invalidateDashboardSession } from "@/lib/session";
 
 interface Organization {
 	id: string;
@@ -59,6 +60,7 @@ export function OrganizationSwitcher({
 		const result = await authClient.organization.setActive({ organizationId });
 
 		if (!result.error) {
+			invalidateDashboardSession();
 			await router.invalidate();
 		}
 	}

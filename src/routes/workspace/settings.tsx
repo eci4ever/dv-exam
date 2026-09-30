@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { authClient } from "@/lib/auth-client";
-import { getDashboardSession } from "@/lib/session";
+import { getDashboardSession, invalidateDashboardSession } from "@/lib/session";
 import { getWorkspaceBilling } from "@/lib/workspace-billing";
 import {
 	deleteWorkspace,
@@ -124,6 +124,7 @@ function WorkspaceSettings() {
 		try {
 			await updateWorkspaceIdentity({ data: { name, slug } });
 			setFeedback("Workspace identity updated.");
+			invalidateDashboardSession();
 			await router.invalidate();
 		} catch (error) {
 			setFeedback(message(error));

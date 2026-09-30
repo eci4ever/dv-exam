@@ -24,6 +24,7 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { invalidateDashboardSession } from "@/lib/session";
 
 function initials(name: string) {
 	return name
@@ -57,6 +58,7 @@ export function NavUser({
 
 	async function signOut() {
 		await authClient.signOut();
+		invalidateDashboardSession();
 		await navigate({ to: "/" });
 	}
 
@@ -64,6 +66,7 @@ export function NavUser({
 		const result = await authClient.admin.stopImpersonating();
 
 		if (!result.error) {
+			invalidateDashboardSession();
 			window.location.assign("/dashboard");
 		}
 	}
